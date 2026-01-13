@@ -14,6 +14,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
   const location = useLocation();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname === path;
@@ -34,6 +35,10 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
     navigate('/login');
   };
 
+  const handleMobileLinkClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 h-20">
       <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
@@ -48,6 +53,17 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
           <span className="text-lg font-bold tracking-tight text-black font-display uppercase">The One</span>
         </Link>
 
+        {/* Hamburger Menu Button */}
+        <button
+          className="lg:hidden"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          <span className="material-symbols-outlined">
+            {isMobileMenuOpen ? 'close' : 'menu'}
+          </span>
+        </button>
+
+        {/* Desktop Menu */}
         <div className="hidden lg:flex items-center gap-10">
           <nav className="flex items-center gap-8 text-sm font-medium">
             <Link to="/" className={`${isActive('/') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>Homepage</Link>
@@ -64,7 +80,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                 <p className="text-sm font-bold leading-none">{currentUser.firstName} {currentUser.lastName}</p>
                 <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 hover:ring-2 hover:ring-black transition-all"
               >
@@ -119,6 +135,68 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
           )}
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden bg-white border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <nav className="flex flex-col gap-4 text-sm font-medium">
+                <Link to="/" onClick={handleMobileLinkClick} className={`${isActive('/') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Homepage</Link>
+                <Link to="/courses" onClick={handleMobileLinkClick} className={`${isActive('/courses') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Courses</Link>
+                <Link to="/coaches" onClick={handleMobileLinkClick} className={`${isActive('/coaches') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Coaches</Link>
+                <Link to="/contact" onClick={handleMobileLinkClick} className={`${isActive('/contact') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Contact</Link>
+            </nav>
+            <div className="h-px bg-gray-200 my-4"></div>
+            {isLoggedIn && currentUser ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <img src={currentUser.avatar} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                  <div>
+                    <p className="text-sm font-bold leading-none">{currentUser.firstName} {currentUser.lastName}</p>
+                    <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
+                  </div>
+                </div>
+                {currentUser.role === UserRole.ADMIN && (
+                    <Link to="/admin" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
+                      <span className="material-symbols-outlined text-[20px] filled">dashboard</span> Admin Dashboard
+                    </Link>
+                  )}
+                  {currentUser.role === UserRole.COACH && (
+                    <Link to="/coach" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
+                      <span className="material-symbols-outlined text-[20px] filled">fitness_center</span> Coach Dashboard
+                    </Link>
+                  )}
+                  {currentUser.role === UserRole.SUPPORT && (
+                    <Link to="/support" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
+                      <span className="material-symbols-outlined text-[20px] filled">support_agent</span> Support Dashboard
+                    </Link>
+                  )}
+                  <Link to="/profile" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">person</span> Profile
+                  </Link>
+                  <Link to="/profile/courses" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">school</span> My Courses
+                  </Link>
+                  <Link to="/profile/messages" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">chat_bubble</span> Messages
+                  </Link>
+                  <Link to="/profile/settings" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">settings</span> Settings
+                  </Link>
+                  <div className="h-px bg-gray-50 my-1"></div>
+                  <button onClick={() => { handleMobileLinkClick(); handleLogoutClick(); }} className="w-full flex items-center gap-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">logout</span> Logout
+                  </button>
+              </div>
+            ) : (
+                <div className="flex flex-col gap-4 text-sm font-bold">
+                    <Link to="/login" onClick={handleMobileLinkClick} className="text-black hover:text-gray-600 transition-colors">Login</Link>
+                    <Link to="/signup" onClick={handleMobileLinkClick} className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm text-center">Signup</Link>
+                </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 };
