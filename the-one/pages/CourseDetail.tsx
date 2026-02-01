@@ -1,30 +1,35 @@
 
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { COURSES, COACHES } from '../constants';
-import { User } from '../types';
+import { COACHES } from '../constants';
+import { User, Course } from '../types';
 
 interface CourseDetailProps {
   currentUser: User | null;
+  courses: Course[];
 }
 
-const CourseDetail: React.FC<CourseDetailProps> = ({ currentUser }) => {
+const CourseDetail: React.FC<CourseDetailProps> = ({ currentUser, courses }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const course = COURSES.find(c => c.id === id) || COURSES[0];
+  const course = courses.find(c => c.id === id);
   
   // Simulation check
   const isOwned = currentUser?.id === 'u1' && id === 'crs1';
   
-  const coach = COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]));
+  const coach = COACHES.find(c => c.name.includes(course?.instructor.split(' ')[0] || ''));
 
   const handleCurriculumClick = (weekIdx: number) => {
     if (isOwned) {
-      navigate(`/workout/${course.id}?week=${weekIdx + 1}`);
+      navigate(`/workout/${course?.id}?week=${weekIdx + 1}`);
     } else {
       alert("You must enroll in this program to access its sessions.");
     }
   };
+
+  if (!course) {
+    return <div>Course not found</div>
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500">

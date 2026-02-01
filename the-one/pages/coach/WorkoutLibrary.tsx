@@ -1,30 +1,30 @@
 
 import React, { useState, useRef, useMemo } from 'react';
-import { WORKOUT_LIBRARY, EXERCISE_LIBRARY } from '../../constants';
-import { WorkoutTemplate, Exercise, ExerciseFormat, MediaAsset, WeekProgram, DayProgram, User, UserRole } from '../../types';
+import { WorkoutTemplate, Exercise, ExerciseFormat, MediaAsset, WeekProgram, DayProgram, User, UserRole, ExerciseTemplate as ExTemplate } from '../../types';
 
 interface WorkoutLibraryProps {
   library: MediaAsset[];
   setLibrary: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
   currentUser: User;
+  workoutLibrary: WorkoutTemplate[];
+  setWorkoutLibrary: React.Dispatch<React.SetStateAction<WorkoutTemplate[]>>;
+  exerciseLibrary: ExTemplate[];
 }
 
-const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrary, currentUser }) => {
-  const [workouts, setWorkouts] = useState<WorkoutTemplate[]>(WORKOUT_LIBRARY);
+const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrary, currentUser, workoutLibrary, setWorkoutLibrary, exerciseLibrary }) => {
   const [editingWorkout, setEditingWorkout] = useState<WorkoutTemplate | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const displayWorkouts = useMemo(() => {
-    return workouts.filter(wo => {
+    return workoutLibrary.filter(wo => {
       const matchesSearch = wo.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            wo.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            wo.creatorName?.toLowerCase().includes(searchQuery.toLowerCase());
       const hasPermission = currentUser.role === UserRole.ADMIN || wo.isPublic || wo.creatorId === currentUser.id;
       return matchesSearch && hasPermission;
     });
-  }, [workouts, currentUser, searchQuery]);
+  }, [workoutLibrary, currentUser, searchQuery]);
 
   const [activeWo, setActiveWo] = useState<Partial<WorkoutTemplate>>({ 
     name: '', description: '', category: 'Strength', isPublic: true,
@@ -84,9 +84,9 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
     };
 
     if (editingWorkout) {
-      setWorkouts(workouts.map(w => w.id === completeWo.id ? completeWo : w));
+      setWorkoutLibrary(workoutLibrary.map(w => w.id === completeWo.id ? completeWo : w));
     } else {
-      setWorkouts([completeWo, ...workouts]);
+      setWorkoutLibrary([completeWo, ...workoutLibrary]);
     }
     setIsAdding(false);
     setEditingWorkout(null);
@@ -117,7 +117,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
     setActiveWo({ ...activeWo, weeks: currentWeeks });
   };
 
-  const selectFromExerciseLibrary = (libItem: typeof EXERCISE_LIBRARY[0]) => {
+  const selectFromExerciseLibrary = (libItem: ExTemplate) => {
     if (isPickerOpen.activeIndex !== null) {
       updateExercise(isPickerOpen.activeIndex, 'name', libItem.name);
       updateExercise(isPickerOpen.activeIndex, 'format', libItem.defaultFormat);
@@ -126,30 +126,6 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
       updateExercise(isPickerOpen.activeIndex, 'videoUrl', libItem.videoUrl);
       setIsPickerOpen({ type: 'exercise', activeIndex: null });
     }
-  };
-
-  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || isPickerOpen.activeIndex === null || !isPickerOpen.activeField) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const data = reader.result as string;
-      const newAsset: MediaAsset = { 
-        id: Math.random().toString(), 
-        type: file.type.startsWith('video') ? 'video' : 'image', 
-        data, 
-        name: file.name,
-        category: 'WORKOUT',
-        createdAt: Date.now(),
-        creatorId: currentUser.id,
-        creatorName: `${currentUser.firstName} ${currentUser.lastName}`
-      };
-      setLibrary([newAsset, ...library]);
-      updateExercise(isPickerOpen.activeIndex!, isPickerOpen.activeField!, data);
-      setIsPickerOpen({ type: 'exercise', activeIndex: null });
-    };
-    reader.readAsDataURL(file);
   };
 
   const activeDay = activeWo.weeks?.[activeWeekIdx]?.days[activeDayIdx];
@@ -197,7 +173,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
                     <button onClick={() => startEditing(wo)} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-black hover:text-white transition-all shadow-sm">
                       <span className="material-symbols-outlined text-xl">edit</span>
                     </button>
-                    <button onClick={() => setWorkouts(workouts.filter(w => w.id !== wo.id))} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                    <button onClick={() => setWorkoutLibrary(workoutLibrary.filter(w => w.id !== wo.id))} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition-all shadow-sm">
                       <span className="material-symbols-outlined text-xl">delete</span>
                     </button>
                   </div>
@@ -234,94 +210,113 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
 
       {/* Full Screen Builder Modal */}
       {isAdding && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 overflow-hidden">
-           <div className="bg-neutral-50 w-full max-w-[95%] rounded-[4rem] shadow-2xl overflow-hidden relative flex flex-col h-[95vh]">
-              <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-white shrink-0">
-                 <div className="text-left">
-                    <h3 className="text-3xl font-black font-display uppercase tracking-tight">{editingWorkout ? 'Refine' : 'Architect'} Blueprint</h3>
-                    <div className="flex gap-6 mt-4 items-center">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 overflow-hidden">
+           <div className="bg-neutral-50 w-full max-w-[100%] md:max-w-[95%] rounded-none md:rounded-[4rem] shadow-2xl overflow-hidden relative flex flex-col h-full md:h-[95vh]">
+              {/* COMPACT HEADER */}
+              <div className="p-3 md:p-10 border-b border-neutral-100 flex justify-between items-center bg-white shrink-0 gap-4">
+                 <div className="text-left flex-1">
+                    <h3 className="hidden md:block text-2xl font-black font-display uppercase tracking-tight">{editingWorkout ? 'Refine' : 'Architect'}</h3>
+                    <div className="flex gap-2 md:gap-6 items-center">
                        <input 
                           type="text" 
                           value={activeWo.name}
                           onChange={e => setActiveWo({ ...activeWo, name: e.target.value })}
                           placeholder="Blueprint Name..."
-                          className="text-lg font-black uppercase tracking-tight text-black bg-transparent outline-none focus:text-accent border-b-2 border-neutral-100 w-80" 
+                          className="text-sm md:text-lg font-black uppercase tracking-tight text-black bg-transparent outline-none focus:text-accent border-b border-neutral-100 w-full md:w-80" 
                        />
-                       <select 
-                          value={activeWo.category}
-                          onChange={e => setActiveWo({ ...activeWo, category: e.target.value })}
-                          className="bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none"
-                       >
-                          <option>Strength</option>
-                          <option>Metcon</option>
-                          <option>Gymnastics</option>
-                       </select>
-                       <div className="flex items-center gap-3 px-4 py-2 bg-neutral-50 rounded-xl border border-neutral-100">
-                          <p className="text-[9px] font-black uppercase text-neutral-400">Share with other coaches?</p>
-                          <div 
-                             onClick={() => setActiveWo({...activeWo, isPublic: !activeWo.isPublic})}
-                             className={`w-11 h-6 rounded-full relative transition-colors cursor-pointer ${activeWo.isPublic ? 'bg-accent' : 'bg-neutral-200'}`}
-                           >
-                             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${activeWo.isPublic ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                       <div className="hidden md:flex gap-4 items-center">
+                          <select 
+                             value={activeWo.category}
+                             onChange={e => setActiveWo({ ...activeWo, category: e.target.value })}
+                             className="bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none"
+                          >
+                             <option>Strength</option>
+                             <option>Metcon</option>
+                             <option>Gymnastics</option>
+                          </select>
+                          <div className="flex items-center gap-3 px-4 py-2 bg-neutral-50 rounded-xl border border-neutral-100">
+                             <p className="text-[9px] font-black uppercase text-neutral-400">Public</p>
+                             <div 
+                                onClick={() => setActiveWo({...activeWo, isPublic: !activeWo.isPublic})}
+                                className={`w-11 h-6 rounded-full relative transition-colors cursor-pointer shrink-0 ${activeWo.isPublic ? 'bg-accent' : 'bg-neutral-200'}`}
+                              >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${activeWo.isPublic ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                             </div>
                           </div>
                        </div>
                     </div>
                  </div>
-                 <div className="flex gap-4">
+                 <div className="flex gap-2 shrink-0">
                     <button 
                       onClick={handleSave}
-                      className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-all shadow-xl"
+                      className="px-4 md:px-10 py-3 md:py-5 bg-black text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2"
                     >
-                      Save Blueprint to Library
+                      <span className="material-symbols-outlined text-sm md:text-base">save</span>
+                      <span className="hidden md:inline">Save Blueprint</span>
                     </button>
-                    <button onClick={() => setIsAdding(false)} className="w-14 h-14 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm">
-                        <span className="material-symbols-outlined">close</span>
+                    <button onClick={() => setIsAdding(false)} className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                        <span className="material-symbols-outlined text-sm md:text-base">close</span>
                     </button>
                  </div>
               </div>
 
-              <div className="flex-1 overflow-hidden grid grid-cols-12">
-                 {/* Navigation Panel */}
-                 <div className="col-span-3 border-r border-neutral-100 p-8 space-y-6 bg-white overflow-y-auto no-scrollbar">
-                    <div className="flex items-center justify-between">
-                       <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Timeline Structure</h2>
-                       <button onClick={addWeek} className="text-accent hover:scale-110 transition-transform"><span className="material-symbols-outlined">add_circle</span></button>
-                    </div>
-                    <div className="space-y-4">
+              <div className="flex-1 overflow-hidden flex flex-col md:grid md:grid-cols-12">
+                 {/* NAVIGATION (Weeks & Days) */}
+                 <div className="md:col-span-2 border-r border-neutral-100 bg-white overflow-hidden flex flex-col shrink-0">
+                    <div className="p-3 md:p-6 flex md:flex-col overflow-x-auto md:overflow-y-auto no-scrollbar gap-2 border-b md:border-b-0 border-neutral-100">
+                       <button onClick={addWeek} className="hidden md:flex items-center justify-center p-2 mb-4 bg-accent/5 text-accent rounded-xl border border-accent/20 hover:bg-accent hover:text-white transition-all">
+                          <span className="material-symbols-outlined">add_circle</span>
+                       </button>
                        {activeWo.weeks?.map((week, wIdx) => (
-                          <div key={week.id} className="space-y-2 text-left">
-                             <button 
-                                onClick={() => { setActiveWeekIdx(wIdx); setActiveDayIdx(0); }}
-                                className={`w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeWeekIdx === wIdx ? 'bg-black text-white shadow-lg' : 'text-neutral-400 hover:bg-neutral-50'}`}
-                             >
-                                Week {week.weekNumber}
-                             </button>
-                             {activeWeekIdx === wIdx && (
-                                <div className="ml-4 border-l-2 border-neutral-100 pl-4 space-y-1 py-1">
-                                   {week.days.map((day, dIdx) => (
-                                      <button 
-                                        key={day.id} 
-                                        onClick={() => setActiveDayIdx(dIdx)}
-                                        className={`w-full text-left px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:text-black'}`}
-                                      >
-                                         Day {day.dayNumber}: {day.title}
-                                      </button>
-                                   ))}
-                                   <button onClick={addDay} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-accent">+ Add Day</button>
-                                </div>
-                             )}
-                          </div>
+                          <button 
+                            key={week.id} 
+                            onClick={() => { setActiveWeekIdx(wIdx); setActiveDayIdx(0); }}
+                            className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeWeekIdx === wIdx ? 'bg-black text-white shadow-md' : 'text-neutral-400 bg-neutral-50 hover:bg-neutral-100'}`}
+                          >
+                            W{week.weekNumber}
+                          </button>
                        ))}
+                       <button onClick={addWeek} className="md:hidden flex items-center justify-center px-3 py-2 bg-accent/5 text-accent rounded-lg border border-accent/20">
+                          <span className="material-symbols-outlined text-sm">add</span>
+                       </button>
+                    </div>
+                    
+                    {/* Days within active week (Mobile Only row) */}
+                    <div className="md:hidden flex overflow-x-auto no-scrollbar px-3 py-2 bg-neutral-50/50 gap-2 border-b border-neutral-100">
+                        {activeWo.weeks?.[activeWeekIdx]?.days.map((day, dIdx) => (
+                            <button 
+                              key={day.id} 
+                              onClick={() => setActiveDayIdx(dIdx)}
+                              className={`whitespace-nowrap px-3 py-1.5 rounded-md text-[8px] font-black uppercase tracking-tight transition-all shrink-0 ${activeDayIdx === dIdx ? 'text-white bg-accent shadow-sm' : 'text-neutral-400 bg-white border border-neutral-100'}`}
+                            >
+                                D{day.dayNumber}
+                            </button>
+                        ))}
+                        <button onClick={addDay} className="whitespace-nowrap px-3 py-1.5 rounded-md text-[8px] font-black uppercase tracking-tight text-accent bg-accent/5 border border-accent/20 shrink-0">+ D</button>
+                    </div>
+
+                    {/* Desktop Days List */}
+                    <div className="hidden md:block flex-1 overflow-y-auto p-4 space-y-1">
+                        {activeWo.weeks?.[activeWeekIdx]?.days.map((day, dIdx) => (
+                            <button 
+                                key={day.id} 
+                                onClick={() => setActiveDayIdx(dIdx)}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:bg-neutral-50'}`}
+                            >
+                                Day {day.dayNumber}
+                            </button>
+                        ))}
+                        <button onClick={addDay} className="w-full text-left px-3 py-2 text-[10px] font-black uppercase text-neutral-300 hover:text-accent">+ Add Day</button>
                     </div>
                  </div>
 
-                 {/* Builder Panel */}
-                 <div className="col-span-9 p-12 overflow-y-auto no-scrollbar space-y-10 bg-neutral-50">
+                 {/* BUILDER PANEL */}
+                 <div className="md:col-span-10 p-4 md:p-10 overflow-y-auto no-scrollbar space-y-6 md:space-y-10 bg-neutral-50 flex-1">
                     {activeDay ? (
                        <>
-                          <div className="flex items-center justify-between border-b border-neutral-100 pb-8 text-left">
-                             <div className="space-y-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-accent">Structuring: W{activeWeekIdx+1}D{activeDayIdx+1}</span>
+                          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-neutral-100 pb-4 md:pb-8 text-left gap-4">
+                             <div className="space-y-1 flex-1">
+                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-accent">Structuring: W{activeWeekIdx+1}D{activeDayIdx+1}</span>
                                 <input 
                                    type="text" 
                                    value={activeDay.title}
@@ -330,81 +325,76 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
                                       nextWeeks[activeWeekIdx].days[activeDayIdx].title = e.target.value;
                                       setActiveWo({...activeWo, weeks: nextWeeks});
                                    }}
-                                   className="text-4xl font-black uppercase tracking-tight text-black bg-transparent outline-none w-full"
-                                   placeholder="Day Focus Objectives..."
+                                   className="text-lg md:text-4xl font-black uppercase tracking-tight text-black bg-transparent outline-none w-full"
+                                   placeholder="Day Title..."
                                 />
                              </div>
                              <button 
                                onClick={addExercise}
-                               className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all shadow-xl flex items-center gap-2"
+                               className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-black text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all shadow-xl flex items-center justify-center gap-2"
                              >
-                               <span className="material-symbols-outlined text-lg">add</span>
-                               Add Exercise Block
+                               <span className="material-symbols-outlined text-base md:text-lg">add</span>
+                               Add Exercise
                              </button>
                           </div>
-                          <div className="space-y-6">
-                             {activeDay.exercises.map((ex, exIdx) => {
-                                const isSuperSet = ex.format === 'SUPER_SET';
-                                const nextIsSS = activeDay.exercises[exIdx+1]?.format === 'SUPER_SET';
-                                const prevIsSS = activeDay.exercises[exIdx-1]?.format === 'SUPER_SET';
-                                const inSS = isSuperSet && (nextIsSS || prevIsSS);
-
-                                return (
-                                  <div key={ex.id} className={`p-8 rounded-[2.5rem] border transition-all relative group space-y-8 text-left ${inSS ? 'bg-blue-50/50 border-blue-300 border-l-[16px] border-l-blue-500' : 'bg-white border-neutral-100 shadow-sm'}`}>
-                                     <div className="absolute top-6 right-6 flex items-center gap-4">
-                                        <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: exIdx })} className="text-[10px] font-black uppercase text-accent hover:underline">Exercise Master</button>
-                                        <button onClick={() => removeExercise(exIdx)} className="text-neutral-300 hover:text-red-500 transition-colors">
-                                           <span className="material-symbols-outlined">delete</span>
+                          <div className="space-y-4 md:space-y-6">
+                             {activeDay.exercises.map((ex, exIdx) => (
+                                <div key={ex.id} className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] bg-white border border-neutral-100 shadow-sm relative group space-y-6 text-left transition-all hover:shadow-md">
+                                     <div className="absolute top-4 md:top-6 right-4 md:right-6 flex items-center gap-2">
+                                        <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: exIdx })} className="p-2 text-accent hover:bg-accent/5 rounded-lg transition-all">
+                                           <span className="material-symbols-outlined text-lg">category</span>
+                                        </button>
+                                        <button onClick={() => removeExercise(exIdx)} className="p-2 text-neutral-300 hover:text-red-500 rounded-lg transition-all">
+                                           <span className="material-symbols-outlined text-lg">delete</span>
                                         </button>
                                      </div>
-                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-6">
-                                           <div className="grid grid-cols-2 gap-4">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-4">
+                                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                               <div className="space-y-1">
-                                                 <label className="text-[9px] font-black text-neutral-300 uppercase ml-1">Exercise</label>
-                                                 <input type="text" value={ex.name} onChange={e => updateExercise(exIdx, 'name', e.target.value)} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 font-bold text-sm outline-none" />
+                                                 <label className="text-[8px] font-black text-neutral-300 uppercase ml-1">Name</label>
+                                                 <input type="text" value={ex.name} onChange={e => updateExercise(exIdx, 'name', e.target.value)} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-2.5 font-bold text-xs outline-none" />
                                               </div>
                                               <div className="space-y-1">
-                                                 <label className="text-[9px] font-black text-neutral-300 uppercase ml-1">Format</label>
-                                                 <select value={ex.format} onChange={e => updateExercise(exIdx, 'format', e.target.value as any)} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 font-black text-[10px] uppercase outline-none">
+                                                 <label className="text-[8px] font-black text-neutral-300 uppercase ml-1">Format</label>
+                                                 <select value={ex.format} onChange={e => updateExercise(exIdx, 'format', e.target.value as any)} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-2.5 font-black text-[9px] uppercase outline-none">
                                                     <option value="REGULAR">Regular</option>
                                                     <option value="SUPER_SET">Super Set</option>
                                                     <option value="EMOM">EMOM</option>
                                                  </select>
                                               </div>
                                            </div>
-                                           <div className="grid grid-cols-3 gap-4">
+                                           <div className="grid grid-cols-3 gap-2">
                                               {['sets', 'reps', 'rest'].map(f => (
                                                 <div key={f} className="text-center">
-                                                   <label className="text-[9px] font-black text-neutral-300 uppercase">{f}</label>
-                                                   <input type="text" value={(ex as any)[f]} onChange={e => updateExercise(exIdx, f as any, e.target.value)} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-2 text-center font-black outline-none" />
+                                                   <label className="text-[8px] font-black text-neutral-300 uppercase">{f}</label>
+                                                   <input type="text" value={(ex as any)[f]} onChange={e => updateExercise(exIdx, f as any, e.target.value)} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-2 text-center font-black text-[10px] outline-none" />
                                                 </div>
                                               ))}
                                            </div>
                                         </div>
                                         <div className="space-y-4">
-                                           <div className="grid grid-cols-2 gap-4">
-                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'imageUrl' })} className={`flex flex-col items-center justify-center p-4 rounded-xl transition-all ${ex.imageUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
-                                                 <span className="material-symbols-outlined text-[20px]">{ex.imageUrl ? 'check_circle' : 'image'}</span>
-                                                 <span className="text-[8px] font-black uppercase">Photo Ref</span>
+                                           <div className="grid grid-cols-2 gap-3">
+                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all ${ex.imageUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
+                                                 <span className="material-symbols-outlined text-base">{ex.imageUrl ? 'check' : 'image'}</span>
+                                                 <span className="text-[8px] font-black uppercase">Photo</span>
                                               </button>
-                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'videoUrl' })} className={`flex flex-col items-center justify-center p-4 rounded-xl transition-all ${ex.videoUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
-                                                 <span className="material-symbols-outlined text-[20px]">{ex.videoUrl ? 'check_circle' : 'videocam'}</span>
-                                                 <span className="text-[8px] font-black uppercase">Video Demo</span>
+                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all ${ex.videoUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
+                                                 <span className="material-symbols-outlined text-base">{ex.videoUrl ? 'check' : 'videocam'}</span>
+                                                 <span className="text-[8px] font-black uppercase">Video</span>
                                               </button>
                                            </div>
-                                           <textarea rows={2} value={ex.description} onChange={e => updateExercise(exIdx, 'description', e.target.value)} placeholder="Blueprint Guidance..." className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 text-[11px] font-medium resize-none outline-none" />
+                                           <textarea rows={1} value={ex.description} onChange={e => updateExercise(exIdx, 'description', e.target.value)} placeholder="Guidance..." className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-2.5 text-[10px] font-medium resize-none outline-none" />
                                         </div>
                                      </div>
                                   </div>
-                                );
-                             })}
+                             ))}
                           </div>
                        </>
                     ) : (
-                       <div className="h-full flex flex-col items-center justify-center text-neutral-200">
-                          <span className="material-symbols-outlined text-8xl mb-4">architecture</span>
-                          <p className="font-black uppercase tracking-widest text-sm">Select a timeline entry to begin structuring</p>
+                       <div className="h-full flex flex-col items-center justify-center text-neutral-200 py-10">
+                          <span className="material-symbols-outlined text-5xl md:text-8xl mb-4">architecture</span>
+                          <p className="font-black uppercase tracking-widest text-[9px] md:text-sm text-center">Select week & day to begin</p>
                        </div>
                     )}
                  </div>
@@ -415,19 +405,19 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
 
       {/* Shared Pickers */}
       {isPickerOpen.activeIndex !== null && isPickerOpen.type === 'exercise' && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 overflow-hidden">
-           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[80vh]">
-              <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left">
-                 <h3 className="text-2xl font-black font-display uppercase text-black text-left">Exercise Master Source</h3>
-                 <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300 overflow-hidden">
+           <div className="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[80vh]">
+              <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left">
+                 <h3 className="text-xl font-black font-display uppercase text-black">Master Library</h3>
+                 <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
                    <span className="material-symbols-outlined">close</span>
                  </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-10 no-scrollbar space-y-4">
-                 {EXERCISE_LIBRARY.map(item => (
-                    <button key={item.id} onClick={() => selectFromExerciseLibrary(item)} className="w-full flex items-center justify-between p-6 bg-neutral-50 rounded-[2rem] border border-neutral-100 hover:border-black transition-all group">
-                       <div className="text-left space-y-1"><p className="text-lg font-black text-black uppercase tracking-tight">{item.name}</p><p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{item.defaultFormat}</p></div>
-                       <span className="material-symbols-outlined text-neutral-300 group-hover:text-black">playlist_add</span>
+              <div className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar space-y-3">
+                 {exerciseLibrary.map(item => (
+                    <button key={item.id} onClick={() => selectFromExerciseLibrary(item)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group">
+                       <div className="text-left"><p className="text-sm font-black text-black uppercase tracking-tight">{item.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{item.defaultFormat}</p></div>
+                       <span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span>
                     </button>
                  ))}
               </div>

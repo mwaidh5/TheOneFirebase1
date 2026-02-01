@@ -1,11 +1,16 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { COURSES } from '../../constants';
+import { Course } from '../../types';
 
-const CoachCourses: React.FC = () => {
-  // Mocking only courses for this specific coach
-  const coachCourses = COURSES.filter(c => c.instructor === 'Alex Mercer');
+interface CoachCoursesProps {
+  courses: Course[];
+  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+}
+
+const CoachCourses: React.FC<CoachCoursesProps> = ({ courses, setCourses }) => {
+  // Showing all courses for consistency, you can filter by instructor if needed
+  const coachCourses = courses;
 
   return (
     <div className="space-y-12">
@@ -73,7 +78,6 @@ const CoachCourses: React.FC = () => {
           </div>
         ))}
         
-        {/* Empty State / Add New Card */}
         <Link to="/coach/courses/new" className="bg-neutral-50 rounded-[2.5rem] border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center p-12 text-neutral-300 hover:border-black hover:text-black transition-all group min-h-[400px]">
            <span className="material-symbols-outlined text-6xl mb-4 group-hover:rotate-90 transition-transform duration-500">add</span>
            <p className="text-sm font-black uppercase tracking-[0.2em]">Build Another track</p>

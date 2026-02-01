@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 import { User, UserRole } from '../types';
 
 interface SignupProps {
@@ -10,6 +12,7 @@ interface SignupProps {
 const Signup: React.FC<SignupProps> = ({ onSignup }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [signupError, setSignupError] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -18,40 +21,37 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
     password: '',
   });
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setSignupError('');
 
-    setTimeout(() => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const firebaseUser = userCredential.user;
+
       const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: firebaseUser.uid,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
-        role: UserRole.CLIENT,
-        avatar: `https://i.pravatar.cc/150?u=${formData.email}`,
+        email: firebaseUser.email || '',
+        role: formData.email.toLowerCase() === 'mwaidh@yahoo.com' ? UserRole.ADMIN : UserRole.CLIENT,
+        avatar: `https://i.pravatar.cc/150?u=${firebaseUser.uid}`,
         memberSince: new Date().getFullYear().toString(),
         level: 'Athlete',
       };
 
-      // Also add to the persistent user management list
-      const storedUsers = JSON.parse(localStorage.getItem('ironpulse_users') || '[]');
-      storedUsers.push({
-        id: newUser.id,
-        name: `${newUser.firstName} ${newUser.lastName}`,
-        email: newUser.email,
-        phone: formData.phone,
-        status: 'Active',
-        role: 'Athlete',
-        systemRole: UserRole.CLIENT,
-        lastSeen: 'Just now'
-      });
-      localStorage.setItem('ironpulse_users', JSON.stringify(storedUsers));
-
       onSignup(newUser);
+      if (newUser.role === UserRole.ADMIN) {
+        navigate('/admin');
+      } else {
+        navigate('/profile');
+      }
+    } catch (error: any) {
+      setSignupError(error.message);
+    } finally {
       setIsLoading(false);
-      navigate('/profile');
-    }, 1500);
+    }
   };
 
   return (
@@ -128,6 +128,12 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
               />
             </div>
           </div>
+          
+          {signupError && (
+              <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-shake">
+                {signupError}
+              </p>
+            )}
 
           <div className="pt-2">
             <button 

@@ -1,16 +1,16 @@
 
 import React, { useState, useRef, useMemo } from 'react';
-import { EXERCISE_LIBRARY } from '../../constants';
 import { ExerciseTemplate, ExerciseFormat, MediaAsset, User, UserRole } from '../../types';
 
 interface ExerciseLibraryProps {
   library: MediaAsset[];
   setLibrary: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
   currentUser: User;
+  exerciseLibrary: ExerciseTemplate[];
+  setExerciseLibrary: React.Dispatch<React.SetStateAction<ExerciseTemplate[]>>;
 }
 
-const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibrary, currentUser }) => {
-  const [exercises, setExercises] = useState<ExerciseTemplate[]>(EXERCISE_LIBRARY);
+const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibrary, currentUser, exerciseLibrary, setExerciseLibrary }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,13 +19,13 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const displayExercises = useMemo(() => {
-    return exercises.filter(ex => {
+    return exerciseLibrary.filter(ex => {
       const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            ex.creatorName?.toLowerCase().includes(searchQuery.toLowerCase());
       const hasPermission = currentUser.role === UserRole.ADMIN || ex.isPublic || ex.creatorId === currentUser.id;
       return matchesSearch && hasPermission;
     });
-  }, [exercises, currentUser, searchQuery]);
+  }, [exerciseLibrary, currentUser, searchQuery]);
 
   const startAdding = () => {
     setEditingId(null);
@@ -43,7 +43,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
     if (!newEx.name) return;
     
     if (editingId) {
-      setExercises(exercises.map(ex => ex.id === editingId ? { ...ex, ...newEx } as ExerciseTemplate : ex));
+      setExerciseLibrary(exerciseLibrary.map(ex => ex.id === editingId ? { ...ex, ...newEx } as ExerciseTemplate : ex));
     } else {
       const item: ExerciseTemplate = {
         id: Math.random().toString(36).substr(2, 9),
@@ -56,7 +56,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
         creatorId: currentUser.id,
         creatorName: `${currentUser.firstName} ${currentUser.lastName}`
       };
-      setExercises([...exercises, item]);
+      setExerciseLibrary([...exerciseLibrary, item]);
     }
     
     setIsAdding(false);
@@ -98,7 +98,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
 
   const removeEx = (id: string) => {
     if (window.confirm("Delete this master Exercise from the library?")) {
-      setExercises(exercises.filter(ex => ex.id !== id));
+      setExerciseLibrary(exerciseLibrary.filter(ex => ex.id !== id));
     }
   };
 

@@ -1,9 +1,13 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { COURSES } from '../constants';
+import { Course } from '../types';
 
-const Courses: React.FC = () => {
+interface CoursesProps {
+  courses: Course[];
+}
+
+const Courses: React.FC<CoursesProps> = ({ courses }) => {
   const navigate = useNavigate();
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [quizStep, setQuizStep] = useState(0);
@@ -46,9 +50,9 @@ const Courses: React.FC = () => {
 
   const getRecommendation = () => {
     // Basic logic to find a match or return default
-    const recommended = COURSES.find(c => 
+    const recommended = courses.find(c => 
       c.category === answers.goal || c.level.includes(answers.level as any)
-    ) || COURSES[0];
+    ) || courses[0];
     return recommended;
   };
 
@@ -103,12 +107,12 @@ const Courses: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h2 className="text-4xl font-black text-black font-display tracking-tight uppercase">Training Tracks</h2>
-            <p className="text-neutral-400 text-sm font-medium mt-2 uppercase tracking-widest">Showing {COURSES.length} Elite Programs</p>
+            <p className="text-neutral-400 text-sm font-medium mt-2 uppercase tracking-widest">Showing {courses.length} Elite Programs</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          {COURSES.map(course => {
+          {courses.map(course => {
             const isOwned = ownedCourseIds.includes(course.id);
             return (
               <Link key={course.id} to={`/courses/${course.id}`} className="group bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col">

@@ -114,16 +114,21 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
   };
 
   return (
-    <div className="space-y-10 text-left pb-20 animate-in fade-in duration-500">
+    <div className="space-y-6 sm:space-y-10 text-left pb-20 animate-in fade-in duration-500">
+        <button onClick={() => navigate(-1)} className="md:hidden flex items-center gap-2 text-neutral-500 hover:text-black transition-colors -ml-2">
+            <span className="material-symbols-outlined">arrow_back_ios_new</span>
+            <span className="text-sm font-bold">Back</span>
+        </button>
+
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-accent animate-pulse filled">auto_awesome</span>
-            <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">AI Architect</h1>
+            <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-black uppercase">AI Architect</h1>
           </div>
-          <p className="text-neutral-400 font-medium">Global Site Reconstruction and Logic Repair Interface.</p>
+          <p className="text-neutral-400 font-medium text-sm sm:text-base">Global Site Reconstruction and Logic Repair Interface.</p>
         </div>
-        <div className="flex gap-4">
+        <div className="hidden sm:flex gap-4">
           <button 
             onClick={handleFinalize}
             className="px-6 py-4 bg-white border border-neutral-200 text-black font-black text-[10px] rounded-xl hover:bg-neutral-50 transition-all shadow-sm uppercase tracking-widest flex items-center gap-2"
@@ -138,9 +143,9 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
         {/* Terminal Window */}
-        <div className="lg:col-span-8 flex flex-col h-[600px] bg-neutral-950 rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden">
+        <div className="lg:col-span-8 flex flex-col h-[500px] sm:h-[600px] bg-neutral-950 rounded-3xl sm:rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden">
           <div className="bg-neutral-900 px-6 py-4 flex items-center justify-between border-b border-white/5">
             <div className="flex gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
@@ -150,7 +155,7 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
             <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Architect Console @ The One</p>
           </div>
           
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-4 font-mono text-sm no-scrollbar">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 font-mono text-xs sm:text-sm no-scrollbar">
             {logs.map((log, i) => (
               <div key={i} className={`flex gap-4 animate-in slide-in-from-left-2 duration-300`}>
                 <span className={`shrink-0 text-[10px] font-black opacity-30 mt-1`}>[{log.timestamp}]</span>
@@ -172,19 +177,19 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
             )}
           </div>
 
-          <form onSubmit={handleCommand} className="p-6 bg-neutral-900 border-t border-white/5 flex gap-4">
+          <form onSubmit={handleCommand} className="p-4 sm:p-6 bg-neutral-900 border-t border-white/5 flex gap-4">
             <input 
               type="text" 
               value={command}
               onChange={(e) => setCommand(e.target.value)}
-              placeholder="Enter architectural command... (e.g. 'Shift branding to dark mode')"
+              placeholder="Enter architectural command..."
               className="flex-1 bg-transparent border-none outline-none text-white font-mono text-sm placeholder:text-neutral-600"
               disabled={isProcessing}
             />
             <button 
               type="submit"
               disabled={isProcessing || !command}
-              className="w-12 h-12 rounded-xl bg-accent text-white flex items-center justify-center hover:bg-blue-600 transition-all disabled:opacity-50"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-accent text-white flex items-center justify-center hover:bg-blue-600 transition-all disabled:opacity-50"
             >
               <span className="material-symbols-outlined">send</span>
             </button>
@@ -192,9 +197,9 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
         </div>
 
         {/* Sidebar Diagnostics */}
-        <div className="lg:col-span-4 space-y-8">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-8">
-            <h3 className="text-xl font-bold font-display uppercase tracking-tight flex items-center gap-3">
+        <div className="lg:col-span-4 space-y-6 sm:space-y-8">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl sm:rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-8">
+            <h3 className="text-lg sm:text-xl font-bold font-display uppercase tracking-tight flex items-center gap-3">
               <span className="material-symbols-outlined text-accent">health_metrics</span> Core Diagnostics
             </h3>
             
@@ -217,9 +222,9 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
             </div>
           </div>
 
-          <div className="bg-black text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+          <div className="bg-black text-white p-8 sm:p-10 rounded-3xl sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
             <div className="relative z-10 space-y-6">
-              <h3 className="text-2xl font-black font-display uppercase tracking-tight">AI Memory Core</h3>
+              <h3 className="text-xl sm:text-2xl font-black font-display uppercase tracking-tight">AI Memory Core</h3>
               <p className="text-neutral-400 text-xs leading-relaxed">
                 The Architect remembers your previous structural changes to ensure that new logic fixes don't conflict with existing branding.
               </p>
@@ -228,7 +233,7 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
                 <p className="text-xs font-mono text-accent">CMS_GLOBAL_OVERRIDE_V4</p>
               </div>
             </div>
-            <span className="material-symbols-outlined text-[120px] absolute -bottom-10 -right-10 text-white/5 group-hover:rotate-12 transition-transform duration-1000">memory</span>
+            <span className="material-symbols-outlined text-9xl sm:text-[120px] absolute -bottom-6 -right-6 sm:-bottom-10 sm:-right-10 text-white/5 group-hover:rotate-12 transition-transform duration-1000">memory</span>
           </div>
         </div>
       </div>

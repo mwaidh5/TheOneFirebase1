@@ -1,9 +1,21 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { COURSES } from '../../constants';
+import { Course } from '../../types';
 
-const AdminCourses: React.FC = () => {
+interface AdminCoursesProps {
+  courses: Course[];
+  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+}
+
+const AdminCourses: React.FC<AdminCoursesProps> = ({ courses, setCourses }) => {
+  const handleDeleteCourse = (courseId: string) => {
+    if (window.confirm("Are you sure you want to delete this course?")) {
+      const updatedCourses = courses.filter(course => course.id !== courseId);
+      setCourses(updatedCourses);
+    }
+  };
+
   return (
     <div className="space-y-12">
       <div className="flex justify-between items-end">
@@ -18,7 +30,7 @@ const AdminCourses: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {COURSES.map(course => (
+        {courses.map(course => (
           <div key={course.id} className="bg-white rounded-[2.5rem] border border-neutral-100 overflow-hidden shadow-lg flex flex-col group">
             <div className="h-48 relative overflow-hidden">
               <img src={course.image} alt={course.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -26,7 +38,7 @@ const AdminCourses: React.FC = () => {
                 <Link to={`/admin/courses/edit/${course.id}`} className="bg-white/90 p-2 rounded-xl text-black hover:bg-white transition-all shadow-sm">
                   <span className="material-symbols-outlined text-lg">edit</span>
                 </Link>
-                <button className="bg-red-500/90 p-2 rounded-xl text-white hover:bg-red-600 transition-all shadow-sm">
+                <button onClick={() => handleDeleteCourse(course.id)} className="bg-red-500/90 p-2 rounded-xl text-white hover:bg-red-600 transition-all shadow-sm">
                   <span className="material-symbols-outlined text-lg">delete</span>
                 </button>
               </div>

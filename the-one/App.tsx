@@ -58,13 +58,25 @@ import SupportDashboard from './pages/support/Dashboard';
 import SupportSubscriptions from './pages/support/Subscriptions';
 import SupportCourseCatalog from './pages/support/CourseCatalog';
 import SupportDiagnosticLogic from './pages/support/DiagnosticLogic';
-import { User, UserRole, MediaAsset } from './types';
-import { MOCK_USER, MOCK_ADMIN } from './constants';
+import { User, UserRole, MediaAsset, Course, ExerciseTemplate, WorkoutTemplate, MealPlan as MealPlanType } from './types';
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // PERSIST CURRENT USER
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('theone_auth_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [originalAdmin, setOriginalAdmin] = useState<User | null>(null);
   
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('theone_auth_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('theone_auth_user');
+    }
+  }, [currentUser]);
+
   // Persistence Logic for Site Settings
   const [siteSettings, setSiteSettings] = useState(() => {
     const saved = localStorage.getItem('ironpulse_site_settings');
@@ -91,6 +103,42 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('ironpulse_media_library', JSON.stringify(mediaLibrary));
   }, [mediaLibrary]);
+
+  const [courses, setCourses] = useState<Course[]>(() => {
+    const saved = localStorage.getItem('courses');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('courses', JSON.stringify(courses));
+  }, [courses]);
+
+  const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseTemplate[]>(() => {
+    const saved = localStorage.getItem('ironpulse_exercise_library');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ironpulse_exercise_library', JSON.stringify(exerciseLibrary));
+  }, [exerciseLibrary]);
+
+  const [workoutLibrary, setWorkoutLibrary] = useState<WorkoutTemplate[]>(() => {
+    const saved = localStorage.getItem('ironpulse_workout_library');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ironpulse_workout_library', JSON.stringify(workoutLibrary));
+  }, [workoutLibrary]);
+
+  const [mealPlanLibrary, setMealPlanLibrary] = useState<MealPlanType[]>(() => {
+    const saved = localStorage.getItem('ironpulse_meal_library');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ironpulse_meal_library', JSON.stringify(mealPlanLibrary));
+  }, [mealPlanLibrary]);
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -135,11 +183,10 @@ const App: React.FC = () => {
         <Navbar isLoggedIn={isLoggedIn} currentUser={currentUser} onLogout={handleLogout} logo={siteSettings.logo} />
         <main className="flex-grow flex flex-col">
           <Routes>
-            {/* Homepage is now public */}
             <Route path="/" element={<Homepage settings={siteSettings} />} />
             
-            <Route path="/courses" element={<Courses />} />
-            <Route path="/courses/:id" element={<CourseDetail currentUser={currentUser} />} />
+            <Route path="/courses" element={<Courses courses={courses} />} />
+            <Route path="/courses/:id" element={<CourseDetail currentUser={currentUser} courses={courses} />} />
             <Route path="/custom-course" element={<CustomCourse currentUser={currentUser} />} />
             <Route path="/athlete/diagnostic/:id" element={<AthleteDiagnostics currentUser={currentUser} />} />
             <Route path="/coaches" element={<Coaches />} />
@@ -170,13 +217,13 @@ const App: React.FC = () => {
               <Route path="orders" element={<AdminOrders />} />
               <Route path="financials" element={<AdminFinancials />} />
               <Route path="coupons" element={<AdminCoupons />} />
-              <Route path="courses" element={<AdminCourses />} />
-              <Route path="courses/new" element={<AdminAddCourse />} />
-              <Route path="courses/edit/:id" element={<AdminAddCourse />} />
+              <Route path="courses" element={<AdminCourses courses={courses} setCourses={setCourses} />} />
+              <Route path="courses/new" element={<AdminAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
+              <Route path="courses/edit/:id" element={<AdminAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
               <Route path="payment-gateway" element={<PaymentSettings />} />
-              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
-              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
-              <Route path="meal-library" element={<CoachMealLibrary currentUser={currentUser!} />} />
+              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} setLibrary={setMediaLibrary} exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} setLibrary={setMediaLibrary} workoutLibrary={workoutLibrary} setWorkoutLibrary={setWorkoutLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} setMealPlanLibrary={setMealPlanLibrary} currentUser={currentUser!} />} />
               <Route path="media" element={<AdminMediaLibrary library={mediaLibrary} setLibrary={setMediaLibrary} />} />
               <Route path="activity" element={<AdminActivityFeed />} />
               <Route path="architect" element={<AdminAiArchitect siteSettings={siteSettings} setSiteSettings={setSiteSettings} onLogout={handleLogout} />} />
@@ -192,15 +239,15 @@ const App: React.FC = () => {
               <Route path="athletes" element={<CoachAthletes />} />
               <Route path="custom-cycles" element={<CoachCustomCycles />} />
               <Route path="global-questions" element={<CoachGlobalQuestions />} />
-              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
-              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
-              <Route path="meal-library" element={<CoachMealLibrary currentUser={currentUser!} />} />
+              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} setLibrary={setMediaLibrary} exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} setLibrary={setMediaLibrary} workoutLibrary={workoutLibrary} setWorkoutLibrary={setWorkoutLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} setMealPlanLibrary={setMealPlanLibrary} currentUser={currentUser!} />} />
               <Route path="media" element={<CoachMediaLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
               <Route path="analytics" element={<CoachAnalytics />} />
-              <Route path="courses" element={<CoachCourses />} />
-              <Route path="courses/new" element={<CoachAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} />} />
+              <Route path="courses" element={<CoachCourses courses={courses} setCourses={setCourses} />} />
+              <Route path="courses/new" element={<CoachAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
               <Route path="programmer/:requestId" element={<CoachCustomProgrammer library={mediaLibrary} setLibrary={setMediaLibrary} />} />
-              <Route path="courses/edit/:id" element={<CoachAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} />} />
+              <Route path="courses/edit/:id" element={<CoachAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
             </Route>
 
             <Route path="/support" element={currentUser?.role === UserRole.SUPPORT ? <SupportLayout /> : <Navigate to="/" />}>
