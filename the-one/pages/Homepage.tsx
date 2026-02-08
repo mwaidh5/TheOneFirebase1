@@ -1,7 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { COURSES, COACHES } from '../constants';
+import { collection, onSnapshot, query, limit } from 'firebase/firestore';
+import { db } from '../firebase';
+import { Course } from '../types';
 
 interface HomepageProps {
   settings: {
@@ -13,6 +15,16 @@ interface HomepageProps {
 }
 
 const Homepage: React.FC<HomepageProps> = ({ settings }) => {
+  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'courses'), limit(3));
+    const unsub = onSnapshot(q, (snapshot) => {
+      setFeaturedCourses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course)));
+    });
+    return () => unsub();
+  }, []);
+
   return (
     <div className="w-full">
       {/* Hero Section */}
@@ -103,9 +115,9 @@ const Homepage: React.FC<HomepageProps> = ({ settings }) => {
             </Link>
           </div>
           
-          {COURSES.length > 0 ? (
+          {featuredCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {COURSES.map(course => (
+              {featuredCourses.map(course => (
                 <Link key={course.id} to={`/courses/${course.id}`} className="group flex flex-col rounded-[2.5rem] border border-neutral-100 bg-white overflow-hidden hover:shadow-2xl transition-all duration-500">
                   <div className="h-72 overflow-hidden relative">
                     <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />

@@ -1,6 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc, query } from 'firebase/firestore';
+import { db } from './firebase';
+
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Homepage from './pages/Homepage';
@@ -61,7 +64,7 @@ import SupportDiagnosticLogic from './pages/support/DiagnosticLogic';
 import { User, UserRole, MediaAsset, Course, ExerciseTemplate, WorkoutTemplate, MealPlan as MealPlanType } from './types';
 
 const App: React.FC = () => {
-  // PERSIST CURRENT USER
+  // PERSIST CURRENT USER (Auth is still local for session)
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('theone_auth_user');
     return saved ? JSON.parse(saved) : null;
@@ -93,52 +96,46 @@ const App: React.FC = () => {
     localStorage.setItem('ironpulse_site_settings', JSON.stringify(siteSettings));
   }, [siteSettings]);
 
-  const [mediaLibrary, setMediaLibrary] = useState<MediaAsset[]>(() => {
-    const saved = localStorage.getItem('ironpulse_media_library');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', type: 'image', data: siteSettings.heroImage, name: 'Main Hero Asset', category: 'GENERAL', createdAt: Date.now(), isPublic: true, creatorName: 'Admin' }
-    ];
-  });
+  // FIRESTORE SYNC LOGIC
+  const [mediaLibrary, setMediaLibrary] = useState<MediaAsset[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseTemplate[]>([]);
+  const [workoutLibrary, setWorkoutLibrary] = useState<WorkoutTemplate[]>([]);
+  const [mealPlanLibrary, setMealPlanLibrary] = useState<MealPlanType[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('ironpulse_media_library', JSON.stringify(mediaLibrary));
-  }, [mediaLibrary]);
+    const unsubMedia = onSnapshot(collection(db, 'media'), (snapshot) => {
+      setMediaLibrary(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MediaAsset)));
+    });
+    const unsubCourses = onSnapshot(collection(db, 'courses'), (snapshot) => {
+      setCourses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course)));
+    });
+    const unsubExercise = onSnapshot(collection(db, 'exercises'), (snapshot) => {
+      setExerciseLibrary(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExerciseTemplate)));
+    });
+    const unsubWorkout = onSnapshot(collection(db, 'workouts'), (snapshot) => {
+      setWorkoutLibrary(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WorkoutTemplate)));
+    });
+    const unsubMeal = onSnapshot(collection(db, 'mealplans'), (snapshot) => {
+      setMealPlanLibrary(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MealPlanType)));
+    });
 
-  const [courses, setCourses] = useState<Course[]>(() => {
-    const saved = localStorage.getItem('courses');
-    return saved ? JSON.parse(saved) : [];
-  });
+    return () => {
+      unsubMedia();
+      unsubCourses();
+      unsubExercise();
+      unsubWorkout();
+      unsubMeal();
+    };
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('courses', JSON.stringify(courses));
-  }, [courses]);
-
-  const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseTemplate[]>(() => {
-    const saved = localStorage.getItem('ironpulse_exercise_library');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('ironpulse_exercise_library', JSON.stringify(exerciseLibrary));
-  }, [exerciseLibrary]);
-
-  const [workoutLibrary, setWorkoutLibrary] = useState<WorkoutTemplate[]>(() => {
-    const saved = localStorage.getItem('ironpulse_workout_library');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('ironpulse_workout_library', JSON.stringify(workoutLibrary));
-  }, [workoutLibrary]);
-
-  const [mealPlanLibrary, setMealPlanLibrary] = useState<MealPlanType[]>(() => {
-    const saved = localStorage.getItem('ironpulse_meal_library');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('ironpulse_meal_library', JSON.stringify(mealPlanLibrary));
-  }, [mealPlanLibrary]);
+  // Sync setters for Firestore
+  const syncMedia = async (assets: MediaAsset[] | ((prev: MediaAsset[]) => MediaAsset[])) => {
+    const newAssets = typeof assets === 'function' ? assets(mediaLibrary) : assets;
+    // For simplicity, we compare and sync the difference. 
+    // In a real app, you'd call addDoc/updateDoc/deleteDoc directly in the components.
+    // I will update the components to do this instead of passing a sync function.
+  };
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -217,19 +214,19 @@ const App: React.FC = () => {
               <Route path="orders" element={<AdminOrders />} />
               <Route path="financials" element={<AdminFinancials />} />
               <Route path="coupons" element={<AdminCoupons />} />
-              <Route path="courses" element={<AdminCourses courses={courses} setCourses={setCourses} />} />
-              <Route path="courses/new" element={<AdminAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
-              <Route path="courses/edit/:id" element={<AdminAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
+              <Route path="courses" element={<AdminCourses courses={courses} />} />
+              <Route path="courses/new" element={<AdminAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
+              <Route path="courses/edit/:id" element={<AdminAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
               <Route path="payment-gateway" element={<PaymentSettings />} />
-              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} setLibrary={setMediaLibrary} exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary} currentUser={currentUser!} />} />
-              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} setLibrary={setMediaLibrary} workoutLibrary={workoutLibrary} setWorkoutLibrary={setWorkoutLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
-              <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} setMealPlanLibrary={setMealPlanLibrary} currentUser={currentUser!} />} />
-              <Route path="media" element={<AdminMediaLibrary library={mediaLibrary} setLibrary={setMediaLibrary} />} />
+              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} workoutLibrary={workoutLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} currentUser={currentUser!} />} />
+              <Route path="media" element={<AdminMediaLibrary library={mediaLibrary} />} />
               <Route path="activity" element={<AdminActivityFeed />} />
               <Route path="architect" element={<AdminAiArchitect siteSettings={siteSettings} setSiteSettings={setSiteSettings} onLogout={handleLogout} />} />
               <Route 
                 path="settings" 
-                element={<AdminSiteSettings siteSettings={siteSettings} setSiteSettings={setSiteSettings} library={mediaLibrary} setLibrary={setMediaLibrary} />} 
+                element={<AdminSiteSettings siteSettings={siteSettings} setSiteSettings={setSiteSettings} library={mediaLibrary} />} 
               />
             </Route>
 
@@ -239,15 +236,15 @@ const App: React.FC = () => {
               <Route path="athletes" element={<CoachAthletes />} />
               <Route path="custom-cycles" element={<CoachCustomCycles />} />
               <Route path="global-questions" element={<CoachGlobalQuestions />} />
-              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} setLibrary={setMediaLibrary} exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary} currentUser={currentUser!} />} />
-              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} setLibrary={setMediaLibrary} workoutLibrary={workoutLibrary} setWorkoutLibrary={setWorkoutLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
-              <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} setMealPlanLibrary={setMealPlanLibrary} currentUser={currentUser!} />} />
-              <Route path="media" element={<CoachMediaLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
+              <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} workoutLibrary={workoutLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
+              <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} currentUser={currentUser!} />} />
+              <Route path="media" element={<CoachMediaLibrary library={mediaLibrary} currentUser={currentUser!} />} />
               <Route path="analytics" element={<CoachAnalytics />} />
-              <Route path="courses" element={<CoachCourses courses={courses} setCourses={setCourses} />} />
-              <Route path="courses/new" element={<CoachAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
-              <Route path="programmer/:requestId" element={<CoachCustomProgrammer library={mediaLibrary} setLibrary={setMediaLibrary} />} />
-              <Route path="courses/edit/:id" element={<CoachAddCourse library={mediaLibrary} setLibrary={setMediaLibrary} courses={courses} setCourses={setCourses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
+              <Route path="courses" element={<CoachCourses courses={courses} />} />
+              <Route path="courses/new" element={<CoachAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
+              <Route path="programmer/:requestId" element={<CoachCustomProgrammer library={mediaLibrary} />} />
+              <Route path="courses/edit/:id" element={<CoachAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
             </Route>
 
             <Route path="/support" element={currentUser?.role === UserRole.SUPPORT ? <SupportLayout /> : <Navigate to="/" />}>

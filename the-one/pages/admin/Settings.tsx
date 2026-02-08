@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
+import { setDoc, doc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { CustomDiscipline } from '../../types';
-import { CUSTOM_DISCIPLINES, COACHES } from '../../constants';
+import { COACHES } from '../../constants';
 
 interface SiteSettings {
   logo: string;
@@ -15,17 +17,23 @@ interface AdminSiteSettingsProps {
   siteSettings: SiteSettings;
   setSiteSettings: React.Dispatch<React.SetStateAction<SiteSettings>>;
   library: { id: string; type: 'image' | 'video'; data: string; name: string }[];
-  setLibrary: React.Dispatch<React.SetStateAction<{ id: string; type: 'image' | 'video'; data: string; name: string }[]>>;
 }
 
-const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, setSiteSettings, library, setLibrary }) => {
+const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, setSiteSettings, library }) => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [activePickerKey, setActivePickerKey] = useState<keyof SiteSettings | null>(null);
   const [isPurging, setIsPurging] = useState(false);
   const [cacheSize, setCacheSize] = useState('142.4 MB');
 
-  const [disciplines, setDisciplines] = useState<CustomDiscipline[]>(CUSTOM_DISCIPLINES);
+  const [disciplines, setDisciplines] = useState<CustomDiscipline[]>([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'disciplines'), (snapshot) => {
+      setDisciplines(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomDiscipline)));
+    });
+    return () => unsub();
+  }, []);
 
   const openPicker = (key: keyof SiteSettings) => {
     setActivePickerKey(key);
@@ -40,12 +48,17 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaveStatus('saving');
-    setTimeout(() => {
+    try {
+      await setDoc(doc(db, 'settings', 'site'), siteSettings);
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
-    }, 1000);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      alert("Failed to save site settings.");
+      setSaveStatus('idle');
+    }
   };
 
   const purgeCache = () => {
@@ -59,25 +72,41 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
     }
   };
 
-  const updateDiscipline = (id: string, field: keyof CustomDiscipline, val: any) => {
-    setDisciplines(disciplines.map(d => d.id === id ? { ...d, [field]: val } : d));
+  const updateDiscipline = async (id: string, field: keyof CustomDiscipline, val: any) => {
+    const d = disciplines.find(item => item.id === id);
+    if (!d) return;
+    const updated = { ...d, [field]: val };
+    try {
+      await setDoc(doc(db, 'disciplines', id), updated);
+    } catch (error) {
+      console.error("Error updating discipline:", error);
+    }
   };
 
-  const addDiscipline = () => {
+  const addDiscipline = async () => {
+    const id = Math.random().toString(36).substr(2, 9);
     const newD: CustomDiscipline = {
-      id: Math.random().toString(36).substr(2, 9),
+      id,
       name: 'New Modality',
       icon: 'fitness_center',
       price: 299,
-      assignedCoachId: COACHES[0].id,
+      assignedCoachId: COACHES[0]?.id || 'c1',
       diagnostics: []
     };
-    setDisciplines([...disciplines, newD]);
+    try {
+      await setDoc(doc(db, 'disciplines', id), newD);
+    } catch (error) {
+      console.error("Error adding discipline:", error);
+    }
   };
 
-  const removeDiscipline = (id: string) => {
+  const removeDiscipline = async (id: string) => {
     if (window.confirm("Permanently remove this custom course from the catalog?")) {
-      setDisciplines(disciplines.filter(d => d.id !== id));
+      try {
+        await deleteDoc(doc(db, 'disciplines', id));
+      } catch (error) {
+        console.error("Error removing discipline:", error);
+      }
     }
   };
 
@@ -100,7 +129,6 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-10">
           
-          {/* Custom Course Catalog Manager */}
           <section className="bg-white p-10 rounded-[3rem] border border-neutral-100 shadow-2xl space-y-10">
             <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
               <div className="space-y-1">
@@ -160,10 +188,10 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                   </div>
                 </div>
               ))}
+              {disciplines.length === 0 && <p className="text-center text-xs text-neutral-400 py-10 uppercase tracking-widest font-black">Catalog empty.</p>}
             </div>
           </section>
 
-          {/* Core Branding Section */}
           <section className="bg-white p-10 rounded-[3rem] border border-neutral-100 shadow-2xl space-y-10">
             <h2 className="text-2xl font-black font-display uppercase tracking-tight flex items-center gap-3">
               <span className="material-symbols-outlined text-accent">palette</span> Global Brand Assets
@@ -192,7 +220,6 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
         </div>
 
         <div className="lg:col-span-4 space-y-10">
-          {/* Cache & Performance Section */}
           <section className="bg-white p-8 rounded-[3rem] border border-neutral-100 shadow-2xl space-y-8">
             <div className="space-y-1">
               <h2 className="text-lg font-black font-display uppercase tracking-tight flex items-center gap-3 text-black">
@@ -212,17 +239,6 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                   </div>
                </div>
 
-               <div className="space-y-4">
-                  <div className="flex items-center justify-between px-2">
-                     <p className="text-[10px] font-black uppercase text-black">Auto-Optimize Media</p>
-                     <div className="w-10 h-5 bg-accent rounded-full relative cursor-pointer"><div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div></div>
-                  </div>
-                  <div className="flex items-center justify-between px-2">
-                     <p className="text-[10px] font-black uppercase text-black">Enable Edge Buffering</p>
-                     <div className="w-10 h-5 bg-accent rounded-full relative cursor-pointer"><div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div></div>
-                  </div>
-               </div>
-
                <button 
                   onClick={purgeCache}
                   disabled={isPurging}
@@ -235,10 +251,6 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                   )}
                </button>
             </div>
-            
-            <p className="text-[8px] font-medium text-neutral-400 leading-relaxed text-center px-4">
-               Purging the cache will clear all temporary pre-rendered assets and background analytics buffers.
-            </p>
           </section>
 
           <section className="bg-neutral-900 p-8 rounded-[3rem] shadow-2xl space-y-6 text-white overflow-hidden relative">
@@ -246,7 +258,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                 <h3 className="text-xl font-black font-display uppercase tracking-tight">Sync Status</h3>
                 <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/10">
                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-neutral-300">Edge Node: SG-V1</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-neutral-300">Cloud Node Active</p>
                 </div>
              </div>
              <span className="material-symbols-outlined text-[100px] absolute -bottom-6 -right-6 text-white/5 -rotate-12">sync</span>
@@ -254,7 +266,6 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
         </div>
       </div>
 
-      {/* Media Picker Modal */}
       {isPickerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]">

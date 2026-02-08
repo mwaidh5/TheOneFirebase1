@@ -1,17 +1,17 @@
 
 import React, { useState, useRef, useMemo } from 'react';
+import { setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { WorkoutTemplate, Exercise, ExerciseFormat, MediaAsset, WeekProgram, DayProgram, User, UserRole, ExerciseTemplate as ExTemplate } from '../../types';
 
 interface WorkoutLibraryProps {
   library: MediaAsset[];
-  setLibrary: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
   currentUser: User;
   workoutLibrary: WorkoutTemplate[];
-  setWorkoutLibrary: React.Dispatch<React.SetStateAction<WorkoutTemplate[]>>;
   exerciseLibrary: ExTemplate[];
 }
 
-const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrary, currentUser, workoutLibrary, setWorkoutLibrary, exerciseLibrary }) => {
+const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUser, workoutLibrary, exerciseLibrary }) => {
   const [editingWorkout, setEditingWorkout] = useState<WorkoutTemplate | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +39,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
     setActiveWo({ 
       name: '', description: '', category: 'Strength', isPublic: true,
       weeks: [{ id: 'w1', weekNumber: 1, days: [{ id: 'd1', dayNumber: 1, title: 'Session A', exercises: [] }] }] 
-  });
+    });
     setActiveWeekIdx(0);
     setActiveDayIdx(0);
     setIsAdding(true);
@@ -70,10 +70,11 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
     setActiveDayIdx(currentWeek.days.length - 1);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!activeWo.name) return;
+    const id = activeWo.id || Math.random().toString(36).substr(2, 9);
     const completeWo: WorkoutTemplate = {
-      id: activeWo.id || Math.random().toString(36).substr(2, 9),
+      id,
       name: activeWo.name!,
       description: activeWo.description || '',
       category: activeWo.category || 'Strength',
@@ -83,13 +84,15 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
       creatorName: activeWo.creatorName || `${currentUser.firstName} ${currentUser.lastName}`
     };
 
-    if (editingWorkout) {
-      setWorkoutLibrary(workoutLibrary.map(w => w.id === completeWo.id ? completeWo : w));
-    } else {
-      setWorkoutLibrary([completeWo, ...workoutLibrary]);
+    try {
+      await setDoc(doc(db, 'workouts', id), completeWo);
+      alert("Blueprint saved to cloud.");
+      setIsAdding(false);
+      setEditingWorkout(null);
+    } catch (error) {
+      console.error("Error saving workout:", error);
+      alert("Failed to save blueprint.");
     }
-    setIsAdding(false);
-    setEditingWorkout(null);
   };
 
   const addExercise = () => {
@@ -125,6 +128,18 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
       updateExercise(isPickerOpen.activeIndex, 'imageUrl', libItem.imageUrl);
       updateExercise(isPickerOpen.activeIndex, 'videoUrl', libItem.videoUrl);
       setIsPickerOpen({ type: 'exercise', activeIndex: null });
+    }
+  };
+
+  const removeWo = async (id: string) => {
+    if (window.confirm("Delete this master blueprint?")) {
+      try {
+        await deleteDoc(doc(db, 'workouts', id));
+        alert("Blueprint removed from cloud.");
+      } catch (error) {
+        console.error("Error removing workout:", error);
+        alert("Failed to remove blueprint.");
+      }
     }
   };
 
@@ -173,7 +188,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
                     <button onClick={() => startEditing(wo)} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-black hover:text-white transition-all shadow-sm">
                       <span className="material-symbols-outlined text-xl">edit</span>
                     </button>
-                    <button onClick={() => setWorkoutLibrary(workoutLibrary.filter(w => w.id !== wo.id))} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                    <button onClick={() => removeWo(wo.id)} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition-all shadow-sm">
                       <span className="material-symbols-outlined text-xl">delete</span>
                     </button>
                   </div>
@@ -420,6 +435,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, setLibrar
                        <span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span>
                     </button>
                  ))}
+                 {exerciseLibrary.length === 0 && <p className="text-center text-xs text-neutral-400 py-10">Exercise library is empty.</p>}
               </div>
            </div>
         </div>

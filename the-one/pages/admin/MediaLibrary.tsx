@@ -1,14 +1,15 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { GoogleGenAI } from '@google/genai';
+import { setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { MediaAsset } from '../../types';
 
 interface MediaLibraryProps {
   library: MediaAsset[];
-  setLibrary: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
 }
 
-const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary }) => {
+const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [selectedImageForAi, setSelectedImageForAi] = useState<string | null>(null);
@@ -36,18 +37,38 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary })
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const data = reader.result as string;
-      setLibrary([...library, { 
-        id: Math.random().toString(), 
+      const assetId = Math.random().toString();
+      const newAsset: MediaAsset = { 
+        id: assetId, 
         type: file.type.startsWith('video') ? 'video' : 'image', 
         data, 
         name: file.name,
         category: 'WORKOUT',
-        createdAt: Date.now()
-      }]);
+        createdAt: Date.now(),
+        isPublic: true
+      };
+      
+      try {
+        await setDoc(doc(db, 'media', assetId), newAsset);
+      } catch (error) {
+        console.error("Error saving media:", error);
+        alert("Upload failed.");
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  const removeAsset = async (id: string) => {
+    if (window.confirm("Permanently delete this asset?")) {
+      try {
+        await deleteDoc(doc(db, 'media', id));
+      } catch (error) {
+        console.error("Error deleting media:", error);
+        alert("Delete failed.");
+      }
+    }
   };
 
   const runAiTask = async () => {
@@ -55,7 +76,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary })
     setIsAiLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       
       let contents;
       if (aiTab === 'generate') {
@@ -81,14 +102,18 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary })
       for (const part of response.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
           const newImage = `data:image/png;base64,${part.inlineData.data}`;
-          setLibrary([{ 
-            id: Math.random().toString(), 
+          const assetId = Math.random().toString();
+          const newAsset: MediaAsset = { 
+            id: assetId, 
             type: 'image', 
             data: newImage, 
             name: `AI ${aiTab}: ${aiPrompt.slice(0, 15)}...`,
             category: 'WORKOUT',
-            createdAt: Date.now()
-          }, ...library]);
+            createdAt: Date.now(),
+            isPublic: true
+          };
+          
+          await setDoc(doc(db, 'media', assetId), newAsset);
           setAiPrompt('');
           setSelectedImageForAi(null);
           break;
@@ -96,7 +121,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary })
       }
     } catch (error) {
       console.error('AI Task Failed:', error);
-      alert('AI Generation failed. Please check your prompt and try again.');
+      alert('AI Generation failed.');
     } finally {
       setIsAiLoading(false);
     }
@@ -172,7 +197,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary })
                         AI Edit
                       </button>
                       <button 
-                        onClick={() => setLibrary(library.filter(l => l.id !== asset.id))}
+                        onClick={() => removeAsset(asset.id)}
                         className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                       >
                         <span className="material-symbols-outlined text-sm">delete</span>
@@ -181,6 +206,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary })
                   </div>
                 </div>
               ))}
+              {filteredAssets.length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-20">Gallery is empty.</p>}
             </div>
           </div>
         </div>

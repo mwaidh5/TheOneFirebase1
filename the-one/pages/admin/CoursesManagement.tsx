@@ -1,18 +1,24 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { Course } from '../../types';
 
 interface AdminCoursesProps {
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
 }
 
-const AdminCourses: React.FC<AdminCoursesProps> = ({ courses, setCourses }) => {
-  const handleDeleteCourse = (courseId: string) => {
+const AdminCourses: React.FC<AdminCoursesProps> = ({ courses }) => {
+  const handleDeleteCourse = async (courseId: string) => {
     if (window.confirm("Are you sure you want to delete this course?")) {
-      const updatedCourses = courses.filter(course => course.id !== courseId);
-      setCourses(updatedCourses);
+      try {
+        await deleteDoc(doc(db, 'courses', courseId));
+        alert("Course deleted from database.");
+      } catch (error) {
+        console.error("Error deleting course: ", error);
+        alert("Failed to delete course.");
+      }
     }
   };
 

@@ -1,19 +1,19 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { setDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate } from '../../types';
 
 interface AddCourseProps {
   library: MediaAsset[];
-  setLibrary: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   exerciseLibrary: ExerciseTemplate[];
   workoutLibrary: WorkoutTemplate[];
   mealPlanLibrary: MealPlan[];
 }
 
-const AdminAddCourse: React.FC<AddCourseProps> = ({ library, setLibrary, courses, setCourses, exerciseLibrary, workoutLibrary, mealPlanLibrary }) => {
+const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLibrary, workoutLibrary, mealPlanLibrary }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
@@ -110,23 +110,26 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, setLibrary, courses
     if (!newState && activeTab === 'nutrition') setActiveTab('workouts');
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!courseData.title) return alert("Title required");
     
+    // Explicitly set mealPlan to null if it's undefined/null to satisfy Firestore
     const newCourse: Course = {
         ...courseData,
         weeks: weeks,
-        mealPlan: attachedMealPlan ?? undefined
+        mealPlan: attachedMealPlan || undefined
     };
+    
+    if (!newCourse.mealPlan) delete newCourse.mealPlan; // Cleaner for Firestore to just omit it
 
-    if (isEdit) {
-        setCourses(courses.map(c => c.id === id ? newCourse : c));
-    } else {
-        setCourses([...courses, newCourse]);
+    try {
+        await setDoc(doc(db, 'courses', newCourse.id), newCourse);
+        alert("System Course Published to Database");
+        navigate('/admin/courses');
+    } catch (error: any) {
+        console.error("Error publishing course: ", error);
+        alert(`Failed to publish course: ${error.message}`);
     }
-
-    alert("System Course Published");
-    navigate('/admin/courses');
   };
 
   const activeDay = weeks[activeWeekIdx]?.days[activeDayIdx];
@@ -272,19 +275,20 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, setLibrary, courses
                           </div>
                        </div>
                     ))}
-                    <button onClick={() => { if(!attachedMealPlan) return; setAttachedMealPlan({...attachedMealPlan, meals: [...attachedMealPlan.meals, { id: Math.random().toString(), label: `Meal ${attachedMealPlan.meals.length+1}`, items: [] }]}); }} className="w-full py-3 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400">+ Add Meal Block</button>
+                    <button onClick={() => { setAttachedMealPlan({...attachedMealPlan!, meals: [...attachedMealPlan!.meals, { id: Math.random().toString(), label: `Meal ${attachedMealPlan!.meals.length+1}`, items: [] }]}); }} className="w-full py-3 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400">+ Add Meal Block</button>
                  </div>
               </div>
            )}
         </div>
       </div>
 
+      {/* Lib Picker */}
       {isPickerOpen.type !== 'media' && isPickerOpen.activeExIdx !== null && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
            <div className="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
               <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left"><h3 className="text-xl font-black uppercase text-black">{isPickerOpen.type === 'exercise' ? 'Exercises' : isPickerOpen.type === 'workout' ? 'Workouts' : 'Meal Plans'}</h3><button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
-                {isPickerOpen.type === 'exercise' ? exerciseLibrary.map(ex => (
+                 {isPickerOpen.type === 'exercise' ? exerciseLibrary.map(ex => (
                     <button key={ex.id} onClick={() => { updateExercise(isPickerOpen.activeExIdx!, 'name', ex.name); updateExercise(isPickerOpen.activeExIdx!, 'format', ex.defaultFormat); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group text-left"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{ex.defaultFormat}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 )) : isPickerOpen.type === 'workout' ? workoutLibrary.map(wo => (
                     <button key={wo.id} onClick={() => applyWorkoutBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group text-left"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>

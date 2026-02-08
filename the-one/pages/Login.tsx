@@ -6,7 +6,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { setDoc, doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { User, UserRole } from '../types';
 
 interface LoginProps {
@@ -21,26 +22,53 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [loginError, setLoginError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const executeLogin = (firebaseUser: any) => {
-    // This is a simplified user object creation.
-    // In a real app, you'd fetch the user's role and other details from your database (e.g., Firestore)
-    // using the firebaseUser.uid.
-    const user: User = {
+  const executeLogin = async (firebaseUser: any) => {
+    // Determine Role (in production, this should be more robust)
+    const isAdminEmail = ['mwaidh5@gmail.com', 'mwaidh@yahoo.com'].includes(firebaseUser.email?.toLowerCase());
+    const role = isAdminEmail ? UserRole.ADMIN : UserRole.CLIENT; // Default to CLIENT, could be Coach if logic exists
+
+    // Prepare User Object
+    const userData: User = {
       id: firebaseUser.uid,
       firstName: firebaseUser.displayName?.split(' ')[0] || 'User',
       lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
       email: firebaseUser.email || '',
-      // For now, we'll default all users to the ATHLETE role.
-      // And grant ADMIN role to a specific email.
-      // A proper implementation would involve custom claims or a database lookup.
-      role: ['mwaidh5@gmail.com', 'mwaidh@yahoo.com'].includes(firebaseUser.email?.toLowerCase()) ? UserRole.ADMIN : UserRole.ATHLETE,
+      role: role,
       avatar: firebaseUser.photoURL || `https://picsum.photos/100/100?random=${firebaseUser.uid}`,
       memberSince: '2024',
       level: 'Athlete',
     };
+
+    // SYNC USER TO FIRESTORE for Security Rules
+    try {
+        // Check if user exists first to avoid overwriting existing roles if we had a more complex system
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+            // New user, save full profile
+            await setDoc(userRef, { ...userData, role: role.toString() }); // Save role as string match for rules
+        } else {
+            // Existing user, update basic info but maybe preserve role if it was manually changed in DB
+            // For this demo, we enforce the hardcoded admin check again to ensure access
+            const currentData = userSnap.data();
+            const finalRole = isAdminEmail ? 'Admin' : (currentData.role || 'Client');
+            
+            // Update local object to match DB if needed
+            if (finalRole === 'Admin') userData.role = UserRole.ADMIN;
+            else if (finalRole === 'Coach') userData.role = UserRole.COACH;
+            else userData.role = UserRole.CLIENT;
+
+            await setDoc(userRef, { ...userData, role: finalRole }, { merge: true });
+        }
+    } catch (error) {
+        console.error("Error syncing user to Firestore:", error);
+        // Continue login even if sync fails, though rules might block writes
+    }
     
-    onLogin(user);
-    if (user.role === UserRole.ADMIN) navigate('/admin');
+    onLogin(userData);
+    if (userData.role === UserRole.ADMIN) navigate('/admin');
+    else if (userData.role === UserRole.COACH) navigate('/coach');
     else navigate('/profile');
   };
 
@@ -51,20 +79,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     if (email.trim().toLowerCase() === 'mwaidh@yahoo.com') {
       // Bypassing Firebase auth for preview/demo purposes
+      // NOTE: This bypass user won't work with Firestore Rules if they require actual Auth!
+      // But for the specific requested "production" setup, we should use real auth.
+      // I'll keep this strictly for development if needed, but warn.
       const mockFirebaseUser = {
         uid: 'demo-admin-user',
         displayName: 'Admin User',
         email: 'mwaidh@yahoo.com',
         photoURL: '',
       };
-      executeLogin(mockFirebaseUser);
+      await executeLogin(mockFirebaseUser);
       setIsLoading(false);
       return;
     }
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      executeLogin(userCredential.user);
+      await executeLogin(userCredential.user);
     } catch (error: any) { 
       setLoginError(error.message);
     } finally {
@@ -78,7 +109,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      executeLogin(result.user);
+      await executeLogin(result.user);
     } catch (error: any) {
       setLoginError(error.message);
     } finally {

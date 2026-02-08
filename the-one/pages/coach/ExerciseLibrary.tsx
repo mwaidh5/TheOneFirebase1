@@ -1,16 +1,16 @@
 
 import React, { useState, useRef, useMemo } from 'react';
+import { setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { ExerciseTemplate, ExerciseFormat, MediaAsset, User, UserRole } from '../../types';
 
 interface ExerciseLibraryProps {
   library: MediaAsset[];
-  setLibrary: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
   currentUser: User;
   exerciseLibrary: ExerciseTemplate[];
-  setExerciseLibrary: React.Dispatch<React.SetStateAction<ExerciseTemplate[]>>;
 }
 
-const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibrary, currentUser, exerciseLibrary, setExerciseLibrary }) => {
+const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, currentUser, exerciseLibrary }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,29 +39,32 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
     setIsAdding(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!newEx.name) return;
     
-    if (editingId) {
-      setExerciseLibrary(exerciseLibrary.map(ex => ex.id === editingId ? { ...ex, ...newEx } as ExerciseTemplate : ex));
-    } else {
-      const item: ExerciseTemplate = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: newEx.name!,
-        defaultFormat: (newEx.defaultFormat as ExerciseFormat) || 'REGULAR',
-        description: newEx.description,
-        imageUrl: newEx.imageUrl,
-        videoUrl: newEx.videoUrl,
-        isPublic: newEx.isPublic ?? true,
-        creatorId: currentUser.id,
-        creatorName: `${currentUser.firstName} ${currentUser.lastName}`
-      };
-      setExerciseLibrary([...exerciseLibrary, item]);
+    const id = editingId || Math.random().toString(36).substr(2, 9);
+    const item: ExerciseTemplate = {
+      id,
+      name: newEx.name!,
+      defaultFormat: (newEx.defaultFormat as ExerciseFormat) || 'REGULAR',
+      description: newEx.description || '',
+      imageUrl: newEx.imageUrl || '',
+      videoUrl: newEx.videoUrl || '',
+      isPublic: newEx.isPublic ?? true,
+      creatorId: newEx.creatorId || currentUser.id,
+      creatorName: newEx.creatorName || `${currentUser.firstName} ${currentUser.lastName}`
+    };
+
+    try {
+      await setDoc(doc(db, 'exercises', id), item);
+      alert("Exercise saved to cloud library.");
+      setIsAdding(false);
+      setEditingId(null);
+      setNewEx({ name: '', defaultFormat: 'REGULAR', description: '', isPublic: true });
+    } catch (error) {
+      console.error("Error saving exercise:", error);
+      alert("Failed to save exercise.");
     }
-    
-    setIsAdding(false);
-    setEditingId(null);
-    setNewEx({ name: '', defaultFormat: 'REGULAR', description: '', isPublic: true });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,10 +72,11 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
     if (!file || !isMediaPickerOpen.activeField) return;
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const data = reader.result as string;
+      const assetId = Math.random().toString();
       const newAsset: MediaAsset = { 
-        id: Math.random().toString(), 
+        id: assetId, 
         type: file.type.startsWith('video') ? 'video' : 'image', 
         data, 
         name: file.name,
@@ -82,9 +86,15 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
         creatorName: `${currentUser.firstName} ${currentUser.lastName}`,
         isPublic: false
       };
-      setLibrary([newAsset, ...library]);
-      setNewEx({ ...newEx, [isMediaPickerOpen.activeField!]: data });
-      setIsMediaPickerOpen({ activeField: null });
+      
+      try {
+        await setDoc(doc(db, 'media', assetId), newAsset);
+        setNewEx({ ...newEx, [isMediaPickerOpen.activeField!]: data });
+        setIsMediaPickerOpen({ activeField: null });
+      } catch (error) {
+        console.error("Error uploading media:", error);
+        alert("Failed to upload media.");
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -96,9 +106,15 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
     }
   };
 
-  const removeEx = (id: string) => {
+  const removeEx = async (id: string) => {
     if (window.confirm("Delete this master Exercise from the library?")) {
-      setExerciseLibrary(exerciseLibrary.filter(ex => ex.id !== id));
+      try {
+        await deleteDoc(doc(db, 'exercises', id));
+        alert("Exercise removed from cloud.");
+      } catch (error) {
+        console.error("Error removing exercise:", error);
+        alert("Failed to remove exercise.");
+      }
     }
   };
 
@@ -333,6 +349,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, setLibr
                        </div>
                     </div>
                  ))}
+                 {library.filter(a => a.creatorId === currentUser.id || a.isPublic).length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-10">No library media found.</p>}
               </div>
            </div>
         </div>

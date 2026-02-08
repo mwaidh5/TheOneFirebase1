@@ -1,14 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
+import { setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { MealPlan, Meal, FoodItem, User, UserRole } from '../../types';
 
 interface MealLibraryProps {
   currentUser: User;
   mealPlanLibrary: MealPlan[];
-  setMealPlanLibrary: React.Dispatch<React.SetStateAction<MealPlan[]>>;
 }
 
-const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLibrary, setMealPlanLibrary }) => {
+const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLibrary }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -46,10 +47,11 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
     setIsAdding(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!activePlan.name) return;
+    const id = activePlan.id || 'mp-' + Math.random().toString(36).substr(2, 9);
     const completePlan: MealPlan = {
-      id: activePlan.id || 'mp-' + Math.random().toString(36).substr(2, 9),
+      id,
       name: activePlan.name!,
       description: activePlan.description || '',
       totalCalories: activePlan.totalCalories || 0,
@@ -59,12 +61,14 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
       creatorName: activePlan.creatorName || `${currentUser.firstName} ${currentUser.lastName}`
     };
 
-    if (activePlan.id) {
-      setMealPlanLibrary(mealPlanLibrary.map(p => p.id === completePlan.id ? completePlan : p));
-    } else {
-      setMealPlanLibrary([completePlan, ...mealPlanLibrary]);
+    try {
+      await setDoc(doc(db, 'mealplans', id), completePlan);
+      alert("Meal plan saved to cloud.");
+      setIsAdding(false);
+    } catch (error) {
+      console.error("Error saving meal plan:", error);
+      alert("Failed to save meal plan.");
     }
-    setIsAdding(false);
   };
 
   const addMealBlock = () => {
@@ -93,9 +97,15 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
     setActivePlan({ ...activePlan, meals: nextMeals });
   };
 
-  const removePlan = (id: string) => {
+  const removePlan = async (id: string) => {
     if (window.confirm("Delete this master meal plan?")) {
-      setMealPlanLibrary(mealPlanLibrary.filter(p => p.id !== id));
+      try {
+        await deleteDoc(doc(db, 'mealplans', id));
+        alert("Meal plan removed from cloud.");
+      } catch (error) {
+        console.error("Error removing meal plan:", error);
+        alert("Failed to remove meal plan.");
+      }
     }
   };
 
@@ -168,6 +178,12 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
             </div>
           );
         })}
+        {displayPlans.length === 0 && (
+          <div className="col-span-full py-20 text-center space-y-4">
+            <span className="material-symbols-outlined text-6xl text-neutral-100">search_off</span>
+            <p className="text-neutral-300 font-black uppercase tracking-[0.2em]">No matching plans found</p>
+          </div>
+        )}
       </div>
 
       {/* Builder Modal (Responsive) */}

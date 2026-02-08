@@ -1,19 +1,19 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { setDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate } from '../../types';
 
 interface AddCourseProps {
   library: MediaAsset[];
-  setLibrary: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   exerciseLibrary: ExerciseTemplate[];
   workoutLibrary: WorkoutTemplate[];
   mealPlanLibrary: MealPlan[];
 }
 
-const CoachAddCourse: React.FC<AddCourseProps> = ({ library, setLibrary, courses, setCourses, exerciseLibrary, workoutLibrary, mealPlanLibrary }) => {
+const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLibrary, workoutLibrary, mealPlanLibrary }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
@@ -28,7 +28,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, setLibrary, courses
     duration: '6 Weeks',
     image: '',
     hasMealPlan: false,
-    instructor: 'Alex Mercer', // Default for coach
+    instructor: 'Alex Mercer',
     enrollmentCount: 0,
     rating: 0
   });
@@ -110,23 +110,27 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, setLibrary, courses
     if (!newState && activeTab === 'nutrition') setActiveTab('workouts');
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!courseData.title) return alert("Title required");
     
+    // Explicitly set mealPlan to undefined if it's null/undefined to delete the key, or let Firestore handle null if preferred.
+    // Better to delete it if not needed.
     const newCourse: Course = {
         ...courseData,
         weeks: weeks,
-        mealPlan: attachedMealPlan ?? undefined
+        mealPlan: attachedMealPlan || undefined
     };
+    
+    if (!newCourse.mealPlan) delete newCourse.mealPlan;
 
-    if (isEdit) {
-        setCourses(courses.map(c => c.id === id ? newCourse : c));
-    } else {
-        setCourses([...courses, newCourse]);
+    try {
+        await setDoc(doc(db, 'courses', newCourse.id), newCourse);
+        alert("Program Published to Cloud");
+        navigate(-1);
+    } catch (error: any) {
+        console.error("Error publishing course:", error);
+        alert(`Failed to publish track: ${error.message}`);
     }
-
-    alert("Program Published");
-    navigate(-1);
   };
 
   const activeDay = weeks[activeWeekIdx]?.days[activeDayIdx];
@@ -290,7 +294,6 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, setLibrary, courses
                 )) : mealPlanLibrary.map(plan => (
                     <button key={plan.id} onClick={() => { setAttachedMealPlan({...plan, id: 'mp-'+Math.random()}); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group text-left"><div><p className="text-sm font-black uppercase">{plan.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{plan.totalCalories} kcal</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 ))}
-                {((isPickerOpen.type === 'exercise' && exerciseLibrary.length === 0) || (isPickerOpen.type === 'workout' && workoutLibrary.length === 0) || (isPickerOpen.type === 'meal' && mealPlanLibrary.length === 0)) && <p className="text-center text-xs text-neutral-400 py-10">Library is empty.</p>}
               </div>
            </div>
         </div>

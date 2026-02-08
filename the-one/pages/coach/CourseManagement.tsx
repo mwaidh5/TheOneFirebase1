@@ -1,16 +1,27 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { Course } from '../../types';
 
 interface CoachCoursesProps {
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
 }
 
-const CoachCourses: React.FC<CoachCoursesProps> = ({ courses, setCourses }) => {
-  // Showing all courses for consistency, you can filter by instructor if needed
-  const coachCourses = courses;
+const CoachCourses: React.FC<CoachCoursesProps> = ({ courses }) => {
+  const coachCourses = courses; // Showing all for now
+
+  const handleDeleteCourse = async (courseId: string) => {
+    if (window.confirm("Delete this track?")) {
+        try {
+            await deleteDoc(doc(db, 'courses', courseId));
+        } catch (error) {
+            console.error("Error deleting course:", error);
+            alert("Failed to delete track.");
+        }
+    }
+  };
 
   return (
     <div className="space-y-12">
@@ -34,6 +45,9 @@ const CoachCourses: React.FC<CoachCoursesProps> = ({ courses, setCourses }) => {
                 <Link to={`/coach/courses/edit/${course.id}`} className="bg-white/90 p-2 rounded-xl text-black hover:bg-white transition-all shadow-sm">
                   <span className="material-symbols-outlined text-lg">edit</span>
                 </Link>
+                <button onClick={() => handleDeleteCourse(course.id)} className="bg-red-500/90 p-2 rounded-xl text-white hover:bg-red-600 transition-all shadow-sm">
+                  <span className="material-symbols-outlined text-lg">delete</span>
+                </button>
               </div>
               <div className="absolute bottom-4 left-4">
                 <span className="bg-black/80 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">{course.category}</span>

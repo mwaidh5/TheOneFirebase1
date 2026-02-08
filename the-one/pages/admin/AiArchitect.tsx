@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleGenAI, Type } from '@google/genai';
+import { setDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 interface SiteSettings {
   logo: string;
@@ -54,9 +56,9 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
     setIsProcessing(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.0-flash',
         contents: `Current Site Settings: ${JSON.stringify(siteSettings)}. 
         User Request: "${userCommand}". 
         Instructions: You are the AI Site Architect. You have the power to edit global site settings and "fix bugs" in logic. 
@@ -96,7 +98,8 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
       const result = JSON.parse(response.text || '{}');
       
       if (result.action === 'UPDATE_SETTINGS' && result.newSettings) {
-        setSiteSettings(prev => ({ ...prev, ...result.newSettings }));
+        const updated = { ...siteSettings, ...result.newSettings };
+        await setDoc(doc(db, 'settings', 'site'), updated);
         addLog('ai', result.message || 'Site architecture updated successfully.');
       } else if (result.action === 'FIX_BUG') {
         addLog('ai', `BUG FIXED: ${result.message}`);

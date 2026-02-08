@@ -1,8 +1,8 @@
-// Import the functions you need from the SDKs you need
+
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { initializeFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCmKs7RNGNKvtVG-tT7n7QCf1ZpbFXBxD8",
   authDomain: "theonefirebase1-42441499-db7a8.firebaseapp.com",
@@ -12,6 +12,8 @@ const firebaseConfig = {
   appId: "1:531868004786:web:99f2f7295d11846fb834ab"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+});
