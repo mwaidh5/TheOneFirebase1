@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { setDoc, doc } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { Course, Exercise, WeekProgram, DayProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate } from '../../types';
+import { db, auth } from '../../firebase';
+import { Course, Exercise, WeekProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate } from '../../types';
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -113,23 +113,33 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const handlePublish = async () => {
     if (!courseData.title) return alert("Title required");
     
-    // Explicitly set mealPlan to undefined if it's null/undefined to delete the key, or let Firestore handle null if preferred.
-    // Better to delete it if not needed.
+    // Check if user is actually authenticated with Firebase
+    if (!auth.currentUser) {
+        const confirm = window.confirm("You are not signed in to Firebase. This save will likely fail if Security Rules are active. Continue anyway?");
+        if (!confirm) return;
+    }
+
     const newCourse: Course = {
         ...courseData,
         weeks: weeks,
         mealPlan: attachedMealPlan || undefined
     };
     
-    if (!newCourse.mealPlan) delete newCourse.mealPlan;
+    // Clean undefined properties just in case, though initializeFirestore ignoreUndefinedProperties handles this
+    Object.keys(newCourse).forEach(key => {
+        if ((newCourse as any)[key] === undefined) {
+            delete (newCourse as any)[key];
+        }
+    });
 
     try {
+        console.log("Attempting to save course to Firestore:", newCourse);
         await setDoc(doc(db, 'courses', newCourse.id), newCourse);
-        alert("Program Published to Cloud");
+        alert("Program Published to Cloud Successfully");
         navigate(-1);
     } catch (error: any) {
-        console.error("Error publishing course:", error);
-        alert(`Failed to publish track: ${error.message}`);
+        console.error("CRITICAL ERROR: Failed to save course to Firebase:", error);
+        alert(`Failed to publish track: ${error.code || 'Unknown Error'} - ${error.message}`);
     }
   };
 
@@ -147,7 +157,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
               <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-neutral-400">Meal Plan</p>
               <div onClick={handleMealPlanToggle} className={`w-10 md:w-12 h-5 md:h-6 rounded-full relative transition-colors cursor-pointer ${courseData.hasMealPlan ? 'bg-accent' : 'bg-neutral-200'}`}><div className={`absolute top-0.5 md:top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${courseData.hasMealPlan ? 'translate-x-5 md:translate-x-7' : 'translate-x-1'}`}></div></div>
            </div>
-           <button onClick={handlePublish} className="flex-1 md:flex-none px-6 md:px-10 py-4 md:py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl">Publish</button>
+           <button onClick={handlePublish} className="flex-1 md:flex-none px-6 md:px-10 py-4 md:py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl transition-all active:scale-95">Publish to Database</button>
         </div>
       </div>
 
