@@ -70,23 +70,61 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
     setActiveDayIdx(currentWeek.days.length - 1);
   };
 
+  const cleanObject = (obj: any): any => {
+    if (Array.isArray(obj)) return obj.map(cleanObject);
+    if (typeof obj === 'object' && obj !== null) {
+      const res: any = {};
+      Object.keys(obj).forEach(key => {
+        const val = obj[key];
+        if (val !== undefined) {
+          res[key] = cleanObject(val);
+        }
+      });
+      return res;
+    }
+    return obj;
+  };
+
   const handleSave = async () => {
     if (!activeWo.name) return;
     const id = activeWo.id || Math.random().toString(36).substr(2, 9);
+    
+    // Explicitly handle all fields and map weeks/days/exercises
     const completeWo: WorkoutTemplate = {
       id,
-      name: activeWo.name!,
+      name: activeWo.name || '',
       description: activeWo.description || '',
       category: activeWo.category || 'Strength',
-      weeks: activeWo.weeks || [],
       isPublic: activeWo.isPublic ?? true,
       creatorId: activeWo.creatorId || currentUser.id,
-      creatorName: activeWo.creatorName || `${currentUser.firstName} ${currentUser.lastName}`
+      creatorName: activeWo.creatorName || `${currentUser.firstName} ${currentUser.lastName}`,
+      weeks: (activeWo.weeks || []).map(w => ({
+        id: w.id,
+        weekNumber: Number(w.weekNumber) || 1,
+        days: (w.days || []).map(d => ({
+          id: d.id,
+          dayNumber: Number(d.dayNumber) || 1,
+          title: d.title || '',
+          exercises: (d.exercises || []).map(e => ({
+            id: e.id,
+            name: e.name || '',
+            format: e.format || 'REGULAR',
+            description: e.description || '',
+            sets: Number(e.sets) || 0,
+            reps: String(e.reps || ''),
+            rest: String(e.rest || ''),
+            imageUrl: e.imageUrl || undefined,
+            videoUrl: e.videoUrl || undefined
+          }))
+        }))
+      }))
     };
 
+    const finalWo = cleanObject(completeWo);
+
     try {
-      await setDoc(doc(db, 'workouts', id), completeWo);
-      alert("Blueprint saved to cloud.");
+      await setDoc(doc(db, 'workouts', id), finalWo);
+      // Alert removed
       setIsAdding(false);
       setEditingWorkout(null);
     } catch (error) {
@@ -135,7 +173,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
     if (window.confirm("Delete this master blueprint?")) {
       try {
         await deleteDoc(doc(db, 'workouts', id));
-        alert("Blueprint removed from cloud.");
+        // Alert removed
       } catch (error) {
         console.error("Error removing workout:", error);
         alert("Failed to remove blueprint.");

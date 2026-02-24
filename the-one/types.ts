@@ -203,3 +203,13 @@ export interface WodTemplate {
   description: string;
   category: string;
 }
+
+export interface Notification {
+  id: string;
+  type: 'COURSE' | 'CUSTOM' | 'ORDER' | 'SYSTEM';
+  title: string;
+  text: string;
+  createdAt: any;
+  read: boolean;
+  icon?: string;
+}

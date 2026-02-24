@@ -47,23 +47,54 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
     setIsAdding(true);
   };
 
+  const cleanObject = (obj: any): any => {
+    if (Array.isArray(obj)) return obj.map(cleanObject);
+    if (typeof obj === 'object' && obj !== null) {
+      const res: any = {};
+      Object.keys(obj).forEach(key => {
+        const val = obj[key];
+        if (val !== undefined) {
+          res[key] = cleanObject(val);
+        }
+      });
+      return res;
+    }
+    return obj;
+  };
+
   const handleSave = async () => {
     if (!activePlan.name) return;
     const id = activePlan.id || 'mp-' + Math.random().toString(36).substr(2, 9);
+    
+    // Explicitly construct the object with default values
     const completePlan: MealPlan = {
       id,
-      name: activePlan.name!,
+      name: activePlan.name || '',
       description: activePlan.description || '',
-      totalCalories: activePlan.totalCalories || 0,
-      meals: activePlan.meals || [],
+      totalCalories: Number(activePlan.totalCalories) || 0,
       isPublic: activePlan.isPublic ?? true,
       creatorId: activePlan.creatorId || currentUser.id,
-      creatorName: activePlan.creatorName || `${currentUser.firstName} ${currentUser.lastName}`
+      creatorName: activePlan.creatorName || `${currentUser.firstName} ${currentUser.lastName}`,
+      meals: (activePlan.meals || []).map(m => ({
+        id: m.id,
+        label: m.label || '',
+        items: (m.items || []).map(i => ({
+          id: i.id,
+          name: i.name || '',
+          amount: i.amount || '',
+          calories: Number(i.calories) || 0,
+          protein: Number(i.protein) || 0,
+          carbs: Number(i.carbs) || 0,
+          fat: Number(i.fat) || 0
+        }))
+      }))
     };
 
+    const finalPlan = cleanObject(completePlan);
+
     try {
-      await setDoc(doc(db, 'mealplans', id), completePlan);
-      alert("Meal plan saved to cloud.");
+      await setDoc(doc(db, 'mealplans', id), finalPlan);
+      // Alert removed
       setIsAdding(false);
     } catch (error) {
       console.error("Error saving meal plan:", error);
@@ -101,7 +132,7 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
     if (window.confirm("Delete this master meal plan?")) {
       try {
         await deleteDoc(doc(db, 'mealplans', id));
-        alert("Meal plan removed from cloud.");
+        // Alert removed
       } catch (error) {
         console.error("Error removing meal plan:", error);
         alert("Failed to remove meal plan.");

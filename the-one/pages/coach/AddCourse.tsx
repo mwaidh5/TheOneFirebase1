@@ -73,23 +73,53 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   };
 
   const addDay = () => {
-    const n = [...weeks];
-    const nextNum = n[activeWeekIdx].days.length + 1;
-    n[activeWeekIdx].days.push({ id: Math.random().toString(), dayNumber: nextNum, title: 'New Day', exercises: [] });
-    setWeeks(n);
-    setActiveDayIdx(n[activeWeekIdx].days.length - 1);
+    const updatedWeeks = weeks.map((week, idx) => {
+        if (idx !== activeWeekIdx) return week;
+        const nextNum = week.days.length + 1;
+        return {
+            ...week,
+            days: [...week.days, { id: Math.random().toString(), dayNumber: nextNum, title: 'New Day', exercises: [] }]
+        };
+    });
+    setWeeks(updatedWeeks);
+    setActiveDayIdx(updatedWeeks[activeWeekIdx].days.length - 1);
   };
 
   const addExercise = () => {
-    const n = [...weeks];
-    n[activeWeekIdx].days[activeDayIdx].exercises.push({ id: Math.random().toString(), name: '', format: 'REGULAR', sets: 3, reps: '10', rest: '60s' });
-    setWeeks(n);
+    const updatedWeeks = weeks.map((week, idx) => {
+        if (idx !== activeWeekIdx) return week;
+        return {
+            ...week,
+            days: week.days.map((day, dIdx) => {
+                if (dIdx !== activeDayIdx) return day;
+                return {
+                    ...day,
+                    exercises: [...day.exercises, { id: Math.random().toString(), name: '', format: 'REGULAR', sets: 3, reps: '10', rest: '60s' }]
+                };
+            })
+        };
+    });
+    setWeeks(updatedWeeks);
   };
 
   const updateExercise = (exIdx: number, field: keyof Exercise, val: any) => {
-    const n = [...weeks];
-    n[activeWeekIdx].days[activeDayIdx].exercises[exIdx] = { ...n[activeWeekIdx].days[activeDayIdx].exercises[exIdx], [field]: val };
-    setWeeks(n);
+    const updatedWeeks = weeks.map((week, idx) => {
+        if (idx !== activeWeekIdx) return week;
+        return {
+            ...week,
+            days: week.days.map((day, dIdx) => {
+                if (dIdx !== activeDayIdx) return day;
+                return {
+                    ...day,
+                    exercises: day.exercises.map((ex, eIdx) => {
+                        if (eIdx !== exIdx) return ex;
+                        return { ...ex, [field]: val };
+                    })
+                };
+            })
+        };
+    });
+    setWeeks(updatedWeeks);
   };
 
   const applyWorkoutBlueprint = (template: WorkoutTemplate) => {
@@ -97,8 +127,20 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       ...ex,
       id: Math.random().toString()
     }));
-    const updatedWeeks = [...weeks];
-    updatedWeeks[activeWeekIdx].days[activeDayIdx].exercises = [...updatedWeeks[activeWeekIdx].days[activeDayIdx].exercises, ...templateExs];
+    
+    const updatedWeeks = weeks.map((week, idx) => {
+        if (idx !== activeWeekIdx) return week;
+        return {
+            ...week,
+            days: week.days.map((day, dIdx) => {
+                if (dIdx !== activeDayIdx) return day;
+                return {
+                    ...day,
+                    exercises: [...day.exercises, ...templateExs]
+                };
+            })
+        };
+    });
     setWeeks(updatedWeeks);
     setIsPickerOpen({ type: 'exercise', activeExIdx: null });
   };
@@ -110,7 +152,23 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
     if (!newState && activeTab === 'nutrition') setActiveTab('workouts');
   };
 
+  const cleanObject = (obj: any): any => {
+    if (Array.isArray(obj)) return obj.map(cleanObject);
+    if (typeof obj === 'object' && obj !== null) {
+        const res: any = {};
+        Object.keys(obj).forEach(key => {
+            const val = obj[key];
+            if (val !== undefined) {
+                res[key] = cleanObject(val);
+            }
+        });
+        return res;
+    }
+    return obj;
+  };
+
   const handlePublish = async () => {
+    console.log("Publishing course...");
     if (!courseData.title) return alert("Title required");
     
     // Check if user is actually authenticated with Firebase
@@ -119,23 +177,51 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         if (!confirm) return;
     }
 
-    const newCourse: Course = {
+    // Sanitize weeks to ensure numbers are numbers and undefined values are handled
+    const sanitizedWeeks = weeks.map(week => ({
+        ...week,
+        days: week.days.map(day => ({
+            ...day,
+            exercises: day.exercises.map(ex => ({
+                ...ex,
+                sets: Number(ex.sets) || 0,
+                reps: String(ex.reps || ''),
+                rest: String(ex.rest || ''),
+                description: ex.description || '',
+                imageUrl: ex.imageUrl || undefined,
+                videoUrl: ex.videoUrl || undefined
+            }))
+        }))
+    }));
+
+    const sanitizedMealPlan = attachedMealPlan ? {
+        ...attachedMealPlan,
+        meals: attachedMealPlan.meals.map(m => ({
+            ...m,
+            items: m.items.map(i => ({
+                ...i,
+                calories: Number(i.calories) || 0,
+                protein: Number(i.protein) || 0,
+                carbs: Number(i.carbs) || 0,
+                fat: Number(i.fat) || 0
+            }))
+        }))
+    } : undefined;
+
+    const newCourse: any = {
         ...courseData,
-        weeks: weeks,
-        mealPlan: attachedMealPlan || undefined
+        weeks: sanitizedWeeks,
+        mealPlan: sanitizedMealPlan,
+        updatedAt: Date.now()
     };
     
-    // Clean undefined properties just in case, though initializeFirestore ignoreUndefinedProperties handles this
-    Object.keys(newCourse).forEach(key => {
-        if ((newCourse as any)[key] === undefined) {
-            delete (newCourse as any)[key];
-        }
-    });
+    // Deep clean undefined values
+    const finalCourse = cleanObject(newCourse);
 
     try {
-        console.log("Attempting to save course to Firestore:", newCourse);
-        await setDoc(doc(db, 'courses', newCourse.id), newCourse);
-        alert("Program Published to Cloud Successfully");
+        console.log("Attempting to save course to Firestore:", finalCourse);
+        await setDoc(doc(db, 'courses', finalCourse.id), finalCourse);
+        // Alert removed as requested
         navigate(-1);
     } catch (error: any) {
         console.error("CRITICAL ERROR: Failed to save course to Firebase:", error);
@@ -211,7 +297,10 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-100 pb-6">
                     <div className="space-y-1">
                        <span className="text-[9px] font-black uppercase text-accent">W{weeks[activeWeekIdx].weekNumber}D{activeDay?.dayNumber}</span>
-                       <input type="text" value={activeDay?.title || ''} onChange={e => { const n = [...weeks]; n[activeWeekIdx].days[activeDayIdx].title = e.target.value; setWeeks(n); }} className="text-xl md:text-3xl font-black uppercase text-black bg-transparent outline-none w-full" />
+                       <input type="text" value={activeDay?.title || ''} onChange={e => {
+                           const updatedWeeks = weeks.map((w, i) => i === activeWeekIdx ? { ...w, days: w.days.map((d, j) => j === activeDayIdx ? { ...d, title: e.target.value } : d) } : w);
+                           setWeeks(updatedWeeks);
+                       }} className="text-xl md:text-3xl font-black uppercase text-black bg-transparent outline-none w-full" />
                     </div>
                     <div className="flex gap-2">
                        <button onClick={() => setIsPickerOpen({ type: 'workout', activeExIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase border border-neutral-100 flex items-center gap-2"><span className="material-symbols-outlined text-base">library_add</span> Blueprint</button>
@@ -224,7 +313,10 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                        <div key={ex.id} className="p-5 md:p-8 bg-neutral-50 rounded-2xl md:rounded-[2.5rem] border border-neutral-100 relative group space-y-6">
                           <div className="absolute top-4 md:top-6 right-4 md:right-6 flex gap-3">
                              <button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> Exercises Library</button>
-                             <button onClick={() => { const n = [...weeks]; n[activeWeekIdx].days[activeDayIdx].exercises.splice(exIdx, 1); setWeeks(n); }} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-lg">delete</span></button>
+                             <button onClick={() => {
+                                 const updatedWeeks = weeks.map((w, i) => i === activeWeekIdx ? { ...w, days: w.days.map((d, j) => j === activeDayIdx ? { ...d, exercises: d.exercises.filter((_, k) => k !== exIdx) } : d) } : w);
+                                 setWeeks(updatedWeeks);
+                             }} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-lg">delete</span></button>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                              <div className="space-y-6">

@@ -39,25 +39,44 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
     setIsAdding(true);
   };
 
+  const cleanObject = (obj: any): any => {
+    if (Array.isArray(obj)) return obj.map(cleanObject);
+    if (typeof obj === 'object' && obj !== null) {
+      const res: any = {};
+      Object.keys(obj).forEach(key => {
+        const val = obj[key];
+        if (val !== undefined) {
+          res[key] = cleanObject(val);
+        }
+      });
+      return res;
+    }
+    return obj;
+  };
+
   const handleSave = async () => {
     if (!newEx.name) return;
     
     const id = editingId || Math.random().toString(36).substr(2, 9);
+    
+    // Explicitly handle all fields
     const item: ExerciseTemplate = {
       id,
-      name: newEx.name!,
+      name: newEx.name || '',
       defaultFormat: (newEx.defaultFormat as ExerciseFormat) || 'REGULAR',
       description: newEx.description || '',
-      imageUrl: newEx.imageUrl || '',
-      videoUrl: newEx.videoUrl || '',
+      imageUrl: newEx.imageUrl || undefined,
+      videoUrl: newEx.videoUrl || undefined,
       isPublic: newEx.isPublic ?? true,
       creatorId: newEx.creatorId || currentUser.id,
       creatorName: newEx.creatorName || `${currentUser.firstName} ${currentUser.lastName}`
     };
 
+    const finalItem = cleanObject(item);
+
     try {
-      await setDoc(doc(db, 'exercises', id), item);
-      alert("Exercise saved to cloud library.");
+      await setDoc(doc(db, 'exercises', id), finalItem);
+      // Alert removed
       setIsAdding(false);
       setEditingId(null);
       setNewEx({ name: '', defaultFormat: 'REGULAR', description: '', isPublic: true });
@@ -71,14 +90,20 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
     const file = e.target.files?.[0];
     if (!file || !isMediaPickerOpen.activeField) return;
 
+    // Validate file size (e.g., limit to 5MB to avoid Firestore document limits or base64 string length issues)
+    if (file.size > 5 * 1024 * 1024) {
+        alert("File is too large. Please upload an image smaller than 5MB.");
+        return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = async () => {
       const data = reader.result as string;
-      const assetId = Math.random().toString();
+      const assetId = Math.random().toString(36).substr(2, 9); // Use simpler ID generation
       const newAsset: MediaAsset = { 
         id: assetId, 
         type: file.type.startsWith('video') ? 'video' : 'image', 
-        data, 
+        data: data, 
         name: file.name,
         category: 'WORKOUT',
         createdAt: Date.now(),
@@ -88,14 +113,30 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
       };
       
       try {
+        console.log("Uploading media asset...", assetId);
+        // Ensure data is not too large for a single Firestore document (approx 1MB limit)
+        // If it's a large base64 string, this might fail.
+        // For now, we attempt to save.
         await setDoc(doc(db, 'media', assetId), newAsset);
-        setNewEx({ ...newEx, [isMediaPickerOpen.activeField!]: data });
+        console.log("Media asset uploaded successfully.");
+        
+        // Update the state to reflect the new image immediately in the UI
+        setNewEx(prev => ({ ...prev, [isMediaPickerOpen.activeField!]: data }));
+        
+        // Close the picker
         setIsMediaPickerOpen({ activeField: null });
-      } catch (error) {
+        
+      } catch (error: any) {
         console.error("Error uploading media:", error);
-        alert("Failed to upload media.");
+        alert(`Failed to upload media: ${error.message}`);
       }
     };
+    
+    reader.onerror = (error) => {
+        console.error("File reading error:", error);
+        alert("Failed to read file.");
+    };
+
     reader.readAsDataURL(file);
   };
 
@@ -110,7 +151,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
     if (window.confirm("Delete this master Exercise from the library?")) {
       try {
         await deleteDoc(doc(db, 'exercises', id));
-        alert("Exercise removed from cloud.");
+        // Alert removed
       } catch (error) {
         console.error("Error removing exercise:", error);
         alert("Failed to remove exercise.");

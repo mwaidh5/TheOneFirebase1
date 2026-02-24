@@ -1,6 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, writeBatch, where } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { Notification } from '../../types';
+import { formatDistanceToNow } from 'date-fns';
 
 const AdminLayout: React.FC = () => {
   const location = useLocation();
@@ -10,11 +14,54 @@ const AdminLayout: React.FC = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isActive = (path: string) => location.pathname === path;
 
-  const notifications = [
-    { id: 1, type: 'COURSE', title: 'New Course Logic', text: 'Coach Mercer published "Engine Builder 2.0"', time: '2m ago', icon: 'school' },
-    { id: 2, type: 'CUSTOM', title: 'Bespoke Cycle Ready', text: 'Sarah Jenkins custom plan is now live.', time: '15m ago', icon: 'architecture' },
-    { id: 3, type: 'ORDER', title: 'Revenue Event', text: 'New enrollment: Fran Masterclass ($199)', time: '1h ago', icon: 'payments' },
-  ];
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'notifications'), 
+      orderBy('createdAt', 'desc'), 
+      limit(20)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const notifs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Notification));
+      setNotifications(notifs);
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    const batch = writeBatch(db);
+    notifications.forEach(notif => {
+      if (!notif.read) {
+        const notifRef = doc(db, 'notifications', notif.id);
+        batch.update(notifRef, { read: true });
+      }
+    });
+    try {
+      await batch.commit();
+    } catch (error) {
+      console.error("Error marking notifications as read", error);
+    }
+  };
+
+  const handleNotificationClick = async (notif: Notification) => {
+      if (!notif.read) {
+          try {
+              await updateDoc(doc(db, 'notifications', notif.id), {
+                  read: true
+              });
+          } catch (error) {
+              console.error("Error updating notification status", error);
+          }
+      }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -128,31 +175,50 @@ const AdminLayout: React.FC = () => {
                     onClick={() => setIsNotifOpen(!isNotifOpen)}
                     className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all relative ${isNotifOpen ? 'bg-black text-white' : 'bg-neutral-50 text-neutral-400 hover:text-black'}`}>
                     <span className="material-symbols-outlined text-[20px]">notifications</span>
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                    {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                    )}
                 </button>
 
                 {isNotifOpen && (
                     <div className="absolute top-full right-0 mt-4 w-[calc(100vw-2rem)] sm:w-80 bg-white border border-neutral-100 rounded-2xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2">
                         <div className="p-4 border-b border-neutral-50 flex justify-between items-center bg-neutral-50/30">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-black">Pulse</h3>
-                            <button className="text-[10px] font-black text-accent uppercase hover:underline">Clear</button>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-black">Notifications</h3>
+                            {unreadCount > 0 && (
+                                <button onClick={handleMarkAllRead} className="text-[10px] font-black text-accent uppercase hover:underline">Mark all read</button>
+                            )}
                         </div>
                         <div className="max-h-[300px] overflow-y-auto no-scrollbar py-2">
-                            {notifications.map(notif => (
-                                <div key={notif.id} className="p-4 hover:bg-neutral-50 transition-colors flex gap-3 text-left">
-                                    <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center text-white shrink-0"><span className="material-symbols-outlined text-sm">{notif.icon}</span></div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-[9px] font-black text-neutral-300 uppercase mb-0.5">{notif.title}</p>
-                                        <p className="text-xs font-bold text-black leading-tight truncate">{notif.text}</p>
+                            {notifications.length === 0 ? (
+                                <div className="p-4 text-center text-neutral-400 text-xs">No notifications</div>
+                            ) : (
+                                notifications.map(notif => (
+                                    <div 
+                                        key={notif.id} 
+                                        onClick={() => handleNotificationClick(notif)}
+                                        className={`p-4 hover:bg-neutral-50 transition-colors flex gap-3 text-left cursor-pointer ${!notif.read ? 'bg-neutral-50/50' : ''}`}
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center text-white shrink-0">
+                                            <span className="material-symbols-outlined text-sm">{notif.icon || 'notifications'}</span>
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex justify-between items-start mb-0.5">
+                                                <p className={`text-[9px] font-black uppercase ${!notif.read ? 'text-accent' : 'text-neutral-300'}`}>{notif.title}</p>
+                                                <span className="text-[9px] text-neutral-400 whitespace-nowrap ml-2">
+                                                    {notif.createdAt?.toDate ? formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true }) : ''}
+                                                </span>
+                                            </div>
+                                            <p className={`text-xs ${!notif.read ? 'font-bold text-black' : 'font-medium text-neutral-600'} leading-tight truncate`}>{notif.text}</p>
+                                        </div>
+                                        {!notif.read && (
+                                            <div className="w-2 h-2 rounded-full bg-accent mt-1.5 shrink-0"></div>
+                                        )}
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 )}
-              </div>
-              <div className="w-10 h-10 rounded-full border border-neutral-100 p-0.5 shrink-0">
-                <img src="https://picsum.photos/100/100?random=admin" className="w-full h-full rounded-full object-cover" alt="" />
               </div>
            </div>
         </header>
