@@ -147,6 +147,7 @@ export interface MediaAsset {
   creatorId?: string;
   creatorName?: string;
   isPublic?: boolean;
+  storagePath?: string;
 }
 
 export interface CustomCourseRequest {

@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { setDoc, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '../../firebase';
 import { GoogleGenAI } from '@google/genai';
-import { MediaAsset, User, UserRole } from '../../types';
+import { MediaAsset, User } from '../../types';
 
 interface MediaLibraryProps {
   library: MediaAsset[];
@@ -13,6 +14,7 @@ interface MediaLibraryProps {
 
 const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, currentUser }) => {
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [selectedImageForAi, setSelectedImageForAi] = useState<string | null>(null);
   const [aiTab, setAiTab] = useState<'generate' | 'edit'>('generate');
@@ -29,48 +31,55 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
     });
   }, [library, currentUser, searchQuery]);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-        alert("File is too large. Max 5MB.");
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const data = reader.result as string;
+    setIsUploading(true);
+    try {
       const assetId = Math.random().toString(36).substr(2, 9);
+      const storagePath = `media/${assetId}/${file.name}`;
+      const storageRef = ref(storage, storagePath);
+
+      // Upload to Firebase Storage
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
       
       const newAsset: MediaAsset = { 
         id: assetId, 
         type: file.type.startsWith('video') ? 'video' : 'image', 
-        data, 
+        data: downloadURL, 
         name: file.name,
         category: 'WORKOUT',
         createdAt: Date.now(),
         creatorId: currentUser.id,
         creatorName: `${currentUser.firstName} ${currentUser.lastName}`,
-        isPublic: false
+        isPublic: false,
+        storagePath: storagePath
       };
 
-      try {
-        await setDoc(doc(db, 'media', assetId), newAsset);
-        setLibrary(prev => [newAsset, ...prev]);
-      } catch (error) {
+      await setDoc(doc(db, 'media', assetId), newAsset);
+      setLibrary(prev => [newAsset, ...prev]);
+    } catch (error) {
         console.error("Error uploading to media library:", error);
         alert("Failed to save to media library.");
-      }
-    };
-    reader.readAsDataURL(file);
+    } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }
   };
 
-  const deleteAsset = async (assetId: string) => {
+  const deleteAsset = async (asset: MediaAsset) => {
     if (window.confirm("Are you sure you want to delete this asset?")) {
         try {
-            await deleteDoc(doc(db, 'media', assetId));
-            setLibrary(prev => prev.filter(l => l.id !== assetId));
+            await deleteDoc(doc(db, 'media', asset.id));
+            if (asset.storagePath) {
+                const storageRef = ref(storage, asset.storagePath);
+                await deleteObject(storageRef).catch(err => console.warn("Could not delete from storage", err));
+            }
+            setLibrary(prev => prev.filter(l => l.id !== asset.id));
         } catch (error) {
             console.error("Error deleting asset:", error);
             alert("Failed to delete asset.");
@@ -90,7 +99,26 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
       if (aiTab === 'generate') {
         contents = { parts: [{ text: aiPrompt }] };
       } else if (selectedImageForAi) {
-        const base64Data = selectedImageForAi.split(',')[1];
+         // If selectedImageForAi is a URL (from storage), we need to fetch it
+         let base64Data = '';
+         if (selectedImageForAi.startsWith('http')) {
+             try {
+                 const response = await fetch(selectedImageForAi);
+                 const blob = await response.blob();
+                 const reader = new FileReader();
+                 base64Data = await new Promise((resolve) => {
+                     reader.onloadend = () => resolve(reader.result as string);
+                     reader.readAsDataURL(blob);
+                 });
+                 base64Data = base64Data.split(',')[1];
+             } catch (e) {
+                 console.error("Failed to fetch image for AI", e);
+                 throw new Error("Failed to load image for AI processing");
+             }
+         } else {
+             base64Data = selectedImageForAi.split(',')[1];
+         }
+
         contents = {
           parts: [
             { inlineData: { data: base64Data, mimeType: 'image/png' } },
@@ -149,10 +177,20 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
           </div>
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2"
+            disabled={isUploading}
+            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span className="material-symbols-outlined">upload_file</span>
-            Upload File
+            {isUploading ? (
+                <>
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                Uploading...
+                </>
+            ) : (
+                <>
+                <span className="material-symbols-outlined">upload_file</span>
+                Upload File
+                </>
+            )}
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*,video/mp4" />
           </button>
         </div>
@@ -172,8 +210,9 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
                   {asset.type === 'image' ? (
                     <img src={asset.data} alt={asset.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-black text-white">
-                      <span className="material-symbols-outlined text-4xl">video_file</span>
+                    <div className="w-full h-full flex items-center justify-center bg-black text-white relative">
+                      <video src={asset.data} className="w-full h-full object-cover" muted loop onMouseOver={e => (e.target as HTMLVideoElement).play()} onMouseOut={e => (e.target as HTMLVideoElement).pause()} />
+                      <span className="material-symbols-outlined text-4xl absolute pointer-events-none">video_file</span>
                     </div>
                   )}
                   <div className="absolute top-4 left-4 flex gap-2">
@@ -185,18 +224,20 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-end p-4">
                     <p className="text-[10px] font-black text-white uppercase truncate mb-2">{asset.name}</p>
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setAiTab('edit');
-                          setSelectedImageForAi(asset.data);
-                        }}
-                        className="flex-1 py-2 bg-white text-black text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-accent hover:text-white"
-                      >
-                        AI Edit
-                      </button>
+                      {asset.type === 'image' && (
+                        <button 
+                          onClick={() => {
+                            setAiTab('edit');
+                            setSelectedImageForAi(asset.data);
+                          }}
+                          className="flex-1 py-2 bg-white text-black text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-accent hover:text-white"
+                        >
+                          AI Edit
+                        </button>
+                      )}
                       {asset.creatorId === currentUser.id && (
                         <button 
-                          onClick={() => deleteAsset(asset.id)}
+                          onClick={() => deleteAsset(asset)}
                           className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>

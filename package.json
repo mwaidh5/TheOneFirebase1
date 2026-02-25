@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "date-fns": "^4.1.0"
+    "@google/genai": "^1.42.0",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.9.0",
+    "heic2any": "^0.0.4"
   }
 }
