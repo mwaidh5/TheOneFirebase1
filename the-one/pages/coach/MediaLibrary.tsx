@@ -79,7 +79,8 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
                 const storageRef = ref(storage, asset.storagePath);
                 await deleteObject(storageRef).catch(err => console.warn("Could not delete from storage", err));
             }
-            setLibrary(prev => prev.filter(l => l.id !== asset.id));
+            // Sync is handled by listener in App.tsx but we can optimistic update
+             setLibrary(prev => prev.filter(l => l.id !== asset.id));
         } catch (error) {
             console.error("Error deleting asset:", error);
             alert("Failed to delete asset.");

@@ -239,7 +239,7 @@ const App: React.FC = () => {
               <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
               <Route path="workout-library" element={<CoachWorkoutLibrary library={mediaLibrary} workoutLibrary={workoutLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
               <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} currentUser={currentUser!} />} />
-              <Route path="media" element={<CoachMediaLibrary library={mediaLibrary} currentUser={currentUser!} />} />
+              <Route path="media" element={<CoachMediaLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
               <Route path="analytics" element={<CoachAnalytics />} />
               <Route path="courses" element={<CoachCourses courses={courses} />} />
               <Route path="courses/new" element={<CoachAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
