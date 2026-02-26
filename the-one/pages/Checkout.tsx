@@ -1,14 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { COURSES } from '../constants';
-import { User } from '../types';
+import { updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase';
+import { User, Course } from '../types';
 
 interface CheckoutProps {
   currentUser: User | null;
+  onEnroll: (user: User) => void;
+  courses?: Course[];
 }
 
-const Checkout: React.FC<CheckoutProps> = ({ currentUser }) => {
+const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = [] }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -17,14 +20,31 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser }) => {
   const queryParams = new URLSearchParams(location.search);
   const courseId = queryParams.get('courseId');
   const isCustom = courseId?.startsWith('custom-');
-  const course = COURSES.find(c => c.id === courseId) || COURSES[0];
+  
+  const course = courses.find(c => c.id === courseId);
+
+  // Fallback for custom or missing course to avoid crash, though normally we'd fetch custom request details
+  const displayCourse = course || {
+      id: courseId || 'unknown',
+      title: isCustom ? 'Custom Program' : 'Unknown Course',
+      price: isCustom ? 299 : 0, // Mock price for custom
+      image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1400',
+      description: '',
+      instructor: 'IronPulse',
+      category: 'Program',
+      level: 'Advanced',
+      duration: 'Ongoing',
+      enrollmentCount: 0,
+      rating: 5,
+      hasMealPlan: false
+  } as Course;
 
   // Coupon Logic
   const [couponCode, setCouponCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [isCouponError, setIsCouponError] = useState(false);
 
-  const subtotal = course.price;
+  const subtotal = displayCourse.price;
   const total = Math.max(0, subtotal - appliedDiscount);
 
   const applyCoupon = () => {
@@ -43,20 +63,69 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser }) => {
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentUser) {
+        alert("You must be logged in to purchase.");
+        navigate(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`);
+        return;
+    }
+
+    if (!courseId) {
+        alert("Invalid course.");
+        return;
+    }
+
     setIsProcessing(true);
     setPaymentStep('authorizing');
     
-    // High-end Simulation for Demo
-    setTimeout(() => {
-      setPaymentStep('success');
-      setIsProcessing(false);
-      localStorage.setItem('automated_msg_purchase', 'true');
-      setTimeout(() => {
-        if (isCustom) navigate(`/athlete/diagnostic/${courseId}`);
-        else navigate('/profile/courses');
-      }, 2500);
-    }, 3000);
+    // Simulate Payment Processing Delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    try {
+        // 1. Update Firestore
+        const userRef = doc(db, 'users', currentUser.id);
+        await updateDoc(userRef, {
+            enrolledCourseIds: arrayUnion(courseId)
+        });
+
+        // 2. Update Local State (so UI reflects change immediately)
+        // We clone the user and append the new course ID if not already there
+        const currentEnrollments = currentUser.enrolledCourseIds || [];
+        if (!currentEnrollments.includes(courseId)) {
+            const updatedUser = {
+                ...currentUser,
+                enrolledCourseIds: [...currentEnrollments, courseId]
+            };
+            onEnroll(updatedUser);
+        }
+
+        // 3. Success UI
+        setPaymentStep('success');
+        setIsProcessing(false);
+        localStorage.setItem('automated_msg_purchase', 'true');
+        
+        // 4. Redirect
+        setTimeout(() => {
+            if (isCustom) navigate(`/athlete/diagnostic/${courseId}`);
+            else navigate('/profile/courses');
+        }, 2500);
+
+    } catch (error) {
+        console.error("Payment/Enrollment Error:", error);
+        setIsProcessing(false);
+        setPaymentStep('entry');
+        alert("Transaction failed. Please try again.");
+    }
   };
+
+  if (!courseId) {
+      return (
+          <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+              <p className="text-xl font-bold">No course selected.</p>
+              <button onClick={() => navigate('/courses')} className="px-6 py-3 bg-black text-white rounded-xl uppercase font-bold text-xs">Browse Courses</button>
+          </div>
+      );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500 min-h-[70vh] flex flex-col justify-center">
@@ -101,7 +170,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser }) => {
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-2">
                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Cardholder Name</label>
-                       <input type="text" defaultValue={`${currentUser?.firstName} ${currentUser?.lastName}`.toUpperCase()} className="w-full p-5 bg-neutral-50 rounded-2xl border border-neutral-100 font-black uppercase outline-none focus:ring-2 focus:ring-black" />
+                       <input type="text" defaultValue={currentUser ? `${currentUser.firstName} ${currentUser.lastName}`.toUpperCase() : ''} className="w-full p-5 bg-neutral-50 rounded-2xl border border-neutral-100 font-black uppercase outline-none focus:ring-2 focus:ring-black" />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Simulation Card</label>
@@ -131,10 +200,10 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser }) => {
               <div className="space-y-6 relative z-10">
                 <div className="flex gap-6">
                   <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-lg">
-                    <img src={course.image} className="w-full h-full object-cover" alt="" />
+                    <img src={displayCourse.image} className="w-full h-full object-cover" alt="" />
                   </div>
                   <div className="flex flex-col justify-center">
-                    <p className="font-black text-white uppercase text-base tracking-tight leading-tight">{course.title}</p>
+                    <p className="font-black text-white uppercase text-base tracking-tight leading-tight">{displayCourse.title}</p>
                     <p className="text-[10px] text-accent font-black uppercase tracking-widest mt-1">SindiPay Secure Order</p>
                   </div>
                 </div>

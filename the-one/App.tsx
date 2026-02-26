@@ -38,7 +38,6 @@ import AdminAddCourse from './pages/admin/AddCourse';
 import AdminMediaLibrary from './pages/admin/MediaLibrary';
 import AdminSiteSettings from './pages/admin/Settings';
 import AdminActivityFeed from './pages/admin/ActivityFeed';
-import AdminAiArchitect from './pages/admin/AiArchitect';
 import AdminLayout from './pages/admin/AdminLayout';
 import PaymentSettings from './pages/admin/PaymentSettings';
 import AdminFinancials from './pages/admin/Financials';
@@ -196,13 +195,13 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Homepage settings={siteSettings} />} />
             
-            <Route path="/courses" element={<Courses courses={courses} />} />
+            <Route path="/courses" element={<Courses courses={courses} currentUser={currentUser} />} />
             <Route path="/courses/:id" element={<CourseDetail currentUser={currentUser} courses={courses} />} />
             <Route path="/custom-course" element={<CustomCourse currentUser={currentUser} />} />
             <Route path="/athlete/diagnostic/:id" element={<AthleteDiagnostics currentUser={currentUser} />} />
             <Route path="/coaches" element={<Coaches />} />
             <Route path="/coaches/:id" element={<CoachProfile />} />
-            <Route path="/checkout" element={<Checkout currentUser={currentUser} />} />
+            <Route path="/checkout" element={<Checkout currentUser={currentUser} onEnroll={setCurrentUser} courses={courses} />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login onLogin={setCurrentUser} />} />
             <Route path="/signup" element={<Signup onSignup={setCurrentUser} />} />
@@ -216,7 +215,7 @@ const App: React.FC = () => {
             <Route path="/profile/settings" element={isLoggedIn ? <ProfileSettings /> : <Navigate to="/login" />} />
             <Route path="/profile/notifications" element={isLoggedIn ? <NotificationsSettings /> : <Navigate to="/login" />} />
             <Route path="/profile/billing" element={isLoggedIn ? <BillingHistory /> : <Navigate to="/login" />} />
-            <Route path="/workout/:id" element={isLoggedIn ? <WorkoutSession /> : <Navigate to="/login" />} />
+            <Route path="/workout/:id" element={isLoggedIn ? <WorkoutSession courses={courses} /> : <Navigate to="/login" />} />
 
             <Route path="/admin" element={currentUser?.role === UserRole.ADMIN ? <AdminLayout /> : <Navigate to="/" />}>
               <Route index element={<AdminDashboard />} />
@@ -237,7 +236,6 @@ const App: React.FC = () => {
               <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} currentUser={currentUser!} />} />
               <Route path="media" element={<AdminMediaLibrary library={mediaLibrary} />} />
               <Route path="activity" element={<AdminActivityFeed />} />
-              <Route path="architect" element={<AdminAiArchitect siteSettings={siteSettings} setSiteSettings={setSiteSettings} onLogout={handleLogout} />} />
               <Route 
                 path="settings" 
                 element={<AdminSiteSettings siteSettings={siteSettings} setSiteSettings={setSiteSettings} library={mediaLibrary} />} 

@@ -1,5 +1,8 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { formatDistanceToNow } from 'date-fns';
 
 type ActivityType = 'REVENUE' | 'ATHLETE' | 'SYSTEM' | 'AI';
 
@@ -26,62 +29,48 @@ const AdminActivityFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [timeframe, setTimeframe] = useState<'24H' | '7D' | '30D'>('24H');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
 
-  const activities: Activity[] = [
-    {
-      id: 'act-1',
-      type: 'REVENUE',
-      title: 'New Enrollment',
-      description: 'John Doe enrolled in Engine Builder 101',
-      user: { name: 'John Doe', avatar: 'https://picsum.photos/100/100?random=1', email: 'john@doe.com' },
-      time: 'Just now',
-      timestamp: Date.now(),
-      data: '$149.00',
-      details: { metaId: 'ORD-9921', status: 'PAID', source: 'SindiPay Gateway', impact: 'Monthly Revenue' }
-    },
-    {
-      id: 'act-2',
-      type: 'ATHLETE',
-      title: 'New Personal Record',
-      description: 'Mike Ross logged a 405lb Deadlift',
-      user: { name: 'Mike Ross', avatar: 'https://picsum.photos/100/100?random=2', email: 'mike@ross.com' },
-      time: '12 minutes ago',
-      timestamp: Date.now() - 12 * 60000,
-      data: 'PR +15lb',
-      details: { metaId: 'LOG-882', status: 'VERIFIED', source: 'Mobile App', impact: 'Athlete Milestone' }
-    },
-    {
-      id: 'act-3',
-      type: 'AI',
-      title: 'AI Asset Generated',
-      description: 'New hero imagery generated via Laboratory',
-      user: { name: 'Admin Master', avatar: 'https://picsum.photos/100/100?random=admin', email: 'admin@pulse.com' },
-      time: '45 minutes ago',
-      timestamp: Date.now() - 45 * 60000,
-      details: { metaId: 'GEN-442', status: 'COMMITTED', source: 'Gemini 2.5 Flash', impact: 'Site UI Refresh', technicalLog: 'Prompt: Cinematic wide shot of barbell in a dark gym with neon lighting.' }
-    },
-    {
-      id: 'act-4',
-      type: 'SYSTEM',
-      title: 'Site Branding Updated',
-      description: 'Global site settings published by admin',
-      user: { name: 'Admin Master', avatar: 'https://picsum.photos/100/100?random=admin', email: 'admin@pulse.com' },
-      time: '2 hours ago',
-      timestamp: Date.now() - 120 * 60000,
-      details: { metaId: 'SYS-LOG-01', status: 'SUCCESS', source: 'CMS Panel', impact: 'Global Theme', technicalLog: 'Primary Accent Color changed from #137fec to #000000.' }
-    },
-    {
-      id: 'act-5',
-      type: 'REVENUE',
-      title: 'Subscription Renewed',
-      description: 'Jane Smith renewed Pro Unlimited',
-      user: { name: 'Jane Smith', avatar: 'https://picsum.photos/100/100?random=5', email: 'jane@smith.com' },
-      time: '4 hours ago',
-      timestamp: Date.now() - 240 * 60000,
-      data: '$299.00',
-      details: { metaId: 'ORD-9918', status: 'PAID', source: 'Stripe Direct', impact: 'Retention' }
-    }
-  ];
+  useEffect(() => {
+    const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(50));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedActivities = snapshot.docs.map(doc => {
+            const data = doc.data();
+            // Map Firestore Notification to Activity
+            // Assuming data has: type, title, text, createdAt, and potentially extra fields if we added them
+            // If we don't have user info, use placeholders
+            
+            let actType: ActivityType = 'SYSTEM';
+            if (data.type === 'ORDER') actType = 'REVENUE';
+            else if (data.type === 'COURSE' || data.type === 'CUSTOM') actType = 'ATHLETE';
+            else if (data.type === 'AI') actType = 'AI';
+
+            return {
+                id: doc.id,
+                type: actType,
+                title: data.title || 'System Event',
+                description: data.text || '',
+                user: { 
+                    name: data.userName || 'System', 
+                    avatar: data.userAvatar || 'https://ui-avatars.com/api/?name=System&background=000&color=fff', 
+                    email: data.userEmail || 'system@platform.com' 
+                },
+                time: data.createdAt?.toDate ? formatDistanceToNow(data.createdAt.toDate(), { addSuffix: true }) : 'Just now',
+                timestamp: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                data: data.metaData || '',
+                details: {
+                    metaId: doc.id.substring(0, 8).toUpperCase(),
+                    status: 'LOGGED',
+                    source: 'Platform',
+                    impact: 'General',
+                    technicalLog: JSON.stringify(data)
+                }
+            } as Activity;
+        });
+        setActivities(fetchedActivities);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const filteredActivities = useMemo(() => {
     return activities.filter(a => {
@@ -89,9 +78,18 @@ const AdminActivityFeed: React.FC = () => {
       const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            a.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            a.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
+      
+      // Basic timeframe filtering (mock logic as we limit fetch to 50 regardless)
+      const now = Date.now();
+      const diff = now - a.timestamp;
+      let matchesTime = true;
+      if (timeframe === '24H') matchesTime = diff < 24 * 60 * 60 * 1000;
+      else if (timeframe === '7D') matchesTime = diff < 7 * 24 * 60 * 60 * 1000;
+      else if (timeframe === '30D') matchesTime = diff < 30 * 24 * 60 * 60 * 1000;
+
+      return matchesFilter && matchesSearch && matchesTime;
     });
-  }, [filter, searchQuery]);
+  }, [filter, searchQuery, timeframe, activities]);
 
   const getTypeColor = (type: ActivityType) => {
     switch (type) {
@@ -139,10 +137,10 @@ const AdminActivityFeed: React.FC = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
            {[
-             { l: 'Total Events', v: '4,102', icon: 'list_alt', c: 'text-neutral-400' },
-             { l: 'Security Flags', v: '0', icon: 'security', c: 'text-green-500' },
-             { l: 'AI Requests', v: '124', icon: 'bolt', c: 'text-purple-500' },
-             { l: 'Error Rate', v: '0.01%', icon: 'error_outline', c: 'text-neutral-300' }
+             { l: 'Total Events', v: activities.length.toString(), icon: 'list_alt', c: 'text-neutral-400' },
+             { l: 'Revenue Events', v: activities.filter(a => a.type === 'REVENUE').length.toString(), icon: 'payments', c: 'text-green-500' },
+             { l: 'Athlete Actions', v: activities.filter(a => a.type === 'ATHLETE').length.toString(), icon: 'fitness_center', c: 'text-accent' },
+             { l: 'System Logs', v: activities.filter(a => a.type === 'SYSTEM').length.toString(), icon: 'settings', c: 'text-neutral-300' }
            ].map(s => (
              <div key={s.l} className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center ${s.c}`}>
@@ -163,7 +161,7 @@ const AdminActivityFeed: React.FC = () => {
             <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
             <input 
               type="text" 
-              placeholder="Search by athlete, order ID, or AI prompt..." 
+              placeholder="Search logs..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold outline-none focus:border-black transition-all"
@@ -250,7 +248,7 @@ const AdminActivityFeed: React.FC = () => {
       {/* Deep Intelligence Inspector Modal */}
       {selectedActivity && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col">
+           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden relative flex flex-col max-h-[90vh]">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 shrink-0">
                  <div className="space-y-1">
                     <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${getTypeColor(selectedActivity.type).replace('bg-', 'text-')}`}>Intelligence Detail</p>
@@ -264,7 +262,7 @@ const AdminActivityFeed: React.FC = () => {
                  </button>
               </div>
 
-              <div className="p-10 space-y-10">
+              <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar">
                  {/* User Context */}
                  <div className="flex items-center gap-6 p-6 bg-neutral-50 rounded-3xl border border-neutral-100 shadow-inner">
                     <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
@@ -300,7 +298,7 @@ const AdminActivityFeed: React.FC = () => {
                  {selectedActivity.details?.technicalLog && (
                     <div className="space-y-4">
                        <h4 className="text-[10px] font-black text-neutral-300 uppercase tracking-[0.2em] ml-1">Contextual Logic Data</h4>
-                       <div className="p-6 bg-neutral-900 rounded-[2rem] border border-white/5 font-mono text-[11px] text-accent leading-relaxed italic">
+                       <div className="p-6 bg-neutral-900 rounded-[2rem] border border-white/5 font-mono text-[11px] text-accent leading-relaxed italic break-all">
                           "{selectedActivity.details.technicalLog}"
                        </div>
                     </div>

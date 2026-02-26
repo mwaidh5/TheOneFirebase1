@@ -1,14 +1,18 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
-import { COURSES } from '../constants';
 import { Course, Exercise, WeekProgram, DayProgram } from '../types';
 
-const WorkoutSession: React.FC = () => {
+interface WorkoutSessionProps {
+  courses?: Course[];
+}
+
+const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const course = useMemo(() => COURSES.find(c => c.id === id) || COURSES[0], [id]);
+  
+  const course = useMemo(() => courses.find(c => c.id === id), [id, courses]);
   
   // Navigation State
   const [view, setView] = useState<'weeks' | 'days' | 'exercises'>('weeks');
@@ -38,6 +42,8 @@ const WorkoutSession: React.FC = () => {
 
   // Handle direct navigation from Curriculum links
   useEffect(() => {
+    if (!course) return;
+
     const params = new URLSearchParams(location.search);
     const weekNum = params.get('week');
     if (weekNum && course.weeks) {
@@ -48,6 +54,18 @@ const WorkoutSession: React.FC = () => {
       }
     }
   }, [location.search, course]);
+
+  if (!course) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+            <div className="text-center space-y-4">
+                <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <p className="font-bold text-neutral-400 uppercase tracking-widest text-xs">Loading Course Data...</p>
+                <Link to="/profile/courses" className="text-xs font-black uppercase underline">Return to Dashboard</Link>
+            </div>
+        </div>
+      );
+  }
 
   const toggleExercise = (exId: string) => {
     setCompletedExercises(prev => {
@@ -161,7 +179,7 @@ const WorkoutSession: React.FC = () => {
         {/* WEEKS VIEW */}
         {view === 'weeks' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {course.weeks?.map((week) => {
+            {(course.weeks || []).map((week) => {
               const isFinished = completedWeeks.has(week.id) || isWeekNaturallyDone(week);
               return (
                 <div 

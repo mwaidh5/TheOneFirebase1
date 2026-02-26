@@ -1,11 +1,50 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { collection, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { formatDistanceToNow } from 'date-fns';
 
 const AdminDashboard: React.FC = () => {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [lastScan, setLastScan] = useState(new Date().toLocaleTimeString());
+
+  // Real Data State
+  const [stats, setStats] = useState({
+      usersCount: 0,
+      coursesCount: 0,
+      revenue: 0,
+      leadsCount: 0
+  });
+  const [logs, setLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+      const fetchData = async () => {
+          try {
+              const usersSnap = await getDocs(collection(db, "users"));
+              const coursesSnap = await getDocs(collection(db, "courses"));
+              // Mocking revenue/leads as 0 until collections exist
+              setStats({
+                  usersCount: usersSnap.size,
+                  coursesCount: coursesSnap.size,
+                  revenue: 0,
+                  leadsCount: 0
+              });
+          } catch (error) {
+              console.error("Error fetching dashboard stats", error);
+          }
+      };
+      fetchData();
+
+      // Live Logs
+      const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(20));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          setLogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+
+      return () => unsubscribe();
+  }, []);
 
   const runSystemScan = () => {
     setIsScanning(true);
@@ -48,10 +87,10 @@ const AdminDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
         {[
-          { label: 'Active Athletes', val: '1,240', trend: '+5%', color: 'text-accent', icon: 'groups' },
-          { label: 'Coach Published', val: '12', sub: 'Past 7 days', color: 'text-purple-600', icon: 'school' },
-          { label: 'Custom Revenue', val: '$4,250', trend: '+18%', color: 'text-green-600', icon: 'payments' },
-          { label: 'Cycle Leads', val: '4', sub: 'Pending Review', color: 'text-orange-600', icon: 'architecture' },
+          { label: 'Active Athletes', val: stats.usersCount.toString(), trend: '', color: 'text-accent', icon: 'groups' },
+          { label: 'Courses Active', val: stats.coursesCount.toString(), sub: 'Published', color: 'text-purple-600', icon: 'school' },
+          { label: 'Platform Revenue', val: `$${stats.revenue}`, trend: '', color: 'text-green-600', icon: 'payments' },
+          { label: 'Cycle Leads', val: stats.leadsCount.toString(), sub: 'Pending Review', color: 'text-orange-600', icon: 'architecture' },
         ].map(stat => (
           <div key={stat.label} className="bg-white rounded-[2.5rem] p-8 border border-neutral-100 shadow-sm hover:shadow-xl transition-all group">
             <div className="flex items-center justify-between mb-8">
@@ -92,29 +131,25 @@ const AdminDashboard: React.FC = () => {
 
         <div className="lg:col-span-4 bg-white rounded-[3rem] border border-neutral-100 shadow-2xl flex flex-col h-full overflow-hidden">
           <div className="p-8 border-b border-neutral-50 flex items-center justify-between bg-neutral-50/30">
-            <h3 className="text-lg font-black font-display uppercase tracking-tight">Platform Pulse</h3>
+            <h3 className="text-lg font-black font-display uppercase tracking-tight">System Logs</h3>
             <Link to="/admin/activity" className="text-accent text-[9px] font-black uppercase tracking-widest hover:underline flex items-center gap-1">
               Live Feed <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar py-2">
-            {[
-              { type: 'BUILD', text: 'Coach Mercer finalized Sarah Jenkins custom plan.', time: '2m ago', color: 'text-accent' },
-              { type: 'LEAD', text: 'New custom intake from Bruce Wayne (CrossFit).', time: '12m ago', color: 'text-orange-500' },
-              { type: 'ORDER', text: 'Success: Payment for #ORD-9281 confirmed.', time: '45m ago', color: 'text-green-500' },
-              { type: 'AUTH', text: 'Site settings logic updated via AI Architect.', time: '2h ago', color: 'text-purple-500' },
-            ].map((ev, i) => (
-              <div key={i} className="px-8 py-6 hover:bg-neutral-50 transition-all border-b border-neutral-50 last:border-0 relative group">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md bg-neutral-50 ${ev.color}`}>{ev.type}</span>
-                  <span className="text-[8px] font-bold text-neutral-300 uppercase tracking-widest">• {ev.time}</span>
+            {logs.length === 0 ? (
+                <div className="p-8 text-center text-neutral-400 text-xs">No recent activity</div>
+            ) : (
+                logs.map((ev, i) => (
+                <div key={ev.id || i} className="px-8 py-6 hover:bg-neutral-50 transition-all border-b border-neutral-50 last:border-0 relative group">
+                    <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md bg-neutral-50 ${ev.type === 'ORDER' ? 'text-green-500' : 'text-accent'}`}>{ev.type || 'SYSTEM'}</span>
+                    <span className="text-[8px] font-bold text-neutral-300 uppercase tracking-widest">• {ev.createdAt?.toDate ? formatDistanceToNow(ev.createdAt.toDate(), { addSuffix: true }) : 'Just now'}</span>
+                    </div>
+                    <p className="text-xs font-bold text-black leading-relaxed group-hover:text-accent transition-colors">{ev.text || ev.title}</p>
                 </div>
-                <p className="text-xs font-bold text-black leading-relaxed group-hover:text-accent transition-colors">{ev.text}</p>
-                <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">
-                   <span className="material-symbols-outlined text-neutral-300">chevron_right</span>
-                </div>
-              </div>
-            ))}
+                ))
+            )}
           </div>
           <div className="p-6 bg-black text-white rounded-b-[3rem] flex items-center gap-4">
              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center animate-pulse">
@@ -122,7 +157,7 @@ const AdminDashboard: React.FC = () => {
              </div>
              <div>
                 <p className="text-[10px] font-black uppercase tracking-widest">Architect Tip</p>
-                <p className="text-[9px] font-medium text-neutral-400">Coaches have published 3 new tracks this morning. Audit requested.</p>
+                <p className="text-[9px] font-medium text-neutral-400">System is running optimally. No critical alerts.</p>
              </div>
           </div>
         </div>

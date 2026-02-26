@@ -1,20 +1,20 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Course } from '../types';
+import { Course, User } from '../types';
 
 interface CoursesProps {
   courses: Course[];
+  currentUser?: User | null;
 }
 
-const Courses: React.FC<CoursesProps> = ({ courses }) => {
+const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
   const navigate = useNavigate();
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [quizStep, setQuizStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  // Simulated ownership for demo
-  const ownedCourseIds = ['crs1']; 
+  const ownedCourseIds = currentUser?.enrolledCourseIds || [];
 
   const quizQuestions = [
     {

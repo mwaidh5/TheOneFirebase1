@@ -14,8 +14,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ currentUser, courses }) => 
   const navigate = useNavigate();
   const course = courses.find(c => c.id === id);
   
-  // Simulation check
-  const isOwned = currentUser?.id === 'u1' && id === 'crs1';
+  // Check if user owns the course
+  const isOwned = currentUser?.enrolledCourseIds?.includes(course?.id || '') || false;
   
   const coach = COACHES.find(c => c.name.includes(course?.instructor.split(' ')[0] || ''));
 
@@ -94,7 +94,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ currentUser, courses }) => 
                   onClick={() => navigate(`/checkout?courseId=${course.id}`)}
                   className="block w-full text-center py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-neutral-800 transition-all shadow-xl hover:-translate-y-1"
                 >
-                  Enroll Track Now
+                  Purchase Course
                 </button>
               ) : (
                 <div className="space-y-4 animate-in zoom-in-95 duration-300">
