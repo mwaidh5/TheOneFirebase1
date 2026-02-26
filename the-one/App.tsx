@@ -70,7 +70,10 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [originalAdmin, setOriginalAdmin] = useState<User | null>(null);
+  const [originalAdmin, setOriginalAdmin] = useState<User | null>(() => {
+    const saved = localStorage.getItem('theone_original_admin');
+    return saved ? JSON.parse(saved) : null;
+  });
   
   useEffect(() => {
     if (currentUser) {
@@ -79,6 +82,14 @@ const App: React.FC = () => {
       localStorage.removeItem('theone_auth_user');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (originalAdmin) {
+      localStorage.setItem('theone_original_admin', JSON.stringify(originalAdmin));
+    } else {
+      localStorage.removeItem('theone_original_admin');
+    }
+  }, [originalAdmin]);
 
   // Persistence Logic for Site Settings
   const [siteSettings, setSiteSettings] = useState(() => {
@@ -161,7 +172,7 @@ const App: React.FC = () => {
     <Router>
       <div className="flex flex-col min-h-screen">
         {originalAdmin && (
-          <div className="bg-accent py-2 px-6 flex items-center justify-center gap-6 animate-in slide-in-from-top duration-500 z-[60]">
+          <div className="bg-accent py-2 px-6 flex items-center justify-center gap-6 animate-in slide-in-from-top duration-500 z-[60] fixed w-full top-0 left-0 shadow-xl">
              <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-white text-[18px] filled animate-pulse">admin_panel_settings</span>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">
@@ -177,7 +188,10 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <Navbar isLoggedIn={isLoggedIn} currentUser={currentUser} onLogout={handleLogout} logo={siteSettings.logo} />
+        <div className={originalAdmin ? 'mt-12' : ''}>
+          <Navbar isLoggedIn={isLoggedIn} currentUser={currentUser} onLogout={handleLogout} logo={siteSettings.logo} />
+        </div>
+        
         <main className="flex-grow flex flex-col">
           <Routes>
             <Route path="/" element={<Homepage settings={siteSettings} />} />
@@ -195,7 +209,7 @@ const App: React.FC = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             
             <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" />} />
-            <Route path="/profile/courses" element={isLoggedIn ? <MyCourses /> : <Navigate to="/login" />} />
+            <Route path="/profile/courses" element={isLoggedIn ? <MyCourses currentUser={currentUser} courses={courses} /> : <Navigate to="/login" />} />
             <Route path="/profile/messages" element={isLoggedIn ? <Chat currentUser={currentUser!} /> : <Navigate to="/login" />} />
             <Route path="/profile/nutrition" element={isLoggedIn ? <MealPlan /> : <Navigate to="/login" />} />
             <Route path="/profile/vitals" element={isLoggedIn ? <UserDetails /> : <Navigate to="/login" />} />
@@ -209,7 +223,7 @@ const App: React.FC = () => {
               <Route path="custom-requests" element={<AdminCustomRequests />} />
               <Route path="custom-view/:requestId" element={<AdminCustomWorkoutViewer />} />
               <Route path="messages" element={<Chat currentUser={currentUser!} />} />
-              <Route path="users" element={<AdminUsers onImpersonate={handleImpersonate} />} />
+              <Route path="users" element={<AdminUsers onImpersonate={handleImpersonate} courses={courses} />} />
               <Route path="users/new" element={<AdminAddUser />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="financials" element={<AdminFinancials />} />
@@ -233,7 +247,7 @@ const App: React.FC = () => {
             <Route path="/coach" element={currentUser?.role === UserRole.COACH ? <CoachLayout /> : <Navigate to="/" />}>
               <Route index element={<CoachDashboard />} />
               <Route path="messages" element={<Chat currentUser={currentUser!} />} />
-              <Route path="athletes" element={<CoachAthletes />} />
+              <Route path="athletes" element={<CoachAthletes currentUser={currentUser!} />} />
               <Route path="custom-cycles" element={<CoachCustomCycles />} />
               <Route path="global-questions" element={<CoachGlobalQuestions />} />
               <Route path="exercise-library" element={<CoachExerciseLibrary library={mediaLibrary} exerciseLibrary={exerciseLibrary} currentUser={currentUser!} />} />
@@ -241,10 +255,10 @@ const App: React.FC = () => {
               <Route path="meal-library" element={<CoachMealLibrary mealPlanLibrary={mealPlanLibrary} currentUser={currentUser!} />} />
               <Route path="media" element={<CoachMediaLibrary library={mediaLibrary} setLibrary={setMediaLibrary} currentUser={currentUser!} />} />
               <Route path="analytics" element={<CoachAnalytics />} />
-              <Route path="courses" element={<CoachCourses courses={courses} />} />
-              <Route path="courses/new" element={<CoachAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
+              <Route path="courses" element={<CoachCourses courses={courses} currentUser={currentUser!} />} />
+              <Route path="courses/new" element={<CoachAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} currentUser={currentUser!} />} />
               <Route path="programmer/:requestId" element={<CoachCustomProgrammer library={mediaLibrary} />} />
-              <Route path="courses/edit/:id" element={<CoachAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} />} />
+              <Route path="courses/edit/:id" element={<CoachAddCourse library={mediaLibrary} courses={courses} exerciseLibrary={exerciseLibrary} workoutLibrary={workoutLibrary} mealPlanLibrary={mealPlanLibrary} currentUser={currentUser!} />} />
             </Route>
 
             <Route path="/support" element={currentUser?.role === UserRole.SUPPORT ? <SupportLayout /> : <Navigate to="/" />}>

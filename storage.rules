@@ -1,8 +1,33 @@
-
+rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    // 1. Helper function to check if the user is an Admin
+    function isAdmin() {
+      // Corrected to check 'role' field instead of 'isAdmin'
+      return request.auth != null && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    // 2. Helper function to check if the file is an Image or Video
+    function isImageOrVideo() {
+      // Checks the MIME type of the file being uploaded
+      return request.resource.contentType.matches('image/.*') || 
+             request.resource.contentType.matches('video/.*');
+    }
+
     match /{allPaths=**} {
-      allow read, write: if true;
+      // Anyone who is logged in can view the files
+      allow read: if request.auth != null; 
+      
+      // RULES FOR UPLOADING / OVERWRITING
+      // If they are an admin, let them upload anything.
+      // Otherwise, they must be logged in AND the file must be an image/video.
+      allow create, update: if isAdmin() || (request.auth != null && isImageOrVideo());
+
+      // RULES FOR DELETING
+      // For safety, let's only allow the admin to delete files. 
+      allow delete: if isAdmin();
     }
   }
 }

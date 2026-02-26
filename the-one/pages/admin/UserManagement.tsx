@@ -1,7 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, UserRole } from '../../types';
+import { deleteDoc, doc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { User, UserRole, Course } from '../../types';
 
 interface UserData {
   id: string;
@@ -13,13 +15,15 @@ interface UserData {
   systemRole: UserRole;
   lastSeen: string;
   isBespokeAuthorized?: boolean;
+  enrolledCourseIds?: string[];
 }
 
 interface UserManagementProps {
   onImpersonate: (user: User) => void;
+  courses: Course[];
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>('ALL');
@@ -38,17 +42,58 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
     localStorage.setItem('ironpulse_users', JSON.stringify(users));
   }, [users]);
 
+  // Fetch users from Firestore and merge with local
+  useEffect(() => {
+    const fetchDbUsers = async () => {
+        try {
+            const querySnapshot = await getDocs(collection(db, "users"));
+            const dbUsers = querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    name: `${data.firstName} ${data.lastName}`,
+                    email: data.email,
+                    phone: data.phone || '',
+                    status: 'Active', // Default active for DB users
+                    role: data.level || 'Athlete',
+                    systemRole: data.role as UserRole,
+                    lastSeen: 'Recently',
+                    enrolledCourseIds: data.enrolledCourseIds || []
+                } as UserData;
+            });
+            
+            setUsers(prev => {
+                const prevIds = new Set(prev.map(p => p.id));
+                const newUsers = dbUsers.filter(d => !prevIds.has(d.id));
+                // Replace existing if found in DB? or just add new?
+                // Let's update existing ones from DB as DB is source of truth for them
+                const updatedPrev = prev.map(p => {
+                    const dbUser = dbUsers.find(d => d.id === p.id);
+                    return dbUser ? dbUser : p;
+                });
+                // Add completely new ones
+                const finalUsers = [...updatedPrev, ...newUsers];
+                return finalUsers;
+            });
+        } catch (error) {
+            console.error("Error fetching users from Firestore", error);
+        }
+    };
+    fetchDbUsers();
+  }, []); // Run once on mount
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setActiveMenuId(null);
+      if (activeMenuId && !(event.target as Element).closest('.action-menu-container')) {
+         setActiveMenuId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [activeMenuId]);
 
-  const toggleMenu = (id: string) => {
+  const toggleMenu = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setActiveMenuId(activeMenuId === id ? null : id);
   };
 
@@ -67,10 +112,25 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
     setActiveMenuId(null);
   };
 
-  const handleUpdateUser = (e: React.FormEvent) => {
+  const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
+    
+    // Update Local State
     setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+
+    // Update Firestore
+    try {
+        const userRef = doc(db, "users", editingUser.id);
+        await updateDoc(userRef, {
+            role: editingUser.systemRole,
+            enrolledCourseIds: editingUser.enrolledCourseIds || []
+            // Note: Not updating name/email in DB to avoid conflict if fields differ, strictly updating permissions/courses
+        });
+    } catch (error) {
+        // Ignore if document doesn't exist (mock user)
+    }
+
     setIsEditModalOpen(false);
     setEditingUser(null);
   };
@@ -80,9 +140,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
     setActiveMenuId(null);
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (window.confirm("Purge athlete?")) {
       setUsers(users.filter(u => u.id !== userId));
+      try {
+          await deleteDoc(doc(db, "users", userId));
+      } catch (e) {
+          // ignore
+      }
       setActiveMenuId(null);
     }
   };
@@ -96,7 +161,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
       role: userData.systemRole,
       avatar: `https://picsum.photos/100/100?random=${userData.id}`,
       memberSince: '2024',
-      level: userData.role
+      level: userData.role,
+      enrolledCourseIds: userData.enrolledCourseIds
     };
     onImpersonate(userToLogin);
     if (userToLogin.role === UserRole.COACH) navigate('/coach');
@@ -165,9 +231,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
       </div>
 
       {/* MOBILE LIST / DESKTOP TABLE */}
-      <div className="bg-white rounded-[2rem] border border-neutral-100 shadow-xl overflow-hidden">
+      <div className="bg-white rounded-[2rem] border border-neutral-100 shadow-xl overflow-hidden min-h-[400px]">
           {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-x-auto">
+          <div className="hidden lg:block overflow-x-visible">
             <table className="w-full text-left table-auto">
                 <thead className="bg-neutral-50 border-b border-neutral-100">
                 <tr>
@@ -203,9 +269,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
                             )}
                         </td>
                         <td className="px-6 py-4 text-right">
-                            <button onClick={() => toggleMenu(user.id)} className="p-2 text-neutral-400 hover:text-black transition-all">
-                                <span className="material-symbols-outlined">settings</span>
-                            </button>
+                           <div className="flex justify-end gap-2 items-center relative action-menu-container">
+                                <button 
+                                  onClick={() => handleImpersonateUser(user)}
+                                  className="px-3 py-2 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                                  title="Login as User"
+                                >
+                                  Login
+                                </button>
+                                <button onClick={(e) => toggleMenu(user.id, e)} className="p-2 text-neutral-400 hover:text-black transition-all">
+                                    <span className="material-symbols-outlined">settings</span>
+                                </button>
+                                
+                                {/* DESKTOP DROPDOWN MENU */}
+                                {activeMenuId === user.id && (
+                                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-neutral-100 rounded-2xl shadow-2xl z-50 p-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                      <button onClick={() => handleOpenEdit(user)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 rounded-xl text-left">
+                                          <span className="material-symbols-outlined text-sm text-neutral-400">edit</span>
+                                          <span className="text-[10px] font-black uppercase tracking-widest text-neutral-600">Edit Profile</span>
+                                      </button>
+                                      <button onClick={() => handleUpdateUserStatus(user.id, user.status === 'Active' ? 'Suspended' : 'Active')} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 rounded-xl text-left">
+                                          <span className="material-symbols-outlined text-sm text-neutral-400">{user.status === 'Active' ? 'block' : 'check_circle'}</span>
+                                          <span className="text-[10px] font-black uppercase tracking-widest text-neutral-600">{user.status === 'Active' ? 'Suspend' : 'Activate'}</span>
+                                      </button>
+                                      <div className="h-px bg-neutral-100 my-1"></div>
+                                      <button onClick={() => handleDeleteUser(user.id)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-xl text-left text-red-600">
+                                          <span className="material-symbols-outlined text-sm">delete</span>
+                                          <span className="text-[10px] font-black uppercase tracking-widest">Delete</span>
+                                      </button>
+                                  </div>
+                                )}
+                           </div>
                         </td>
                     </tr>
                 ))}
@@ -225,7 +319,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
                                 <p className="text-[10px] text-neutral-400 font-medium truncate">{user.email}</p>
                             </div>
                         </div>
-                        <button onClick={() => toggleMenu(user.id)} className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMenuId === user.id ? 'bg-black text-white' : 'bg-neutral-50 text-neutral-400'}`}>
+                        <button onClick={(e) => toggleMenu(user.id, e)} className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeMenuId === user.id ? 'bg-black text-white' : 'bg-neutral-50 text-neutral-400'} action-menu-container`}>
                             <span className="material-symbols-outlined">more_vert</span>
                         </button>
                     </div>
@@ -310,6 +404,35 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate }) => {
                             </select>
                         </div>
                     </div>
+
+                    <div className="space-y-3 pt-4 border-t border-neutral-100">
+                        <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Enrolled Courses</label>
+                        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2">
+                            {courses.map(course => (
+                                <label key={course.id} className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl cursor-pointer hover:bg-neutral-100 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={editingUser.enrolledCourseIds?.includes(course.id) || false}
+                                        onChange={(e) => {
+                                            const current = editingUser.enrolledCourseIds || [];
+                                            if (e.target.checked) {
+                                                setEditingUser({...editingUser, enrolledCourseIds: [...current, course.id]});
+                                            } else {
+                                                setEditingUser({...editingUser, enrolledCourseIds: current.filter(id => id !== course.id)});
+                                            }
+                                        }}
+                                        className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold truncate">{course.title}</p>
+                                        <p className="text-[9px] text-neutral-400 uppercase tracking-widest truncate">{course.category}</p>
+                                    </div>
+                                </label>
+                            ))}
+                            {courses.length === 0 && <p className="text-xs text-neutral-400 italic p-2">No courses available.</p>}
+                        </div>
+                    </div>
+
                     <button type="submit" className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl">Update Profile</button>
                  </form>
               </div>

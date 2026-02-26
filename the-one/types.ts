@@ -24,6 +24,7 @@ export interface User {
   avatar: string;
   memberSince: string;
   level: string;
+  enrolledCourseIds?: string[];
 }
 
 export interface Coach {
@@ -129,6 +130,7 @@ export interface Course {
   duration: string;
   image: string;
   instructor: string;
+  creatorId?: string; // Added creatorId
   category: string;
   enrollmentCount: number;
   rating: number;

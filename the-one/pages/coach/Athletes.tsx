@@ -1,7 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_CUSTOM_REQUESTS } from '../../constants';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { CustomCourseRequest, User } from '../../types';
 
 interface Athlete {
   id: string;
@@ -17,73 +19,51 @@ interface Athlete {
   recentPrs: { lift: string; weight: string; date: string }[];
 }
 
-const CoachAthletes: React.FC = () => {
+interface CoachAthletesProps {
+  currentUser: User;
+}
+
+const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const standardAthletes: Athlete[] = [
-    { 
-      id: 'ath-1', 
-      name: 'Sarah Jenkins', 
-      email: 'sarah@gym.com', 
-      phone: '+1 (555) 123-4567',
-      progress: 85, 
-      level: 'RX', 
-      status: 'On Track', 
-      lastSeen: '2h ago',
-      vitals: { weight: '145 lbs', height: "5'6\"", age: 28 },
-      recentPrs: [
-        { lift: 'Back Squat', weight: '215 lbs', date: 'Oct 20' },
-        { lift: 'Clean & Jerk', weight: '155 lbs', date: 'Oct 15' }
-      ]
-    },
-    { 
-      id: 'ath-2', 
-      name: 'Mike Johnson', 
-      email: 'mike@example.com', 
-      phone: '+1 (555) 987-6543',
-      progress: 42, 
-      level: 'Beginner', 
-      status: 'Improving', 
-      lastSeen: '5h ago',
-      vitals: { weight: '195 lbs', height: "6'0\"", age: 34 },
-      recentPrs: [
-        { lift: 'Deadlift', weight: '315 lbs', date: 'Oct 22' }
-      ]
-    },
-    { 
-      id: 'ath-3', 
-      name: 'Diana Prince', 
-      email: 'diana@warrior.com', 
-      phone: '+1 (555) 444-5555',
-      progress: 98, 
-      level: 'Elite', 
-      status: 'Peak', 
-      lastSeen: '10m ago',
-      vitals: { weight: '135 lbs', height: "5'8\"", age: 26 },
-      recentPrs: [
-        { lift: 'Snatch', weight: '145 lbs', date: 'Oct 24' },
-        { lift: 'Fran', weight: '2:45', date: 'Oct 10' }
-      ]
-    }
-  ];
+  useEffect(() => {
+    // Fetch Custom Course Requests assigned to this coach
+    const q = query(
+      collection(db, 'custom_requests'),
+      where('assignedCoachIds', 'array-contains', currentUser.id)
+    );
 
-  const allAthletes = useMemo(() => {
-    const customAthletes: Athlete[] = MOCK_CUSTOM_REQUESTS.map(req => ({
-      id: req.athleteId,
-      name: req.athleteName,
-      email: 'custom@request.com',
-      phone: req.phone,
-      progress: req.status === 'COMPLETED' ? 100 : req.status === 'BUILDING' ? 10 : 0,
-      level: req.sport.toUpperCase(),
-      status: req.status,
-      lastSeen: 'New Intake',
-      isCustomClient: true,
-      vitals: { weight: `${req.biometrics.weight}kg`, height: `${req.biometrics.height}cm`, age: req.biometrics.age },
-      recentPrs: []
-    }));
-    return [...standardAthletes, ...customAthletes];
-  }, []);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedAthletes: Athlete[] = snapshot.docs.map(doc => {
+        const data = doc.data() as CustomCourseRequest;
+        return {
+          id: data.athleteId || doc.id, // Use athleteId if available, else doc id
+          name: data.athleteName,
+          email: 'Locked', // Privacy
+          phone: data.phone,
+          progress: data.status === 'COMPLETED' ? 100 : data.status === 'BUILDING' ? 10 : 0,
+          level: data.sport ? data.sport.toUpperCase() : 'General',
+          status: data.status,
+          lastSeen: new Date(data.createdAt).toLocaleDateString(),
+          isCustomClient: true,
+          vitals: { 
+            weight: `${data.biometrics.weight}kg`, 
+            height: `${data.biometrics.height}cm`, 
+            age: data.biometrics.age 
+          },
+          recentPrs: [] // Would need to fetch separately
+        };
+      });
+      
+      setAthletes(fetchedAthletes);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser.id]);
 
   const handleMessageAthlete = (e: React.MouseEvent, athleteId: string) => {
     e.stopPropagation();
@@ -108,63 +88,75 @@ const CoachAthletes: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {allAthletes.map((athlete, i) => (
-          <div 
-            key={athlete.id} 
-            onClick={() => setSelectedAthlete(athlete)}
-            className={`bg-white rounded-[2.5rem] p-8 border shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden ${athlete.isCustomClient ? 'border-accent/30 ring-1 ring-accent/5' : 'border-neutral-100'}`}
-          >
-            {athlete.isCustomClient && (
-              <div className="absolute top-0 right-0 p-4">
-                <span className="px-3 py-1 bg-accent text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl rounded-tr-xl">Bespoke Client</span>
+      {isLoading ? (
+         <div className="py-20 text-center">
+            <div className="w-8 h-8 border-4 border-neutral-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-neutral-400 font-black uppercase tracking-widest text-xs">Loading Roster...</p>
+         </div>
+      ) : athletes.length === 0 ? (
+         <div className="py-20 text-center space-y-4">
+            <span className="material-symbols-outlined text-6xl text-neutral-100">groups</span>
+            <p className="text-neutral-300 font-black uppercase tracking-[0.2em]">No active athletes found</p>
+         </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {athletes.map((athlete, i) => (
+            <div 
+              key={athlete.id} 
+              onClick={() => setSelectedAthlete(athlete)}
+              className={`bg-white rounded-[2.5rem] p-8 border shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden ${athlete.isCustomClient ? 'border-accent/30 ring-1 ring-accent/5' : 'border-neutral-100'}`}
+            >
+              {athlete.isCustomClient && (
+                <div className="absolute top-0 right-0 p-4">
+                  <span className="px-3 py-1 bg-accent text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl rounded-tr-xl">Bespoke Client</span>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-6 mb-8">
+                <div className={`w-16 h-16 rounded-full overflow-hidden border-4 shadow-md ${athlete.isCustomClient ? 'border-accent/20' : 'border-neutral-50'}`}>
+                  <img src={`https://picsum.photos/100/100?random=${i+50}`} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black text-black uppercase tracking-tight group-hover:text-accent transition-colors">{athlete.name}</h3>
+                  <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{athlete.level} Specialty</p>
+                </div>
               </div>
-            )}
-            
-            <div className="flex items-center gap-6 mb-8">
-              <div className={`w-16 h-16 rounded-full overflow-hidden border-4 shadow-md ${athlete.isCustomClient ? 'border-accent/20' : 'border-neutral-50'}`}>
-                <img src={`https://picsum.photos/100/100?random=${i+50}`} alt="Avatar" className="w-full h-full object-cover" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-lg font-black text-black uppercase tracking-tight group-hover:text-accent transition-colors">{athlete.name}</h3>
-                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{athlete.level} Specialty</p>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-neutral-300">Phase Progress</span>
+                    <span className="text-black">{athlete.progress}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-neutral-50 rounded-full overflow-hidden border border-neutral-100">
+                    <div className={`h-full rounded-full transition-all duration-1000 ${athlete.isCustomClient ? 'bg-accent' : 'bg-black'}`} style={{ width: `${athlete.progress}%` }}></div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-neutral-50">
+                  <div className="flex gap-4">
+                    <div>
+                      <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Status</p>
+                      <p className={`text-xs font-bold uppercase ${athlete.status === 'At Risk' ? 'text-red-500' : 'text-green-600'}`}>{athlete.status}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Since</p>
+                      <p className="text-xs font-bold text-black uppercase tracking-tight">{athlete.lastSeen}</p>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={(e) => handleMessageAthlete(e, athlete.id)}
+                    className="w-10 h-10 rounded-xl bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white transition-all flex items-center justify-center group/msg shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-[20px] filled">chat</span>
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                  <span className="text-neutral-300">Phase Progress</span>
-                  <span className="text-black">{athlete.progress}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-neutral-50 rounded-full overflow-hidden border border-neutral-100">
-                  <div className={`h-full rounded-full transition-all duration-1000 ${athlete.isCustomClient ? 'bg-accent' : 'bg-black'}`} style={{ width: `${athlete.progress}%` }}></div>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t border-neutral-50">
-                <div className="flex gap-4">
-                  <div>
-                    <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Status</p>
-                    <p className={`text-xs font-bold uppercase ${athlete.status === 'At Risk' ? 'text-red-500' : 'text-green-600'}`}>{athlete.status}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Engagement</p>
-                    <p className="text-xs font-bold text-black uppercase tracking-tight">{athlete.lastSeen}</p>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={(e) => handleMessageAthlete(e, athlete.id)}
-                  className="w-10 h-10 rounded-xl bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white transition-all flex items-center justify-center group/msg shadow-sm"
-                >
-                  <span className="material-symbols-outlined text-[20px] filled">chat</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Athlete Detail Modal */}
       {selectedAthlete && (

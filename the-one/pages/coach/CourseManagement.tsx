@@ -3,14 +3,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { Course } from '../../types';
+import { Course, User } from '../../types';
 
 interface CoachCoursesProps {
   courses: Course[];
+  currentUser: User;
 }
 
-const CoachCourses: React.FC<CoachCoursesProps> = ({ courses }) => {
-  const coachCourses = courses; // Showing all for now
+const CoachCourses: React.FC<CoachCoursesProps> = ({ courses, currentUser }) => {
+  // Filter courses created by the current user (Coach)
+  const coachCourses = courses.filter(c => c.creatorId === currentUser.id);
 
   const handleDeleteCourse = async (courseId: string) => {
     if (window.confirm("Delete this track?")) {

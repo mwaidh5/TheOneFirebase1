@@ -21,7 +21,8 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
       const matchesSearch = wo.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            wo.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            wo.creatorName?.toLowerCase().includes(searchQuery.toLowerCase());
-      const hasPermission = currentUser.role === UserRole.ADMIN || wo.isPublic || wo.creatorId === currentUser.id;
+      // Strict filtering: Only Admin sees all; Coach sees only their own.
+      const hasPermission = currentUser.role === UserRole.ADMIN || wo.creatorId === currentUser.id;
       return matchesSearch && hasPermission;
     });
   }, [workoutLibrary, currentUser, searchQuery]);

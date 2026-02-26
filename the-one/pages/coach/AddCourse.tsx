@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { setDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import { Course, Exercise, WeekProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate } from '../../types';
+import { Course, Exercise, WeekProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, User } from '../../types';
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -11,9 +11,10 @@ interface AddCourseProps {
   exerciseLibrary: ExerciseTemplate[];
   workoutLibrary: WorkoutTemplate[];
   mealPlanLibrary: MealPlan[];
+  currentUser: User;
 }
 
-const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLibrary, workoutLibrary, mealPlanLibrary }) => {
+const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLibrary, workoutLibrary, mealPlanLibrary, currentUser }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
@@ -28,7 +29,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
     duration: '6 Weeks',
     image: '',
     hasMealPlan: false,
-    instructor: 'Alex Mercer',
+    instructor: '', // Will be set on save if empty
     enrollmentCount: 0,
     rating: 0
   });
@@ -57,7 +58,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
           duration: existing.duration,
           image: existing.image,
           hasMealPlan: existing.hasMealPlan || false,
-          instructor: existing.instructor || 'Alex Mercer',
+          instructor: existing.instructor || '',
           enrollmentCount: existing.enrollmentCount || 0,
           rating: existing.rating || 0
         });
@@ -171,7 +172,8 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
     console.log("Publishing course...");
     if (!courseData.title) return alert("Title required");
     
-    // Check if user is actually authenticated with Firebase
+    // Check if user is actually authenticated with Firebase (for real writes)
+    // Note: If impersonating, auth.currentUser is Admin, so writes succeed.
     if (!auth.currentUser) {
         const confirm = window.confirm("You are not signed in to Firebase. This save will likely fail if Security Rules are active. Continue anyway?");
         if (!confirm) return;
@@ -208,8 +210,14 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         }))
     } : undefined;
 
+    // Use passed currentUser for identity (handles impersonation correctly)
+    const creatorId = currentUser.id;
+    const instructorName = courseData.instructor || (`${currentUser.firstName} ${currentUser.lastName}`.trim() || 'Coach');
+
     const newCourse: any = {
         ...courseData,
+        creatorId: creatorId,
+        instructor: instructorName,
         weeks: sanitizedWeeks,
         mealPlan: sanitizedMealPlan,
         updatedAt: Date.now()
@@ -221,7 +229,6 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
     try {
         console.log("Attempting to save course to Firestore:", finalCourse);
         await setDoc(doc(db, 'courses', finalCourse.id), finalCourse);
-        // Alert removed as requested
         navigate(-1);
     } catch (error: any) {
         console.error("CRITICAL ERROR: Failed to save course to Firebase:", error);

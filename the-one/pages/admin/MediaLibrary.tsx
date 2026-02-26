@@ -3,7 +3,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../../firebase';
+import { db, storage, auth } from '../../firebase';
 import { MediaAsset } from '../../types';
 import heic2any from 'heic2any';
 
@@ -48,6 +48,13 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // CHECK AUTHENTICATION
+    if (!auth.currentUser) {
+        alert("Authentication Error: You are logged in locally but not connected to Firebase. Please Logout and Login again to refresh your session.");
+        if(fileInputRef.current) fileInputRef.current.value = '';
+        return;
+    }
+
     setIsUploading(true);
     try {
       let fileToUpload = file;
@@ -67,9 +74,14 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
           fileType = 'image/jpeg';
         } catch (conversionError) {
           console.error("HEIC conversion failed:", conversionError);
-          alert(`Could not convert HEIC image: ${(conversionError as Error).message}. Please try converting it to JPEG/PNG manually before uploading.`);
-          setIsUploading(false);
-          return;
+          const shouldUploadOriginal = window.confirm(`Could not convert HEIC image: ${(conversionError as Error).message}.\n\nDo you want to upload the original file anyway? (It may not display correctly on some devices)`);
+          
+          if (!shouldUploadOriginal) {
+            setIsUploading(false);
+            if(fileInputRef.current) fileInputRef.current.value = '';
+            return;
+          }
+          // If yes, we proceed with the original 'file' and 'fileType'
         }
       }
 
@@ -79,6 +91,8 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
 
       // Upload to Firebase Storage
       console.log('Starting upload to:', storagePath);
+      console.log('Current User UID:', auth.currentUser.uid);
+      
       await uploadBytes(storageRef, fileToUpload);
       console.log('Upload complete, getting download URL');
       const downloadURL = await getDownloadURL(storageRef);
@@ -113,9 +127,15 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
     if (window.confirm("Permanently delete this asset?")) {
       try {
         await deleteDoc(doc(db, 'media', asset.id));
+        
         if (asset.storagePath) {
           const storageRef = ref(storage, asset.storagePath);
-          await deleteObject(storageRef).catch(err => console.warn("Could not delete from storage", err));
+          try {
+             await deleteObject(storageRef);
+          } catch (storageErr: any) {
+             console.error("Storage delete failed:", storageErr);
+             alert(`Asset removed from gallery, BUT file deletion failed: ${storageErr.code} - ${storageErr.message}`);
+          }
         }
       } catch (error) {
         console.error("Error deleting media:", error);

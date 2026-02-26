@@ -22,7 +22,8 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
     return exerciseLibrary.filter(ex => {
       const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            ex.creatorName?.toLowerCase().includes(searchQuery.toLowerCase());
-      const hasPermission = currentUser.role === UserRole.ADMIN || ex.isPublic || ex.creatorId === currentUser.id;
+      // Strict filtering: Only Admin sees all; Coach sees only their own.
+      const hasPermission = currentUser.role === UserRole.ADMIN || ex.creatorId === currentUser.id;
       return matchesSearch && hasPermission;
     });
   }, [exerciseLibrary, currentUser, searchQuery]);
@@ -372,7 +373,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
               </div>
               
               <div className="flex-1 overflow-y-auto p-10 grid grid-cols-2 sm:grid-cols-4 gap-6 no-scrollbar text-center">
-                 {library.filter(a => a.creatorId === currentUser.id || a.isPublic).map(asset => (
+                 {library.filter(a => a.creatorId === currentUser.id || (currentUser.role === UserRole.ADMIN && a.isPublic)).map(asset => (
                     <div 
                        key={asset.id}
                        onClick={() => selectAsset(asset)}
@@ -390,7 +391,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
                        </div>
                     </div>
                  ))}
-                 {library.filter(a => a.creatorId === currentUser.id || a.isPublic).length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-10">No library media found.</p>}
+                 {library.filter(a => a.creatorId === currentUser.id || (currentUser.role === UserRole.ADMIN && a.isPublic)).length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-10">No library media found.</p>}
               </div>
            </div>
         </div>

@@ -18,7 +18,8 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            p.creatorName?.toLowerCase().includes(searchQuery.toLowerCase());
-      const hasPermission = currentUser.role === UserRole.ADMIN || p.isPublic || p.creatorId === currentUser.id;
+      // Strict filtering: Only Admin sees all; Coach sees only their own.
+      const hasPermission = currentUser.role === UserRole.ADMIN || p.creatorId === currentUser.id;
       return matchesSearch && hasPermission;
     });
   }, [mealPlanLibrary, currentUser, searchQuery]);

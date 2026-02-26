@@ -77,11 +77,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoginError('');
     setIsLoading(true);
 
+    /* 
+       BYPASS REMOVED: Authentication via Firebase is required for Storage access.
+       If you are using mwaidh@yahoo.com, ensure it is a valid user in Firebase Auth.
+    */
+    /*
     if (email.trim().toLowerCase() === 'mwaidh@yahoo.com') {
-      // Bypassing Firebase auth for preview/demo purposes
-      // NOTE: This bypass user won't work with Firestore Rules if they require actual Auth!
-      // But for the specific requested "production" setup, we should use real auth.
-      // I'll keep this strictly for development if needed, but warn.
       const mockFirebaseUser = {
         uid: 'demo-admin-user',
         displayName: 'Admin User',
@@ -92,6 +93,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       setIsLoading(false);
       return;
     }
+    */
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);

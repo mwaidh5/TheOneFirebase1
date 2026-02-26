@@ -1,15 +1,21 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { COURSES, COACHES } from '../constants';
+import { Course, User, UserRole, Coach } from '../types';
+import { COACHES } from '../constants';
 
-const MyCourses: React.FC = () => {
+interface MyCoursesProps {
+  currentUser?: User | null;
+  courses?: Course[];
+}
+
+const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
   const navigate = useNavigate();
 
-  // Simulation: User Alex owns crs1. 
-  // We filter courses that the user "owns" based on simulation ID or check if purchase flag exists
-  const isEnrolledInDefault = true; // In a real app, this is fetched from a database
-  const ownedCourses = isEnrolledInDefault ? COURSES.filter(c => c.id === 'crs1') : [];
+  // Filter courses based on user's enrollment
+  const ownedCourses = courses.filter(course => 
+    currentUser?.enrolledCourseIds?.includes(course.id)
+  );
 
   const handleMessageCoach = (instructorName: string) => {
     const coach = COACHES.find(c => c.name.includes(instructorName.split(' ')[0]));
@@ -45,7 +51,7 @@ const MyCourses: React.FC = () => {
                 </div>
                 <div className="absolute bottom-6 left-6 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg">
-                    <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar} alt="Coach" className="w-full h-full object-cover" />
+                    <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar || 'https://picsum.photos/100'} alt="Coach" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-[10px] font-black text-white uppercase tracking-widest">Lead: {course.instructor}</span>
                 </div>
@@ -98,5 +104,4 @@ const MyCourses: React.FC = () => {
   );
 };
 
-/* Added missing default export */
 export default MyCourses;
