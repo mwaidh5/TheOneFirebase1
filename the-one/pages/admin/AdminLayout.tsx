@@ -157,7 +157,7 @@ const AdminLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-20 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100 h-20 px-4 sm:px-10 flex items-center justify-between shrink-0">
+        <header className="bg-white border-b border-neutral-100 h-20 px-4 sm:px-10 flex items-center justify-between shrink-0">
            <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-neutral-600">
                 <span className="material-symbols-outlined">{isSidebarOpen ? 'close' : 'menu'}</span>

@@ -1,52 +1,37 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CustomCourseRequest } from '../../types';
-import { COACHES, CUSTOM_DISCIPLINES } from '../../constants';
+import { collection, onSnapshot, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { CustomCourseRequest, Coach } from '../../types';
+import { CUSTOM_DISCIPLINES } from '../../constants';
 
 const AdminCustomRequests: React.FC = () => {
   const navigate = useNavigate();
-  const [requests] = useState<CustomCourseRequest[]>([
-    {
-      id: 'REQ-101',
-      athleteId: 'u1',
-      athleteName: 'John Doe',
-      phone: '+1 (555) 123-4567',
-      sport: 'muaythai',
-      goal: 'Prepare for amateur fight. Focus on stamina.',
-      biometrics: { height: '180', weight: '85', age: '28' },
-      status: 'PENDING_PAYMENT',
-      assignedCoachIds: ['c2'],
-      price: 350,
-      createdAt: '2024-10-24',
-      durationWeeks: 6,
-      hasMealPlan: false
-    },
-    {
-      id: 'REQ-102',
-      athleteId: 'u2',
-      athleteName: 'Jane Smith',
-      phone: '+1 (555) 987-6543',
-      sport: 'crossfit',
-      goal: 'Improve gymnastic volume. Muscle ups are the goal.',
-      biometrics: { height: '165', weight: '62', age: '31' },
-      status: 'BUILDING',
-      assignedCoachIds: ['c1'],
-      price: 299,
-      createdAt: '2024-10-25',
-      durationWeeks: 4,
-      hasMealPlan: true,
-      diagnostics: [
-        { id: 'd-1', title: 'Ring Muscle Up Max Reps', instruction: 'Record your best set of unbroken muscle ups.', inputType: 'VIDEO', required: true }
-      ],
-      submissions: [
-        { testId: 'd-1', data: 'VIDEO_MOCK_PAYLOAD', submittedAt: Date.now() }
-      ]
-    }
-  ]);
-
+  const [requests, setRequests] = useState<CustomCourseRequest[]>([]);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
   const [inspectingReq, setInspectingReq] = useState<CustomCourseRequest | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'INTAKE' | 'RESULTS'>('INTAKE');
+
+  useEffect(() => {
+    // 1. Fetch Coaches to display assigned coach info
+    const fetchCoaches = async () => {
+      const q = query(collection(db, 'users'), where('role', '==', 'Coach'));
+      const snapshot = await getDocs(q);
+      const coachData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Coach));
+      setCoaches(coachData);
+    };
+    fetchCoaches();
+
+    // 2. Real-time listener for Custom Requests
+    const reqQuery = query(collection(db, 'custom_requests'));
+    const unsubscribe = onSnapshot(reqQuery, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomCourseRequest));
+      setRequests(data);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const openInspector = (req: CustomCourseRequest) => {
     setInspectingReq(req);
@@ -71,8 +56,14 @@ const AdminCustomRequests: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-50">
-            {requests.map((req) => {
-              const assignedCoach = COACHES.find(c => c.id === req.assignedCoachIds[0]);
+            {requests.length === 0 ? (
+               <tr>
+                  <td colSpan={4} className="px-8 py-12 text-center text-neutral-400 font-bold uppercase tracking-widest text-xs">
+                     No active requests found
+                  </td>
+               </tr>
+            ) : requests.map((req) => {
+              const assignedCoach = coaches.find(c => req.assignedCoachIds?.includes(c.id));
               const game = CUSTOM_DISCIPLINES.find(d => d.id === req.sport);
 
               return (
@@ -104,7 +95,7 @@ const AdminCustomRequests: React.FC = () => {
                   <td className="px-8 py-6">
                     {assignedCoach ? (
                        <div className="flex items-center gap-3 p-3 bg-neutral-50 border border-neutral-100 rounded-2xl w-fit shadow-sm">
-                          <img src={assignedCoach.avatar} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
+                          <img src={assignedCoach.avatar || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
                           <div>
                              <p className="text-[10px] font-black uppercase text-black leading-tight">{assignedCoach.name}</p>
                              <p className="text-[8px] font-bold text-accent uppercase tracking-widest mt-0.5">{game?.name || 'Master Coach'}</p>

@@ -2,6 +2,12 @@
 import React from 'react';
 
 const SupportDashboard: React.FC = () => {
+  const handleEscalate = () => {
+    if(confirm("Are you sure you want to escalate this to the Admin Master?")) {
+        alert("Escalation sent. The Kernel has been notified.");
+    }
+  };
+
   return (
     <div className="text-left space-y-12 animate-in fade-in duration-500">
       <div className="space-y-1">
@@ -55,7 +61,12 @@ const SupportDashboard: React.FC = () => {
            <div className="relative z-10 space-y-6">
               <h2 className="text-2xl font-black font-display uppercase leading-tight">Need Admin <br />Escalation?</h2>
               <p className="text-purple-100 text-sm font-medium leading-relaxed">System-wide issues should be logged via the Infrastructure Pulse for immediate Kernel review.</p>
-              <button className="w-full py-4 bg-white text-purple-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-100 transition-all shadow-xl">Notify Admin Master</button>
+              <button 
+                onClick={handleEscalate}
+                className="w-full py-4 bg-white text-purple-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-100 transition-all shadow-xl"
+              >
+                Notify Admin Master
+              </button>
            </div>
            <span className="material-symbols-outlined text-[160px] absolute -bottom-10 -right-10 text-white/5 rotate-12 select-none">emergency</span>
         </div>

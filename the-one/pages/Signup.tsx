@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { UserRole, User } from '../types';
+import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
-import { User, UserRole } from '../types';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface SignupProps {
   onSignup: (user: User) => void;
@@ -11,46 +12,55 @@ interface SignupProps {
 
 const Signup: React.FC<SignupProps> = ({ onSignup }) => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [signupError, setSignupError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    password: '',
+    password: ''
   });
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setSignupError('');
+    setLoading(true);
+    setError('');
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const firebaseUser = userCredential.user;
+      const user = userCredential.user;
 
       const newUser: User = {
-        id: firebaseUser.uid,
+        id: user.uid,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: firebaseUser.email || '',
-        role: formData.email.toLowerCase() === 'mwaidh@yahoo.com' ? UserRole.ADMIN : UserRole.CLIENT,
-        avatar: `https://i.pravatar.cc/150?u=${firebaseUser.uid}`,
+        email: user.email || '',
+        role: UserRole.CLIENT, // Default to Client
+        avatar: `https://i.pravatar.cc/150?u=${user.uid}`,
         memberSince: new Date().getFullYear().toString(),
-        level: 'Athlete',
+        level: 'Athlete'
       };
 
+      // Save to Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        ...newUser,
+        phone: formData.phone,
+        role: newUser.role.toString() // Store as string for consistency
+      });
+
       onSignup(newUser);
+      
       if (newUser.role === UserRole.ADMIN) {
         navigate('/admin');
       } else {
         navigate('/profile');
       }
-    } catch (error: any) {
-      setSignupError(error.message);
+
+    } catch (err: any) {
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -61,9 +71,7 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white shadow-2xl">
             <span className="material-symbols-outlined text-3xl">person_add</span>
           </div>
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">
-            Join The One
-          </h1>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Join The One</h1>
           <p className="text-neutral-500 font-medium">Create your athlete profile and start your journey.</p>
         </div>
 
@@ -73,22 +81,22 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">First Name</label>
               <input 
                 type="text" 
-                required
+                required 
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                placeholder="Alex" 
-                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all" 
+                placeholder="Alex"
+                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all"
               />
             </div>
             <div className="space-y-2 text-left">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Last Name</label>
               <input 
                 type="text" 
-                required
+                required 
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                placeholder="Johnson" 
-                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all" 
+                placeholder="Johnson"
+                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all"
               />
             </div>
           </div>
@@ -98,50 +106,52 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Email Address</label>
               <input 
                 type="email" 
-                required
+                required 
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="name@example.com" 
-                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all" 
+                placeholder="name@example.com"
+                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all"
               />
             </div>
+
             <div className="space-y-2 text-left">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Phone Number</label>
               <input 
                 type="tel" 
-                required
+                required 
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="+1 (555) 000-0000" 
-                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all" 
+                placeholder="+1 (555) 000-0000"
+                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all"
               />
             </div>
+
             <div className="space-y-2 text-left">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Create Password</label>
               <input 
                 type="password" 
-                required
+                required 
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
-                placeholder="••••••••" 
-                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all" 
+                placeholder="••••••••"
+                className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition-all"
               />
             </div>
           </div>
-          
-          {signupError && (
-              <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-shake">
-                {signupError}
-              </p>
-            )}
+
+          {error && (
+            <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-shake">
+              {error}
+            </p>
+          )}
 
           <div className="pt-2">
             <button 
-              type="submit"
-              disabled={isLoading}
+              type="submit" 
+              disabled={loading}
               className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
-              {isLoading ? (
+              {loading ? (
                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
@@ -158,7 +168,10 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
         </form>
 
         <p className="text-center text-sm font-medium text-neutral-400">
-          Already a member? <Link to="/login" className="font-black text-black hover:underline uppercase tracking-widest text-xs ml-1">Log in here</Link>
+          Already a member? 
+          <button onClick={() => navigate('/login')} className="font-black text-black hover:underline uppercase tracking-widest text-xs ml-1">
+            Log in here
+          </button>
         </p>
       </div>
     </div>
