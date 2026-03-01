@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface NavbarProps {
   isLoggedIn: boolean;
@@ -15,6 +17,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname === path;
@@ -28,6 +31,37 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+        setUnreadCount(0);
+        return;
+    }
+
+    const q = query(collection(db, 'conversations'), where('participants', 'array-contains', currentUser.id));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        let count = 0;
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            
+            // Check direct unread messages
+            if (data.unreadCounts && data.unreadCounts[currentUser.id] > 0) {
+                count += data.unreadCounts[currentUser.id];
+            }
+
+            // For Admin/Support, also check support-team messages
+            if ((currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) && data.type === 'support') {
+                 if (data.unreadCounts && data.unreadCounts['support-team'] > 0) {
+                     count += data.unreadCounts['support-team'];
+                 }
+            }
+        });
+        setUnreadCount(count);
+    });
+    
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleLogoutClick = () => {
     setIsDropdownOpen(false);
@@ -82,9 +116,12 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
               </div>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 hover:ring-2 hover:ring-black transition-all"
+                className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 hover:ring-2 hover:ring-black transition-all relative"
               >
                 <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                )}
               </button>
 
               {isDropdownOpen && (
@@ -114,8 +151,15 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                   <Link to="/profile/courses" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors">
                     <span className="material-symbols-outlined text-[20px]">school</span> My Courses
                   </Link>
-                  <Link to="/profile/messages" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">chat_bubble</span> Messages
+                  <Link to="/profile/messages" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors w-full justify-between">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[20px]">chat_bubble</span> Messages
+                    </div>
+                    {unreadCount > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                    )}
                   </Link>
                   <Link to="/profile/settings" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors">
                     <span className="material-symbols-outlined text-[20px]">settings</span> Settings
@@ -150,7 +194,12 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
             {isLoggedIn && currentUser ? (
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-3">
-                  <img src={currentUser.avatar} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                  <div className="relative">
+                      <img src={currentUser.avatar} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                      {unreadCount > 0 && (
+                          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                      )}
+                  </div>
                   <div>
                     <p className="text-sm font-bold leading-none">{currentUser.firstName} {currentUser.lastName}</p>
                     <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
@@ -177,8 +226,15 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                   <Link to="/profile/courses" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
                     <span className="material-symbols-outlined text-[20px]">school</span> My Courses
                   </Link>
-                  <Link to="/profile/messages" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">chat_bubble</span> Messages
+                  <Link to="/profile/messages" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors justify-between w-full">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[20px]">chat_bubble</span> Messages
+                    </div>
+                    {unreadCount > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                    )}
                   </Link>
                   <Link to="/profile/settings" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
                     <span className="material-symbols-outlined text-[20px]">settings</span> Settings

@@ -3,12 +3,48 @@ import React, { useState, useRef, useMemo } from 'react';
 import { setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { ExerciseTemplate, ExerciseFormat, MediaAsset, User, UserRole } from '../../types';
+import heic2any from 'heic2any';
 
 interface ExerciseLibraryProps {
   library: MediaAsset[];
   currentUser: User;
   exerciseLibrary: ExerciseTemplate[];
 }
+
+const compressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Compress to JPEG
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(dataUrl);
+        } else {
+            reject(new Error("Canvas context failed"));
+        }
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, currentUser, exerciseLibrary }) => {
   const [isAdding, setIsAdding] = useState(false);
@@ -87,25 +123,13 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !isMediaPickerOpen.activeField) return;
-
-    // Validate file size (e.g., limit to 5MB to avoid Firestore document limits or base64 string length issues)
-    if (file.size > 5 * 1024 * 1024) {
-        alert("File is too large. Please upload an image smaller than 5MB.");
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const data = reader.result as string;
-      const assetId = Math.random().toString(36).substr(2, 9); // Use simpler ID generation
+  const uploadMedia = async (dataUrl: string, type: 'image' | 'video', fileName: string) => {
+      const assetId = Math.random().toString(36).substr(2, 9);
       const newAsset: MediaAsset = { 
         id: assetId, 
-        type: file.type.startsWith('video') ? 'video' : 'image', 
-        data: data, 
-        name: file.name,
+        type: type, 
+        data: dataUrl, 
+        name: fileName,
         category: 'WORKOUT',
         createdAt: Date.now(),
         creatorId: currentUser.id,
@@ -115,30 +139,60 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
       
       try {
         console.log("Uploading media asset...", assetId);
-        // Ensure data is not too large for a single Firestore document (approx 1MB limit)
-        // If it's a large base64 string, this might fail.
-        // For now, we attempt to save.
         await setDoc(doc(db, 'media', assetId), newAsset);
         console.log("Media asset uploaded successfully.");
         
         // Update the state to reflect the new image immediately in the UI
-        setNewEx(prev => ({ ...prev, [isMediaPickerOpen.activeField!]: data }));
+        setNewEx(prev => ({ ...prev, [isMediaPickerOpen.activeField!]: dataUrl }));
         
         // Close the picker
         setIsMediaPickerOpen({ activeField: null });
         
       } catch (error: any) {
         console.error("Error uploading media:", error);
-        alert(`Failed to upload media: ${error.message}`);
+        alert(`Failed to upload media: ${error.message}. Ensure file is small enough.`);
       }
-    };
-    
-    reader.onerror = (error) => {
-        console.error("File reading error:", error);
-        alert("Failed to read file.");
-    };
+  };
 
-    reader.readAsDataURL(file);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    let file = e.target.files?.[0];
+    if (!file || !isMediaPickerOpen.activeField) return;
+
+    // Handle HEIC
+    if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+        try {
+            const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.7 });
+            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            file = new File([blob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
+        } catch (err) {
+            console.error("HEIC conversion failed", err);
+            // Continue with original file if conversion fails (might be handled by canvas if supported)
+        }
+    }
+
+    if (file.type.startsWith('image/')) {
+        try {
+            // Compress to max width 800px, quality 0.7
+            const compressedDataUrl = await compressImage(file, 800, 0.7);
+            uploadMedia(compressedDataUrl, 'image', file.name);
+        } catch (err) {
+            console.error("Compression failed", err);
+            alert("Failed to process image.");
+        }
+    } else if (file.type.startsWith('video/')) {
+        // Video check - Limit to ~750KB for Firestore
+        if (file.size > 750 * 1024) { 
+             alert("Video is too large for this system (Limit ~750KB). Please upload a smaller clip or use an image.");
+             return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+             uploadMedia(reader.result as string, 'video', file.name);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        alert("Unsupported file type.");
+    }
   };
 
   const selectAsset = (asset: MediaAsset) => {

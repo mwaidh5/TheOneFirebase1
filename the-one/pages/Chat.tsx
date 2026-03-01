@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { db } from '../firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 
 interface Message {
   id: string;
@@ -17,7 +17,8 @@ interface Conversation {
   participants: string[]; // Array of User IDs
   lastMessage: string;
   lastMessageTimestamp: any;
-  unreadCount: number;
+  unreadCount: number; // Legacy/Global
+  unreadCounts?: { [userId: string]: number }; // Per-user unread counts
   type?: 'support' | 'coach_client' | 'general';
   participantDetails?: { [userId: string]: User }; // Local cache of user details
 }
@@ -40,22 +41,35 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   // 1. Fetch Conversations
   useEffect(() => {
     let q;
-    // Admins/Support see ALL support chats + their own chats
-    // Clients see chats where they are a participant
 
     if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) {
-       // Ideally, support should see all 'support' type chats + chats where they are explicitly included.
-       // For this MVP step: Fetch all, filter in memory or client side if needed.
        q = query(collection(db, 'conversations'), orderBy('lastMessageTimestamp', 'desc')); 
     } else {
-       q = query(collection(db, 'conversations'), where('participants', 'array-contains', currentUser.id), orderBy('lastMessageTimestamp', 'desc'));
+       // Removing orderBy('lastMessageTimestamp', 'desc') to avoid composite index requirement
+       q = query(collection(db, 'conversations'), where('participants', 'array-contains', currentUser.id));
     }
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const convos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Conversation));
+      let convos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Conversation));
       
+      // Sort manually
+      if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.SUPPORT) {
+          convos = convos.sort((a, b) => {
+              const getMillis = (ts: any) => {
+                  if (!ts) return 0;
+                  if (ts.toMillis) return ts.toMillis();
+                  if (ts.seconds) return ts.seconds * 1000;
+                  // Handle Date object (optimistic update)
+                  if (ts instanceof Date) return ts.getTime();
+                  // Handle FieldValue or pending
+                  return Date.now(); 
+              };
+              return getMillis(b.lastMessageTimestamp) - getMillis(a.lastMessageTimestamp);
+          });
+      }
+
       const visibleConvos = (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) 
-        ? convos // Admins see all
+        ? convos 
         : convos;
 
       // Fetch user details for participants
@@ -86,10 +100,46 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
       }
 
       setConversations(visibleConvos);
+    }, (error) => {
+        console.error("Error fetching conversations:", error);
     });
 
     return () => unsubscribe();
   }, [currentUser.id, currentUser.role]); 
+
+  // Reset unread count when opening a thread
+  useEffect(() => {
+    if (activeThreadId && currentUser.id) {
+       const resetUnread = async () => {
+           try {
+               // Use setDoc with merge to ensure nested object structure exists/merges
+               await setDoc(doc(db, 'conversations', activeThreadId), {
+                   unreadCounts: {
+                       [currentUser.id]: 0
+                   }
+               }, { merge: true });
+               
+               // Also reset 'support-team' count if I am admin/support
+               if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) {
+                   // Check if this is a support chat
+                   // We need to know the type. activeThread state might not be updated yet if we just switched.
+                   // But we can check safely.
+                   const conv = conversations.find(c => c.id === activeThreadId);
+                   if (conv?.type === 'support') {
+                       await setDoc(doc(db, 'conversations', activeThreadId), {
+                           unreadCounts: {
+                               'support-team': 0
+                           }
+                       }, { merge: true });
+                   }
+               }
+           } catch (e) {
+               console.error("Error resetting unread count", e);
+           }
+       };
+       resetUnread();
+    }
+  }, [activeThreadId, currentUser.id, conversations]); // Added conversations dependency to check type
 
   // 2. Handle URL param to start/open chat
   useEffect(() => {
@@ -108,15 +158,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
             setActiveThreadId(existingConv.id);
             setShowThreadList(false);
         } else {
-            // Only create if we have loaded conversations and confirmed it doesn't exist
-            // But conversations might be loading. 
-            // We can check if conversations array is populated or rely on user action.
-            // For URL params, it's tricky. Let's wait for user interaction or check if conversations length > 0
             if (conversations.length > 0) {
-                 // It might be risky to auto-create here if conversations are just empty because user has none.
-                 // Better to prompt user or just create it.
-                 // createConversation(targetCoachId); 
-                 // Let's create it.
                  createConversation(targetCoachId);
             }
         }
@@ -126,7 +168,6 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   const createConversation = async (targetId: string) => {
       const isSupportChat = targetId === 'support' || targetId === 'support-team';
       
-      // Double check if we already have it in current state to avoid race conditions
       if (isSupportChat) {
           const existing = conversations.find(c => c.type === 'support' && c.participants.includes(currentUser.id));
           if (existing) {
@@ -145,18 +186,17 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
           lastMessage: '',
           lastMessageTimestamp: serverTimestamp(),
           unreadCount: 0,
+          unreadCounts: {}, // Initialize empty
           type: (isSupportChat ? 'support' : 'general') as 'support' | 'general'
       };
 
       try {
           const docRef = await addDoc(collection(db, 'conversations'), newConvData);
           
-          // Optimistic update to ensure UI reflects the new chat immediately
           const newConv: Conversation = {
               id: docRef.id,
               ...newConvData,
-              // Use a Date object for local render until serverTimestamp syncs
-              lastMessageTimestamp: { toDate: () => new Date() } 
+              lastMessageTimestamp: new Date()
           } as any; 
 
           setConversations(prev => [newConv, ...prev]);
@@ -196,6 +236,24 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
 
     const text = inputText;
     setInputText(''); // Optimistic clear
+    
+    // Get participants safely
+    let participants: string[] = [];
+    const activeConvState = conversations.find(c => c.id === activeThreadId);
+    
+    if (activeConvState) {
+        participants = activeConvState.participants;
+    } else {
+        // Fallback fetch
+        try {
+            const docSnap = await getDoc(doc(db, 'conversations', activeThreadId));
+            if (docSnap.exists()) {
+                participants = docSnap.data().participants || [];
+            }
+        } catch (err) {
+            console.error("Error fetching conv details", err);
+        }
+    }
 
     try {
         await addDoc(collection(db, `conversations/${activeThreadId}/messages`), {
@@ -203,11 +261,28 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
             text,
             timestamp: serverTimestamp()
         });
-
-        await setDoc(doc(db, 'conversations', activeThreadId), {
+        
+        // Prepare updates
+        const updates: any = {
             lastMessage: text,
             lastMessageTimestamp: serverTimestamp(),
-        }, { merge: true });
+        };
+        
+        // Increment unread counts for others
+        const unreadUpdates: any = {};
+        participants.forEach(pId => {
+             if (pId !== currentUser.id) {
+                 unreadUpdates[pId] = increment(1);
+             }
+        });
+        
+        // Use setDoc with merge to ensure unreadCounts map is created if missing
+        const finalUpdates = {
+            ...updates,
+            unreadCounts: unreadUpdates
+        };
+
+        await setDoc(doc(db, 'conversations', activeThreadId), finalUpdates, { merge: true });
 
     } catch (error) {
         console.error("Error sending message", error);
@@ -233,7 +308,6 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   };
 
   const startSupportChat = async () => {
-      // Check if existing support chat
       const existing = conversations.find(c => c.type === 'support' && c.participants.includes(currentUser.id));
       if (existing) {
           setActiveThreadId(existing.id);
@@ -262,6 +336,16 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
           {conversations.map(conv => {
             const isActive = activeThreadId === conv.id;
             const recipient = getRecipientDetails(conv);
+            
+            // Calculate unread for display
+            let unread = 0;
+            if (conv.unreadCounts) {
+                unread = conv.unreadCounts[currentUser.id] || 0;
+                if ((currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) && conv.type === 'support') {
+                     unread += (conv.unreadCounts['support-team'] || 0);
+                }
+            }
+            
             return (
               <button
                 key={conv.id}
@@ -270,7 +354,12 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
               >
                 <img src={recipient.avatar || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-xl object-cover shrink-0" alt="" />
                 <div className="flex-grow min-w-0">
-                  <p className={`font-black uppercase text-xs truncate ${isActive ? 'text-white' : 'text-black'}`}>{recipient.firstName} {recipient.lastName}</p>
+                  <div className="flex justify-between items-center">
+                      <p className={`font-black uppercase text-xs truncate ${isActive ? 'text-white' : 'text-black'}`}>{recipient.firstName} {recipient.lastName}</p>
+                      {unread > 0 && (
+                          <span className="w-2 h-2 rounded-full bg-accent ml-2"></span>
+                      )}
+                  </div>
                   <p className="text-[10px] truncate opacity-60">{conv.lastMessage || 'Start of conversation'}</p>
                 </div>
                 {conv.type === 'support' && (

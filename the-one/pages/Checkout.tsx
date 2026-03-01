@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { updateDoc, doc, arrayUnion, addDoc, collection, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User, Course } from '../types';
+import { CUSTOM_DISCIPLINES } from '../constants';
 
 interface CheckoutProps {
   currentUser: User | null;
@@ -23,11 +24,11 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
   
   const course = courses.find(c => c.id === courseId);
 
-  // Fallback for custom or missing course to avoid crash, though normally we'd fetch custom request details
+  // Fallback for custom or missing course to avoid crash
   const displayCourse = course || {
       id: courseId || 'unknown',
       title: isCustom ? 'Custom Program' : 'Unknown Course',
-      price: isCustom ? 299 : 0, // Mock price for custom
+      price: isCustom ? 299 : 0, 
       image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1400',
       description: '',
       instructor: 'IronPulse',
@@ -48,7 +49,6 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
   const total = Math.max(0, subtotal - appliedDiscount);
 
   const applyCoupon = () => {
-    // Mock Validation Logic
     if (couponCode.toUpperCase() === 'IRON10') {
       setAppliedDiscount(Math.round(subtotal * 0.1));
       setIsCouponError(false);
@@ -82,31 +82,74 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     try {
-        // 1. Update Firestore
+        let redirectId = courseId;
+
+        // 1. Handle Custom Request Creation
+        if (isCustom) {
+            const sportId = courseId.replace('custom-', '');
+            
+            // Fetch configuration from Firestore first (for dynamic questions)
+            let disciplineConfig: any = null;
+            try {
+                const configSnap = await getDoc(doc(db, 'custom_disciplines', sportId));
+                if (configSnap.exists()) {
+                    disciplineConfig = configSnap.data();
+                }
+            } catch (e) {
+                console.error("Error fetching discipline config", e);
+            }
+            
+            // Fallback to constants if not found in DB
+            if (!disciplineConfig) {
+                 disciplineConfig = CUSTOM_DISCIPLINES.find(d => d.id === sportId);
+            }
+            
+            const newRequest = {
+                athleteId: currentUser.id,
+                athleteName: `${currentUser.firstName} ${currentUser.lastName}`,
+                phone: '',
+                sport: sportId,
+                goal: disciplineConfig?.name || 'Custom Program',
+                biometrics: { height: '', weight: '', age: '' },
+                status: 'DIAGNOSTIC',
+                price: total,
+                createdAt: serverTimestamp(),
+                assignedCoachIds: [], 
+                weeks: [],
+                hasMealPlan: false,
+                durationWeeks: 4,
+                diagnostics: disciplineConfig?.diagnostics || [],
+                submissions: []
+            };
+            
+            const reqRef = await addDoc(collection(db, 'custom_requests'), newRequest);
+            redirectId = reqRef.id; // Use the Request ID for redirection
+        }
+
+        // 2. Update Firestore User Enrollments
         const userRef = doc(db, 'users', currentUser.id);
         await updateDoc(userRef, {
-            enrolledCourseIds: arrayUnion(courseId)
+            enrolledCourseIds: arrayUnion(redirectId)
         });
 
-        // 2. Update Local State (so UI reflects change immediately)
-        // We clone the user and append the new course ID if not already there
+        // 3. Update Local State
         const currentEnrollments = currentUser.enrolledCourseIds || [];
-        if (!currentEnrollments.includes(courseId)) {
+        if (!currentEnrollments.includes(redirectId)) {
             const updatedUser = {
                 ...currentUser,
-                enrolledCourseIds: [...currentEnrollments, courseId]
+                enrolledCourseIds: [...currentEnrollments, redirectId]
             };
             onEnroll(updatedUser);
         }
 
-        // 3. Success UI
+        // 4. Success UI
         setPaymentStep('success');
         setIsProcessing(false);
         localStorage.setItem('automated_msg_purchase', 'true');
         
-        // 4. Redirect
+        // 5. Redirect
         setTimeout(() => {
-            if (isCustom) navigate(`/athlete/diagnostic/${courseId}`);
+            if (isCustom) navigate(`/athlete/diagnostic/${redirectId}`);
             else navigate('/profile/courses');
         }, 2500);
 

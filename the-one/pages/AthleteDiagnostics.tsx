@@ -1,8 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { User, CustomCourseRequest, AthleteSubmission, DiagnosticTest } from '../types';
-import { MOCK_CUSTOM_REQUESTS } from '../constants';
 
 interface AthleteDiagnosticsProps {
   currentUser: User | null;
@@ -12,18 +13,37 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const request = MOCK_CUSTOM_REQUESTS.find(r => r.id === 'REQ-6WK')!; 
-  
-  const allTests: DiagnosticTest[] = [
-    ...(request.diagnostics || []),
-    { id: 'd-3', title: 'Injury History', instruction: 'Please list any past or current injuries we should know about.', inputType: 'TEXT', required: true }
-  ];
-
+  const [request, setRequest] = useState<CustomCourseRequest | null>(null);
   const [submissions, setSubmissions] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  useEffect(() => {
+      const fetchRequest = async () => {
+          if (!id) return;
+          try {
+              const snap = await getDoc(doc(db, 'custom_requests', id));
+              if (snap.exists()) {
+                  setRequest({ id: snap.id, ...snap.data() } as CustomCourseRequest);
+              }
+          } catch (e) {
+              console.error("Error fetching request", e);
+          }
+      };
+      fetchRequest();
+  }, [id]);
+
+  if (!request) {
+      return (
+          <div className="flex-grow flex items-center justify-center h-screen bg-neutral-50">
+              <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+          </div>
+      );
+  }
+
+  const allTests: DiagnosticTest[] = request.diagnostics || [];
+  
   const completedCount = allTests.filter(t => submissions[t.id]?.trim()).length;
   const progress = (completedCount / allTests.length) * 100;
   const isAllFilled = completedCount === allTests.length;
@@ -31,6 +51,15 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
   const handleFileUpload = (testId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Use a small limit for base64 uploads or implement proper storage upload if needed.
+    // For now, assuming relatively small files or just taking the hit for MVP.
+    // Ideally use CoachExerciseLibrary's compressImage logic here too? 
+    // I'll stick to FileReader for simplicity but add a warning if huge.
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit warning
+        alert("File too large. Please upload smaller files (<2MB).");
+        return;
+    }
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -43,18 +72,33 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
     setSubmissions(prev => ({ ...prev, [testId]: val }));
   };
 
-  const submitAll = (e: React.FormEvent) => {
+  const submitAll = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAllFilled) return;
     
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsFinished(true);
-      
-      // TRIGGER AUTOMATED MESSAGE FLAG
-      localStorage.setItem('automated_msg_diagnostic', 'true');
-    }, 2000);
+    
+    try {
+        const submissionsData: AthleteSubmission[] = Object.entries(submissions).map(([k, v]) => ({
+            testId: k,
+            data: v,
+            submittedAt: Date.now()
+        }));
+        
+        await updateDoc(doc(db, 'custom_requests', request.id), {
+            submissions: submissionsData,
+            status: 'BUILDING'
+        });
+        
+        setIsSubmitting(false);
+        setIsFinished(true);
+        localStorage.setItem('automated_msg_diagnostic', 'true');
+        
+    } catch (error) {
+        console.error("Error submitting diagnostics", error);
+        alert("Failed to submit. Please try again.");
+        setIsSubmitting(false);
+    }
   };
 
   if (isFinished) {
@@ -67,7 +111,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
           <div className="space-y-4">
             <h1 className="text-5xl font-black font-display uppercase tracking-tight text-black">Workout in the making</h1>
             <p className="text-xl text-neutral-500 font-medium leading-relaxed">
-              Your answers and videos are with <span className="text-black font-bold">Coach Mercer</span>. 
+              Your answers and videos are with the team. 
               It usually takes <span className="text-accent font-bold">2 to 4 days</span> to finish your custom workout.
             </p>
           </div>
@@ -141,6 +185,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                          {(test.inputType === 'VIDEO' || test.inputType === 'IMAGE') && (
                             <div className="aspect-video bg-neutral-900 rounded-[2rem] overflow-hidden relative border-8 border-neutral-50 shadow-inner group">
                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-100 group-hover:bg-black/20 transition-all cursor-pointer">
+                                  {/* If demoVideoUrl exists, maybe show it? For now, mock */}
                                   <span className="material-symbols-outlined text-white text-5xl group-hover:scale-110 transition-transform">play_circle</span>
                                </div>
                                <div className="absolute top-6 left-6 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">

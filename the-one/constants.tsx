@@ -55,7 +55,43 @@ export const MOCK_SUPPORT_USER: User = {
 
 export const COACHES: Coach[] = [];
 
-export const CUSTOM_DISCIPLINES: CustomDiscipline[] = [];
+export const CUSTOM_DISCIPLINES: CustomDiscipline[] = [
+  {
+    id: 'crossfit',
+    name: 'CrossFit',
+    icon: 'fitness_center',
+    price: 299,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Experience Level', instruction: 'How many years have you been doing CrossFit?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: '1RM Snatch', instruction: 'Please upload a video of your heaviest recent Snatch.', inputType: 'VIDEO', required: true, demoVideoUrl: 'https://www.youtube.com/watch?v=9jP8X7y_8Q0' },
+      { id: 'd3', title: 'Physique Photo', instruction: 'Front facing photo for body composition tracking.', inputType: 'IMAGE', required: true }
+    ]
+  },
+  {
+    id: 'bodybuilding',
+    name: 'Body Building',
+    icon: 'accessibility_new',
+    price: 249,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Training Split', instruction: 'What is your current training split?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Physique Update', instruction: 'Front, Side, Back photos.', inputType: 'IMAGE', required: true },
+      { id: 'd3', title: 'Injuries', instruction: 'List any injuries.', inputType: 'TEXT', required: false }
+    ]
+  },
+  {
+    id: 'general',
+    name: 'General Fitness',
+    icon: 'reorder',
+    price: 199,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Goals', instruction: 'What are your top 3 fitness goals?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Equipment', instruction: 'What equipment do you have access to?', inputType: 'TEXT', required: true }
+    ]
+  }
+];
 
 export const COURSES: Course[] = [];
 

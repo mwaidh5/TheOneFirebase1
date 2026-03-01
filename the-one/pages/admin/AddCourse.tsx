@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { setDoc, doc, getDoc, collection, getDocs, query, where, updateDoc } from 'firebase/firestore';
+import { setDoc, doc, getDoc, collection, getDocs, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, UserRole, User } from '../../types';
 
@@ -31,7 +31,8 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
     instructor: '',
     enrollmentCount: 0,
     rating: 0,
-    assignedCoachId: ''
+    assignedCoachId: '',
+    assignedClientId: '' // New field for direct assignment
   });
 
   const [weeks, setWeeks] = useState<WeekProgram[]>([
@@ -45,18 +46,25 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const [isPickerOpen, setIsPickerOpen] = useState<{ type: 'exercise' | 'workout' | 'meal' | 'media', activeExIdx: number | null, activeField?: 'imageUrl' | 'videoUrl' }>({ type: 'exercise', activeExIdx: null });
   
   const [coaches, setCoaches] = useState<User[]>([]);
+  const [clients, setClients] = useState<User[]>([]);
 
   useEffect(() => {
-    const fetchCoaches = async () => {
+    const fetchUsers = async () => {
         try {
-            const q = query(collection(db, 'users'), where('role', '==', 'Coach'));
-            const snapshot = await getDocs(q);
-            setCoaches(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User)));
+            // Fetch Coaches
+            const qCoaches = query(collection(db, 'users'), where('role', '==', 'Coach'));
+            const snapCoaches = await getDocs(qCoaches);
+            setCoaches(snapCoaches.docs.map(d => ({ id: d.id, ...d.data() } as User)));
+
+            // Fetch Clients
+            const qClients = query(collection(db, 'users'), where('role', '==', 'Client'));
+            const snapClients = await getDocs(qClients);
+            setClients(snapClients.docs.map(d => ({ id: d.id, ...d.data() } as User)));
         } catch (e) {
-            console.error("Error fetching coaches", e);
+            console.error("Error fetching users", e);
         }
     };
-    fetchCoaches();
+    fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -76,7 +84,8 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
           instructor: existing.instructor || '',
           enrollmentCount: existing.enrollmentCount || 0,
           rating: existing.rating || 0,
-          assignedCoachId: (existing as any).assignedCoachId || ''
+          assignedCoachId: (existing as any).assignedCoachId || '',
+          assignedClientId: '' // We don't load this as it's a one-time action usually, or we could if stored
         });
         if (existing.weeks) setWeeks(existing.weeks);
         if (existing.mealPlan) setAttachedMealPlan(existing.mealPlan);
@@ -91,10 +100,6 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
           if (coach) {
               setCourseData(prev => ({ ...prev, instructor: `${coach.firstName} ${coach.lastName}` }));
           }
-      } else {
-          // If unassigned, clear instructor or set default?
-          // Don't clear if user manually typed something else maybe?
-          // For now, if unassigned, we leave it as is or could clear it.
       }
   }, [courseData.assignedCoachId, coaches]);
 
@@ -152,31 +157,27 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         mealPlan: attachedMealPlan || undefined
     };
     
-    if (!newCourse.mealPlan) delete newCourse.mealPlan; // Cleaner for Firestore to just omit it
+    // Remove assignedClientId from the course object if you don't want to store it on the course itself
+    // Or keep it if you want to know who it was assigned to.
+    // Let's keep it for reference.
+
+    if (!newCourse.mealPlan) delete newCourse.mealPlan; 
 
     try {
         await setDoc(doc(db, 'courses', newCourse.id), newCourse);
         
-        // Handle client access logic if this is a custom course being published/updated
-        // If it's a custom course (e.g. ID starts with custom- or specific flag), 
-        // we might need to find the user who requested it and add it to their enrolledCourses.
-        // But the prompt says "to give a client access to the custom course he will be like he purchased the custom course."
-        // Usually, custom courses are created from a request. 
-        // If this course is intended for a specific client, we might want a field for 'assignedClientId'.
-        // For now, the user can manually enroll the client in the Users Management page or we assume this course is public or specific logic is handled elsewhere.
-        // However, if the prompt implies adding a feature *here* to assign a client:
+        // Handle Client Assignment
+        if (courseData.assignedClientId) {
+            const clientRef = doc(db, 'users', courseData.assignedClientId);
+            // Use arrayUnion to add without duplicates
+            await updateDoc(clientRef, {
+                enrolledCourseIds: arrayUnion(newCourse.id)
+            });
+            alert(`Course Published and assigned to client!`);
+        } else {
+            alert("System Course Published to Database");
+        }
         
-        // Let's just alert for now as adding client assignment here complicates UI significantly without more requirements.
-        // The prompt asked "also to give a client access to the custom course he will be like he purchased the custom course."
-        // This likely means: If I create a course here, I want to be able to say "This is for Client X".
-        // Let's add a dropdown to assign a client if needed? Or maybe just rely on the 'Users' page for enrollment.
-        // Given 'AdminAddCourse' is for general courses usually.
-        // But if I want to fulfill "give a client access", I should probably do it via User Management -> Enroll.
-        // Re-reading: "assign a coach to a course and remove him... also to give a client access to the custom course"
-        // The first part is done (Assigned Coach dropdown).
-        // The second part might mean: When I create a custom course, I want to assign it to a client.
-        
-        alert("System Course Published to Database");
         navigate('/admin/courses');
     } catch (error: any) {
         console.error("Error publishing course: ", error);
@@ -240,6 +241,8 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                             <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Category</label><select value={courseData.category} onChange={e => setCourseData({...courseData, category: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black uppercase text-xs outline-none"><option>CrossFit</option><option>Weightlifting</option></select></div>
                             <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Price</label><input type="number" value={courseData.price} onChange={e => setCourseData({...courseData, price: parseInt(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm outline-none" /></div>
                        </div>
+                       
+                       {/* Coach Assignment */}
                        <div className="space-y-1">
                            <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Assigned Coach</label>
                            <select 
@@ -254,6 +257,23 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                            </select>
                            <p className="text-[8px] text-neutral-300 font-medium ml-1">This allows the coach to manage this course.</p>
                        </div>
+
+                       {/* Client Assignment */}
+                       <div className="space-y-1">
+                           <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Grant Access To Client</label>
+                           <select 
+                                value={courseData.assignedClientId} 
+                                onChange={e => setCourseData({...courseData, assignedClientId: e.target.value})} 
+                                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-bold text-sm outline-none"
+                           >
+                               <option value="">-- Select Client (Optional) --</option>
+                               {clients.map(client => (
+                                   <option key={client.id} value={client.id}>{client.firstName} {client.lastName} ({client.email})</option>
+                               ))}
+                           </select>
+                           <p className="text-[8px] text-neutral-300 font-medium ml-1">Select a client to auto-enroll them in this course upon deploy.</p>
+                       </div>
+
                     </div>
                     <div className="space-y-4">
                        <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Cover Asset</label><button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: 999 })} className={`w-full aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all ${courseData.image ? 'border-transparent' : 'border-neutral-200 bg-neutral-50'}`}>{courseData.image ? <img src={courseData.image} className="w-full h-full object-cover rounded-2xl" /> : <span className="material-symbols-outlined text-3xl text-neutral-200">image</span>}</button></div>
