@@ -88,7 +88,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
         if (isCustom) {
             const sportId = courseId.replace('custom-', '');
             
-            // Fetch configuration from Firestore first (for dynamic questions)
+            // Fetch configuration from Firestore first
             let disciplineConfig: any = null;
             try {
                 const configSnap = await getDoc(doc(db, 'custom_disciplines', sportId));
@@ -99,7 +99,6 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                 console.error("Error fetching discipline config", e);
             }
             
-            // Fallback to constants if not found in DB
             if (!disciplineConfig) {
                  disciplineConfig = CUSTOM_DISCIPLINES.find(d => d.id === sportId);
             }
@@ -114,7 +113,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                 status: 'DIAGNOSTIC',
                 price: total,
                 createdAt: serverTimestamp(),
-                assignedCoachIds: [], 
+                assignedCoachIds: disciplineConfig?.assignedCoachId ? [disciplineConfig.assignedCoachId] : [],
                 weeks: [],
                 hasMealPlan: false,
                 durationWeeks: 4,
@@ -123,7 +122,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
             };
             
             const reqRef = await addDoc(collection(db, 'custom_requests'), newRequest);
-            redirectId = reqRef.id; // Use the Request ID for redirection
+            redirectId = reqRef.id; 
         }
 
         // 2. Update Firestore User Enrollments

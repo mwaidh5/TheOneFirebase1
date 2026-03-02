@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { UserRole } from '../../types';
 
 const AdminAddUser: React.FC = () => {
@@ -15,25 +17,33 @@ const AdminAddUser: React.FC = () => {
     status: 'Active' as const
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email || !formData.firstName) return;
 
-    // Get existing users from localStorage
-    const savedUsers = JSON.parse(localStorage.getItem('ironpulse_users') || '[]');
-    
-    const newUser = {
-      ...formData,
-      id: 'u-' + Math.random().toString(36).substr(2, 9),
-      name: `${formData.firstName} ${formData.lastName}`,
-      lastSeen: 'Never'
-    };
-
-    // Save back to localStorage
-    localStorage.setItem('ironpulse_users', JSON.stringify([...savedUsers, newUser]));
-    
-    alert(`Profile created for ${formData.firstName}`);
-    navigate('/admin/users');
+    try {
+        const userId = 'u-' + Math.random().toString(36).substr(2, 9);
+        await setDoc(doc(db, 'users', userId), {
+            id: userId,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone || '',
+            role: formData.systemRole,
+            level: formData.level,
+            memberSince: new Date().getFullYear().toString(),
+            avatar: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`,
+            status: formData.status,
+            createdAt: serverTimestamp(),
+            enrolledCourseIds: []
+        });
+        
+        alert(`Profile created for ${formData.firstName}`);
+        navigate('/admin/users');
+    } catch (error) {
+        console.error("Error creating user", error);
+        alert("Failed to create user.");
+    }
   };
 
   return (

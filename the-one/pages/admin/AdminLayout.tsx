@@ -126,6 +126,10 @@ const AdminLayout: React.FC = () => {
             <span className={`material-symbols-outlined ${isActive('/admin/courses') ? 'filled text-accent' : ''}`}>school</span>
             Courses
           </Link>
+          <Link to="/admin/diagnostics" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/diagnostics') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+            <span className={`material-symbols-outlined ${isActive('/admin/diagnostics') ? 'filled text-accent' : ''}`}>fact_check</span>
+            Diagnostic Logic
+          </Link>
 
           <div className="pt-4 pb-2 px-6">
             <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Library</p>

@@ -240,6 +240,7 @@ const App: React.FC = () => {
                 path="settings" 
                 element={<AdminSiteSettings siteSettings={siteSettings} setSiteSettings={setSiteSettings} library={mediaLibrary} />} 
               />
+              <Route path="diagnostics" element={<SupportDiagnosticLogic />} />
             </Route>
 
             <Route path="/coach" element={currentUser?.role === UserRole.COACH ? <CoachLayout /> : <Navigate to="/" />}>

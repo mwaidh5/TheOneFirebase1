@@ -24,7 +24,6 @@ const AdminDashboard: React.FC = () => {
           try {
               const usersSnap = await getDocs(collection(db, "users"));
               const coursesSnap = await getDocs(collection(db, "courses"));
-              // Mocking revenue/leads as 0 until collections exist
               setStats({
                   usersCount: usersSnap.size,
                   coursesCount: coursesSnap.size,
@@ -67,7 +66,7 @@ const AdminDashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 text-left">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black font-display tracking-tight text-black uppercase leading-none">System Oversight</h2>
+          <h2 className="text-4xl font-black font-display tracking-tight text-black uppercase leading-none">System Oversight [V3]</h2>
           <p className="text-neutral-400 font-medium">Monitoring platform performance and coaching quality.</p>
         </div>
         <div className="flex gap-4">
@@ -114,19 +113,32 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 text-left">
         <div className="lg:col-span-8 bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-2xl relative overflow-hidden">
            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-12">
-                 <h3 className="text-2xl font-black font-display uppercase tracking-tight">Financial Velocity</h3>
-                 <div className="flex p-1 bg-neutral-50 rounded-xl">
-                    <button className="px-4 py-2 bg-white text-black shadow-sm rounded-lg text-[9px] font-black uppercase tracking-widest">Revenue</button>
-                    <button className="px-4 py-2 text-neutral-400 hover:text-black rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">Growth</button>
-                 </div>
+              <div className="flex items-center justify-between mb-8">
+                 <h3 className="text-2xl font-black font-display uppercase tracking-tight">Command Center</h3>
               </div>
-              <div className="h-80 w-full bg-neutral-50/50 rounded-[2rem] flex flex-col items-center justify-center border-2 border-dashed border-neutral-100">
-                <span className="material-symbols-outlined text-6xl text-neutral-100 mb-4 animate-pulse">monitoring</span>
-                <p className="text-neutral-200 font-black uppercase tracking-[0.4em] italic text-sm">Real-time Data Stream Enabled</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Link to="/admin/diagnostics" className="p-8 bg-neutral-50 rounded-[2.5rem] hover:bg-black hover:text-white transition-all group border border-neutral-100 relative overflow-hidden">
+                      <div className="absolute top-4 right-4 w-10 h-10 bg-white group-hover:bg-white/20 rounded-full flex items-center justify-center transition-colors">
+                          <span className="material-symbols-outlined text-purple-600 group-hover:text-white">arrow_outward</span>
+                      </div>
+                      <span className="material-symbols-outlined text-5xl mb-6 text-purple-600 group-hover:text-white">fact_check</span>
+                      <h4 className="text-xl font-black uppercase tracking-tight">Diagnostic Logic</h4>
+                      <p className="text-xs text-neutral-400 group-hover:text-white/60 mt-2 font-medium leading-relaxed">
+                          Configure intake questions and assign Head Coaches for bespoke programs.
+                      </p>
+                  </Link>
+                  <Link to="/admin/courses" className="p-8 bg-neutral-50 rounded-[2.5rem] hover:bg-black hover:text-white transition-all group border border-neutral-100 relative overflow-hidden">
+                      <div className="absolute top-4 right-4 w-10 h-10 bg-white group-hover:bg-white/20 rounded-full flex items-center justify-center transition-colors">
+                          <span className="material-symbols-outlined text-accent group-hover:text-white">arrow_outward</span>
+                      </div>
+                      <span className="material-symbols-outlined text-5xl mb-6 text-accent group-hover:text-white">school</span>
+                      <h4 className="text-xl font-black uppercase tracking-tight">Manage Courses</h4>
+                      <p className="text-xs text-neutral-400 group-hover:text-white/60 mt-2 font-medium leading-relaxed">
+                          Create and edit standard training tracks, prices, and modules.
+                      </p>
+                  </Link>
               </div>
            </div>
-           <span className="material-symbols-outlined text-[200px] absolute -bottom-20 -right-20 text-neutral-50 select-none rotate-12 opacity-30">bar_chart</span>
         </div>
 
         <div className="lg:col-span-4 bg-white rounded-[3rem] border border-neutral-100 shadow-2xl flex flex-col h-full overflow-hidden">
