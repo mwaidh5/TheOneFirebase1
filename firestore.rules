@@ -37,6 +37,11 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
+      
+      // Allow access to progress subcollection
+      match /progress/{progressId} {
+        allow read, write: if isOwner(userId) || isAdmin() || isCoach();
+      }
     }
 
     // 2. Courses Collection
@@ -111,6 +116,12 @@ service cloud.firestore {
     match /custom_disciplines/{docId} {
       allow read: if true;
       allow write: if isAdmin() || isCoach();
+    }
+
+    // 8. Site Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAuthenticated(); // More permissive for now, but still requires being logged in
     }
 
     // Default deny all other collections

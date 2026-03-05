@@ -16,6 +16,7 @@ interface UserData {
   lastSeen: string;
   isBespokeAuthorized?: boolean;
   enrolledCourseIds?: string[];
+  avatar?: string;
 }
 
 interface UserManagementProps {
@@ -58,7 +59,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses 
                     role: data.level || 'Athlete',
                     systemRole: data.role as UserRole,
                     lastSeen: 'Recently',
-                    enrolledCourseIds: data.enrolledCourseIds || []
+                    enrolledCourseIds: data.enrolledCourseIds || [],
+                    avatar: data.avatar || ''
                 } as UserData;
             });
             
@@ -159,7 +161,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses 
       lastName: userData.name.split(' ').slice(1).join(' '),
       email: userData.email,
       role: userData.systemRole,
-      avatar: `https://picsum.photos/100/100?random=${userData.id}`,
+      avatar: userData.avatar || '',
       memberSince: '2024',
       level: userData.role,
       enrolledCourseIds: userData.enrolledCourseIds
@@ -248,7 +250,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses 
                     <tr key={user.id} className="hover:bg-neutral-50/50 transition-colors group">
                         <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                            <img className="w-10 h-10 rounded-full" src={`https://picsum.photos/100/100?random=${user.id}`} alt="" />
+                            {user.avatar ? (
+                                <img className="w-10 h-10 rounded-full object-cover" src={user.avatar} alt="" />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
+                                    <span className="material-symbols-outlined text-xl">person</span>
+                                </div>
+                            )}
                             <div className="min-w-0">
                                 <p className="font-black text-black uppercase text-sm tracking-tight truncate">{user.name}</p>
                                 <p className="text-[10px] text-neutral-400 font-medium truncate">{user.email}</p>
@@ -313,7 +321,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses 
                 <div key={user.id} className="p-4 space-y-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <img className="w-12 h-12 rounded-full border-2 border-neutral-50" src={`https://picsum.photos/100/100?random=${user.id}`} alt="" />
+                            {user.avatar ? (
+                                <img className="w-12 h-12 rounded-full border-2 border-neutral-50 object-cover" src={user.avatar} alt="" />
+                            ) : (
+                                <div className="w-12 h-12 rounded-full border-2 border-neutral-50 bg-neutral-100 flex items-center justify-center text-neutral-400">
+                                    <span className="material-symbols-outlined text-2xl">person</span>
+                                </div>
+                            )}
                             <div className="min-w-0">
                                 <p className="font-black text-black uppercase text-xs tracking-tight truncate">{user.name}</p>
                                 <p className="text-[10px] text-neutral-400 font-medium truncate">{user.email}</p>

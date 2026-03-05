@@ -144,7 +144,7 @@ const SupportDiagnosticLogic: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-1">
             <h1 className="text-4xl font-black font-display uppercase text-black leading-none tracking-tight">Diagnostic Logic</h1>
-            <p className="text-neutral-400 font-medium">Configure the intake requirements and coach assignment for bespoke tracks.</p>
+            <p className="text-neutral-400 font-medium">Configure the intake requirements, pricing, and coach assignment for bespoke tracks.</p>
         </div>
         <div className="flex gap-4">
             {disciplines.length === 0 && (
@@ -193,9 +193,14 @@ const SupportDiagnosticLogic: React.FC = () => {
                     </div>
                     <div>
                         <h2 className="text-2xl font-black text-black uppercase tracking-tight">{discipline.name} Bespoke</h2>
-                        <p className="text-xs font-black text-neutral-300 uppercase tracking-widest mt-1">
-                            {assignedCoach ? `Coach: ${assignedCoach.firstName} ${assignedCoach.lastName}` : 'No Coach Assigned'}
-                        </p>
+                        <div className="flex gap-4 mt-1">
+                             <p className="text-xs font-black text-neutral-300 uppercase tracking-widest">
+                                {assignedCoach ? `Coach: ${assignedCoach.firstName} ${assignedCoach.lastName}` : 'No Coach Assigned'}
+                            </p>
+                            <p className="text-xs font-black text-accent uppercase tracking-widest">
+                                ${discipline.price}
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -270,20 +275,32 @@ const SupportDiagnosticLogic: React.FC = () => {
                   </div>
                   
                   <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar text-left">
-                      {/* Coach Assignment */}
-                      <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Assigned Head Coach</label>
-                          <select 
-                            value={activeDiscipline.assignedCoachId || ''}
-                            onChange={(e) => setActiveDiscipline({...activeDiscipline, assignedCoachId: e.target.value})}
-                            className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-4 font-bold text-sm outline-none focus:border-black appearance-none"
-                          >
-                              <option value="">-- Select Coach --</option>
-                              {coaches.map(coach => (
-                                  <option key={coach.id} value={coach.id}>{coach.firstName} {coach.lastName}</option>
-                              ))}
-                          </select>
-                          {coaches.length === 0 && <p className="text-[9px] text-red-500 font-bold ml-1">No coaches found. Create a Coach user first.</p>}
+                      <div className="grid grid-cols-2 gap-6">
+                          {/* Coach Assignment */}
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Assigned Head Coach</label>
+                              <select 
+                                value={activeDiscipline.assignedCoachId || ''}
+                                onChange={(e) => setActiveDiscipline({...activeDiscipline, assignedCoachId: e.target.value})}
+                                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-4 font-bold text-sm outline-none focus:border-black appearance-none"
+                              >
+                                  <option value="">-- Select Coach --</option>
+                                  {coaches.map(coach => (
+                                      <option key={coach.id} value={coach.id}>{coach.firstName} {coach.lastName}</option>
+                                  ))}
+                              </select>
+                          </div>
+                          
+                          {/* Price */}
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Price ($)</label>
+                              <input 
+                                type="number" 
+                                value={activeDiscipline.price} 
+                                onChange={(e) => setActiveDiscipline({...activeDiscipline, price: parseInt(e.target.value)})}
+                                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-4 font-bold text-sm outline-none focus:border-black"
+                              />
+                          </div>
                       </div>
 
                       <div className="space-y-4">

@@ -73,6 +73,40 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
     setWeeks([...weeks, { id: Math.random().toString(), weekNumber: nextNum, days: [{ id: Math.random().toString(), dayNumber: 1, title: 'Session', exercises: [] }] }]);
   };
 
+  const duplicateWeek = (weekIdx: number) => {
+    const weekToCopy = weeks[weekIdx];
+    const nextNum = weeks.length + 1;
+    
+    // Deep copy week with new IDs for everything to avoid reference issues
+    const duplicatedWeek: WeekProgram = {
+      ...weekToCopy,
+      id: Math.random().toString(),
+      weekNumber: nextNum,
+      days: weekToCopy.days.map(day => ({
+        ...day,
+        id: Math.random().toString(),
+        exercises: day.exercises.map(ex => ({
+          ...ex,
+          id: Math.random().toString()
+        }))
+      }))
+    };
+    
+    setWeeks([...weeks, duplicatedWeek]);
+    setActiveWeekIdx(weeks.length); // Switch to the new duplicated week
+    setActiveDayIdx(0);
+  };
+
+  const deleteWeek = (weekIdx: number) => {
+    if (weeks.length <= 1) return alert("You must have at least one week.");
+    if (window.confirm(`Delete Week ${weeks[weekIdx].weekNumber}?`)) {
+        const updated = weeks.filter((_, i) => i !== weekIdx).map((w, i) => ({ ...w, weekNumber: i + 1 }));
+        setWeeks(updated);
+        setActiveWeekIdx(0);
+        setActiveDayIdx(0);
+    }
+  };
+
   const addDay = () => {
     const updatedWeeks = weeks.map((week, idx) => {
         if (idx !== activeWeekIdx) return week;
@@ -259,10 +293,28 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
            <div className="bg-white rounded-[2rem] p-4 md:p-8 border border-neutral-100 shadow-sm flex flex-col">
               <div className="flex overflow-x-auto no-scrollbar gap-2 mb-4 md:flex-col md:overflow-visible">
                  <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'settings' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">settings</span> Settings</button>
+                 
                  {weeks.map((week, wIdx) => (
-                    <button key={week.id} onClick={() => { setActiveWeekIdx(wIdx); setActiveDayIdx(0); setActiveTab('workouts'); }} className={`whitespace-nowrap px-4 md:px-5 py-2.5 md:py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeWeekIdx === wIdx && activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}>Week {week.weekNumber}</button>
+                    <div key={week.id} className="relative group/week-btn">
+                      <button 
+                        onClick={() => { setActiveWeekIdx(wIdx); setActiveDayIdx(0); setActiveTab('workouts'); }} 
+                        className={`w-full text-left whitespace-nowrap px-4 md:px-5 py-2.5 md:py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeWeekIdx === wIdx && activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}
+                      >
+                        Week {week.weekNumber}
+                      </button>
+                      <div className="md:absolute right-2 top-1/2 md:-translate-y-1/2 flex gap-1 opacity-100 md:opacity-0 group-hover/week-btn:opacity-100 transition-opacity">
+                         <button onClick={(e) => { e.stopPropagation(); duplicateWeek(wIdx); }} className="w-6 h-6 rounded-lg bg-accent/10 text-accent flex items-center justify-center hover:bg-accent hover:text-white transition-all shadow-sm" title="Duplicate Week">
+                            <span className="material-symbols-outlined text-xs">content_copy</span>
+                         </button>
+                         <button onClick={(e) => { e.stopPropagation(); deleteWeek(wIdx); }} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm" title="Delete Week">
+                            <span className="material-symbols-outlined text-xs">delete</span>
+                         </button>
+                      </div>
+                    </div>
                  ))}
-                 <button onClick={addWeek} className={`whitespace-nowrap px-4 py-2.5 bg-accent/5 text-accent rounded-xl border border-accent/20 text-[10px] font-black uppercase`}>+ Week</button>
+                 
+                 <button onClick={addWeek} className={`whitespace-nowrap px-4 py-2.5 bg-accent/5 text-accent rounded-xl border border-accent/20 text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-accent hover:text-white transition-all`}><span className="material-symbols-outlined text-xs">add</span> Week</button>
+                 
                  {courseData.hasMealPlan && (
                     <button onClick={() => setActiveTab('nutrition')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'nutrition' ? 'bg-accent text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">restaurant</span> Plan</button>
                  )}
@@ -272,7 +324,23 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                  <div className="flex flex-col gap-1 pt-4 border-t border-neutral-100 mt-4 max-h-[250px] overflow-y-auto no-scrollbar">
                     <p className="text-[8px] font-black text-neutral-300 uppercase tracking-widest mb-2 px-2">Days in Week {weeks[activeWeekIdx].weekNumber}</p>
                     {weeks[activeWeekIdx].days.map((day, dIdx) => (
-                        <button key={day.id} onClick={() => setActiveDayIdx(dIdx)} className={`w-full text-left px-4 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:text-black'}`}>Day {day.dayNumber}</button>
+                        <div key={day.id} className="relative group/day-btn">
+                          <button onClick={() => setActiveDayIdx(dIdx)} className={`w-full text-left px-4 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:text-black'}`}>
+                            Day {day.dayNumber}
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if(weeks[activeWeekIdx].days.length <= 1) return;
+                              const updated = weeks.map((w, i) => i === activeWeekIdx ? { ...w, days: w.days.filter((_, j) => j !== dIdx).map((d, k) => ({...d, dayNumber: k+1})) } : w);
+                              setWeeks(updated);
+                              setActiveDayIdx(0);
+                            }} 
+                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/day-btn:opacity-100 text-neutral-300 hover:text-red-500 transition-opacity"
+                          >
+                            <span className="material-symbols-outlined text-xs">close</span>
+                          </button>
+                        </div>
                     ))}
                     <button onClick={addDay} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase text-neutral-300 hover:text-accent">+ Add Day</button>
                  </div>

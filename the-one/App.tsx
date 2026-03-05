@@ -90,7 +90,7 @@ const App: React.FC = () => {
     }
   }, [originalAdmin]);
 
-  // Persistence Logic for Site Settings
+  // Site Settings Logic
   const [siteSettings, setSiteSettings] = useState(() => {
     const saved = localStorage.getItem('ironpulse_site_settings');
     return saved ? JSON.parse(saved) : {
@@ -101,6 +101,17 @@ const App: React.FC = () => {
       heroSubline: 'We are more than a gym. We are a community of dedicated individuals pushing the boundaries of human performance.'
     };
   });
+
+  // Sync Site Settings from Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as any;
+        setSiteSettings(prev => ({ ...prev, ...data }));
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('ironpulse_site_settings', JSON.stringify(siteSettings));
@@ -138,14 +149,6 @@ const App: React.FC = () => {
       unsubMeal();
     };
   }, []);
-
-  // Sync setters for Firestore
-  const syncMedia = async (assets: MediaAsset[] | ((prev: MediaAsset[]) => MediaAsset[])) => {
-    const newAssets = typeof assets === 'function' ? assets(mediaLibrary) : assets;
-    // For simplicity, we compare and sync the difference. 
-    // In a real app, you'd call addDoc/updateDoc/deleteDoc directly in the components.
-    // I will update the components to do this instead of passing a sync function.
-  };
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -193,7 +196,7 @@ const App: React.FC = () => {
         
         <main className="flex-grow flex flex-col">
           <Routes>
-            <Route path="/" element={<Homepage settings={siteSettings} />} />
+            <Route path="/" element={<Homepage currentUser={currentUser} settings={siteSettings} />} />
             
             <Route path="/courses" element={<Courses courses={courses} currentUser={currentUser} />} />
             <Route path="/courses/:id" element={<CourseDetail currentUser={currentUser} courses={courses} />} />
@@ -215,11 +218,12 @@ const App: React.FC = () => {
             <Route path="/profile/settings" element={isLoggedIn ? <ProfileSettings /> : <Navigate to="/login" />} />
             <Route path="/profile/notifications" element={isLoggedIn ? <NotificationsSettings /> : <Navigate to="/login" />} />
             <Route path="/profile/billing" element={isLoggedIn ? <BillingHistory /> : <Navigate to="/login" />} />
-            <Route path="/workout/:id" element={isLoggedIn ? <WorkoutSession courses={courses} /> : <Navigate to="/login" />} />
+            <Route path="/workout/:id" element={isLoggedIn ? <WorkoutSession courses={courses} currentUser={currentUser!} /> : <Navigate to="/login" />} />
 
             <Route path="/admin" element={currentUser?.role === UserRole.ADMIN ? <AdminLayout /> : <Navigate to="/" />}>
               <Route index element={<AdminDashboard />} />
               <Route path="custom-requests" element={<AdminCustomRequests />} />
+              <Route path="custom-programmer/:requestId" element={<CoachCustomProgrammer library={mediaLibrary} />} />
               <Route path="custom-view/:requestId" element={<AdminCustomWorkoutViewer />} />
               <Route path="messages" element={<Chat currentUser={currentUser!} />} />
               <Route path="users" element={<AdminUsers onImpersonate={handleImpersonate} courses={courses} />} />

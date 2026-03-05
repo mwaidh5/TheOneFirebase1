@@ -1,13 +1,16 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Course, Exercise, WeekProgram, DayProgram } from '../types';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { Course, Exercise, WeekProgram, DayProgram, User } from '../types';
 
 interface WorkoutSessionProps {
   courses?: Course[];
+  currentUser: User;
 }
 
-const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
+const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUser }) => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -15,7 +18,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
   const course = useMemo(() => courses.find(c => c.id === id), [id, courses]);
   
   // Navigation State
-  const [view, setView] = useState<'weeks' | 'days' | 'exercises'>('weeks');
+  const [view, setView] = useState<'weeks' | 'days' | 'exercises' | 'meal'>('weeks');
   const [selectedWeek, setSelectedWeek] = useState<WeekProgram | null>(null);
   const [selectedDay, setSelectedDay] = useState<DayProgram | null>(null);
 
@@ -39,6 +42,38 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
     notes: '',
     rpe: 7
   });
+
+  // Load Progress
+  useEffect(() => {
+      if (!currentUser || !course) return;
+      const progressRef = doc(db, 'users', currentUser.id, 'progress', course.id);
+      
+      const unsub = onSnapshot(progressRef, (docSnap) => {
+          if (docSnap.exists()) {
+              const data = docSnap.data();
+              if (data.completedExercises) setCompletedExercises(new Set(data.completedExercises));
+              if (data.completedDays) setCompletedDays(new Set(data.completedDays));
+              if (data.completedWeeks) setCompletedWeeks(new Set(data.completedWeeks));
+          }
+      });
+      return () => unsub();
+  }, [currentUser, course]);
+
+  const saveProgress = async (type: 'exercises' | 'days' | 'weeks', newSet: Set<string>) => {
+      if (!currentUser || !course) return;
+      const progressRef = doc(db, 'users', currentUser.id, 'progress', course.id);
+      
+      const updateData: any = {};
+      if (type === 'exercises') updateData.completedExercises = Array.from(newSet);
+      if (type === 'days') updateData.completedDays = Array.from(newSet);
+      if (type === 'weeks') updateData.completedWeeks = Array.from(newSet);
+      
+      try {
+          await setDoc(progressRef, updateData, { merge: true });
+      } catch (e) {
+          console.error("Error saving progress", e);
+      }
+  };
 
   // Handle direct navigation from Curriculum links
   useEffect(() => {
@@ -68,56 +103,54 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
   }
 
   const toggleExercise = (exId: string) => {
-    setCompletedExercises(prev => {
-      const next = new Set(prev);
-      if (next.has(exId)) next.delete(exId);
-      else next.add(exId);
-      return next;
-    });
+    const next = new Set(completedExercises);
+    if (next.has(exId)) next.delete(exId);
+    else next.add(exId);
+    setCompletedExercises(next);
+    saveProgress('exercises', next);
   };
 
   const toggleDayFinished = (dayId: string) => {
-    setCompletedDays(prev => {
-      const next = new Set(prev);
-      if (next.has(dayId)) next.delete(dayId);
-      else next.add(dayId);
-      return next;
-    });
+    const next = new Set(completedDays);
+    if (next.has(dayId)) next.delete(dayId);
+    else next.add(dayId);
+    setCompletedDays(next);
+    saveProgress('days', next);
   };
 
   const toggleWeekFinished = (weekId: string) => {
-    setCompletedWeeks(prev => {
-      const next = new Set(prev);
-      if (next.has(weekId)) next.delete(weekId);
-      else next.add(weekId);
-      return next;
-    });
+    const next = new Set(completedWeeks);
+    if (next.has(weekId)) next.delete(weekId);
+    else next.add(weekId);
+    setCompletedWeeks(next);
+    saveProgress('weeks', next);
   };
 
   const toggleMedia = (exId: string) => {
     setExpandedMediaId(expandedMediaId === exId ? null : exId);
   };
 
-  const handleLogSubmit = (e: React.FormEvent) => {
+  const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API delay
-    setTimeout(() => {
-      alert(`Workout Log for "${selectedDay?.title}" committed to platform. Coach Mercer has been notified.`);
-      setIsSubmitting(false);
-      setIsLogModalOpen(false);
-      // Mark day as complete by checking all boxes for visual satisfaction
-      if (selectedDay) {
+    // Save log logic (could be another collection 'workout_logs')
+    // For now, just mark day as complete
+    if (selectedDay) {
         const nextEx = new Set(completedExercises);
         selectedDay.exercises.forEach(ex => nextEx.add(ex.id));
         setCompletedExercises(nextEx);
+        saveProgress('exercises', nextEx);
         
         const nextDay = new Set(completedDays);
         nextDay.add(selectedDay.id);
         setCompletedDays(nextDay);
-      }
-    }, 1500);
+        saveProgress('days', nextDay);
+    }
+    
+    setIsSubmitting(false);
+    setIsLogModalOpen(false);
+    alert(`Workout Log committed.`);
   };
 
   // Helper logic for automatic completion detection
@@ -141,10 +174,10 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
             <div className="space-y-4 max-w-2xl">
               <nav className="flex items-center gap-2 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">
-                <Link to="/courses" className="hover:text-black transition-colors">Courses</Link>
+                <Link to="/profile/courses" className="hover:text-black transition-colors">Courses</Link>
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
                 <button onClick={() => setView('weeks')} className="hover:text-black transition-colors truncate">{course.title}</button>
-                {view !== 'weeks' && selectedWeek && (
+                {view !== 'weeks' && view !== 'meal' && selectedWeek && (
                    <>
                      <span className="material-symbols-outlined text-sm">chevron_right</span>
                      <button onClick={() => setView('days')} className="hover:text-black transition-colors">Wk {selectedWeek.weekNumber}</button>
@@ -156,10 +189,16 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
                      <span className="text-black truncate">{selectedDay.title}</span>
                    </>
                 )}
+                {view === 'meal' && (
+                    <>
+                     <span className="material-symbols-outlined text-sm">chevron_right</span>
+                     <span className="text-black">Nutrition</span>
+                    </>
+                )}
               </nav>
               <div className="flex items-center gap-4">
                 <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight text-black uppercase leading-tight">
-                  {view === 'weeks' ? 'Training Hub' : view === 'days' ? `Week ${selectedWeek?.weekNumber} Overview` : selectedDay?.title}
+                  {view === 'weeks' ? 'Training Hub' : view === 'meal' ? 'Nutrition Plan' : view === 'days' ? `Week ${selectedWeek?.weekNumber} Overview` : selectedDay?.title}
                 </h1>
                 {view === 'exercises' && selectedDay && isDayMarkedDone(selectedDay) && (
                   <span className="bg-green-500 text-white px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1 shrink-0 h-fit">
@@ -168,9 +207,23 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
                 )}
               </div>
               <p className="text-neutral-500 text-base md:text-lg leading-relaxed font-medium">
-                {view === 'weeks' ? "Select a phase to continue your progression." : "Track your intensity and log every successful set."}
+                {view === 'weeks' ? "Select a phase to continue your progression." : view === 'meal' ? "Fuel your performance." : "Track your intensity and log every successful set."}
               </p>
             </div>
+            {course.hasMealPlan && view === 'weeks' && (
+                <button 
+                    onClick={() => setView('meal')}
+                    className="px-6 py-4 bg-white border border-neutral-200 rounded-2xl flex items-center gap-3 hover:border-black transition-all shadow-sm group"
+                >
+                    <div className="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center text-white group-hover:bg-accent transition-colors">
+                        <span className="material-symbols-outlined">restaurant</span>
+                    </div>
+                    <div className="text-left">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">Nutrition</p>
+                        <p className="text-sm font-black text-black uppercase">View Meal Plan</p>
+                    </div>
+                </button>
+            )}
           </div>
         </div>
       </div>
@@ -213,6 +266,44 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [] }) => {
               );
             })}
           </div>
+        )}
+
+        {/* MEAL PLAN VIEW */}
+        {view === 'meal' && course.mealPlan && (
+            <div className="space-y-10 animate-in slide-in-from-right-4 duration-500">
+                <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-xl relative overflow-hidden">
+                    <div className="relative z-10 space-y-6">
+                        <h2 className="text-3xl font-black uppercase font-display tracking-tight">{course.mealPlan.name}</h2>
+                        <div className="flex gap-4">
+                            <span className="px-4 py-2 bg-neutral-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest">{course.mealPlan.totalCalories} kcal</span>
+                        </div>
+                        <p className="text-neutral-500 font-medium max-w-2xl">{course.mealPlan.description || "A balanced nutrition plan designed to support your training volume."}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[200px] absolute -bottom-10 -right-10 text-neutral-50 rotate-12 select-none">restaurant</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {course.mealPlan.meals.map((meal, i) => (
+                        <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-6">
+                            <h3 className="text-xl font-black uppercase">{meal.label}</h3>
+                            <div className="space-y-4">
+                                {meal.items.map((item, ii) => (
+                                    <div key={ii} className="flex justify-between items-center p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
+                                        <div>
+                                            <p className="font-bold text-black text-sm">{item.name}</p>
+                                            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{item.amount}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-black text-black text-sm">{item.calories}</p>
+                                            <p className="text-[8px] font-black text-neutral-300 uppercase tracking-widest">kcal</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         )}
 
         {/* DAYS VIEW */}

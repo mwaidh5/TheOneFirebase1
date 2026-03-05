@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, query, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, where } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Course } from '../types';
+import { Course, CustomCourseRequest, User } from '../types';
 
 interface HomepageProps {
+  currentUser?: User | null;
   settings: {
     heroImage: string;
     missionImage: string;
@@ -14,8 +15,9 @@ interface HomepageProps {
   };
 }
 
-const Homepage: React.FC<HomepageProps> = ({ settings }) => {
+const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
   const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
+  const [pendingDiagnostic, setPendingDiagnostic] = useState<CustomCourseRequest | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'courses'), limit(3));
@@ -25,8 +27,47 @@ const Homepage: React.FC<HomepageProps> = ({ settings }) => {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) {
+      setPendingDiagnostic(null);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'custom_requests'),
+      where('athleteId', '==', currentUser.id),
+      where('status', '==', 'DIAGNOSTIC')
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setPendingDiagnostic({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as CustomCourseRequest);
+      } else {
+        setPendingDiagnostic(null);
+      }
+    });
+
+    return () => unsub();
+  }, [currentUser]);
+
   return (
     <div className="w-full">
+      {/* Pending Diagnostic Notification */}
+      {pendingDiagnostic && (
+        <div className="bg-accent py-4 px-6 flex flex-col md:flex-row items-center justify-center gap-4 text-white animate-in slide-in-from-top duration-500">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-2xl animate-pulse">priority_high</span>
+            <p className="font-black uppercase tracking-widest text-[10px] md:text-xs">Action Required: Complete your {pendingDiagnostic.sport} diagnostic intake</p>
+          </div>
+          <Link 
+            to={`/athlete/diagnostic/${pendingDiagnostic.id}`}
+            className="px-6 py-2 bg-white text-accent rounded-full font-black uppercase tracking-widest text-[10px] hover:bg-neutral-100 transition-all shadow-lg"
+          >
+            Start Now
+          </Link>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="px-6 py-12 md:py-24 max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-16 items-center">

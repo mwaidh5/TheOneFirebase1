@@ -84,7 +84,8 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
               <span className="material-symbols-outlined text-[20px]">fitness_center</span>
             </div>
           )}
-          <span className="text-lg font-bold tracking-tight text-black font-display uppercase">The One</span>
+          <span className="text-lg font-bold tracking-tight text-black font-display uppercase hidden md:block">The One</span>
+          <span className="text-lg font-bold tracking-tight text-black font-display uppercase md:hidden">The One</span>
         </Link>
 
         {/* Hamburger Menu Button */}
@@ -182,7 +183,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-100">
+        <div className="lg:hidden bg-white border-t border-gray-100 absolute w-full left-0 top-20 shadow-xl z-50">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <nav className="flex flex-col gap-4 text-sm font-medium">
                 <Link to="/" onClick={handleMobileLinkClick} className={`${isActive('/') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Homepage</Link>

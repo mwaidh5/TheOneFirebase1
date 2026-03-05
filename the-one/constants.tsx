@@ -90,6 +90,72 @@ export const CUSTOM_DISCIPLINES: CustomDiscipline[] = [
       { id: 'd1', title: 'Goals', instruction: 'What are your top 3 fitness goals?', inputType: 'TEXT', required: true },
       { id: 'd2', title: 'Equipment', instruction: 'What equipment do you have access to?', inputType: 'TEXT', required: true }
     ]
+  },
+  {
+    id: 'muaythai',
+    name: 'Muay Thai',
+    icon: 'sports_mma',
+    price: 249,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Fighting Experience', instruction: 'Have you fought before? If so, record.', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Shadow Boxing', instruction: 'Upload a 1-minute shadow boxing video.', inputType: 'VIDEO', required: true }
+    ]
+  },
+  {
+    id: 'strength',
+    name: 'Strength & Conditioning',
+    icon: 'bolt',
+    price: 229,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Primary Sport', instruction: 'What is your main sport?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Current Lifts', instruction: 'List your current 1RMs (Squat, Bench, Deadlift).', inputType: 'TEXT', required: true }
+    ]
+  },
+  {
+    id: 'powerlifting',
+    name: 'Powerlifting',
+    icon: 'weight',
+    price: 249,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Competition History', instruction: 'Have you competed? What federation?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Squat Video', instruction: 'Upload a video of a heavy squat.', inputType: 'VIDEO', required: true }
+    ]
+  },
+  {
+    id: 'weightlifting',
+    name: 'Olympic Weightlifting',
+    icon: 'fitness_center',
+    price: 279,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Technique Flaws', instruction: 'What is your biggest weakness in the lifts?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Clean & Jerk', instruction: 'Upload a video of your best C&J.', inputType: 'VIDEO', required: true }
+    ]
+  },
+  {
+    id: 'hyrox',
+    name: 'Hyrox',
+    icon: 'timer',
+    price: 249,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Running Pace', instruction: 'What is your current 5k time?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Erg Experience', instruction: 'Row/Ski erg times for 1000m.', inputType: 'TEXT', required: true }
+    ]
+  },
+  {
+    id: 'running',
+    name: 'Running',
+    icon: 'directions_run',
+    price: 199,
+    assignedCoachId: '',
+    diagnostics: [
+      { id: 'd1', title: 'Current Mileage', instruction: 'Weekly mileage average?', inputType: 'TEXT', required: true },
+      { id: 'd2', title: 'Race Goal', instruction: 'What race are you training for?', inputType: 'TEXT', required: true }
+    ]
   }
 ];
 

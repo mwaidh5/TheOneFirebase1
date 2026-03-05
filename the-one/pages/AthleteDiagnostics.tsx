@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
 import { User, CustomCourseRequest, AthleteSubmission, DiagnosticTest } from '../types';
 
 interface AthleteDiagnosticsProps {
@@ -25,7 +26,21 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
           try {
               const snap = await getDoc(doc(db, 'custom_requests', id));
               if (snap.exists()) {
-                  setRequest({ id: snap.id, ...snap.data() } as CustomCourseRequest);
+                  const data = snap.data() as CustomCourseRequest;
+                  setRequest({ id: snap.id, ...data });
+                  
+                  // Load existing submissions
+                  if (data.submissions) {
+                      const loaded: Record<string, string> = {};
+                      data.submissions.forEach(s => {
+                          loaded[s.testId] = s.data;
+                      });
+                      setSubmissions(loaded);
+                  }
+                  
+                  if (data.status === 'BUILDING' || data.status === 'COMPLETED') {
+                      setIsFinished(true);
+                  }
               }
           } catch (e) {
               console.error("Error fetching request", e);
@@ -48,28 +63,51 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
   const progress = (completedCount / allTests.length) * 100;
   const isAllFilled = completedCount === allTests.length;
 
-  const handleFileUpload = (testId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (testId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Use a small limit for base64 uploads or implement proper storage upload if needed.
-    // For now, assuming relatively small files or just taking the hit for MVP.
-    // Ideally use CoachExerciseLibrary's compressImage logic here too? 
-    // I'll stick to FileReader for simplicity but add a warning if huge.
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit warning
-        alert("File too large. Please upload smaller files (<2MB).");
-        return;
+    // Firebase Storage Upload
+    try {
+        const storageRef = ref(storage, `diagnostics/${request.id}/${testId}_${Date.now()}_${file.name}`);
+        // No strict size limit here (client side), but Firebase Storage rules apply.
+        // Assuming standard plan allows reasonably large files.
+        // UI feedback could be added here.
+        
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        
+        setSubmissions(prev => ({ ...prev, [testId]: url }));
+    } catch (error) {
+        console.error("Upload failed", error);
+        alert("Upload failed. Please try again.");
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setSubmissions(prev => ({ ...prev, [testId]: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleTextChange = (testId: string, val: string) => {
     setSubmissions(prev => ({ ...prev, [testId]: val }));
+  };
+
+  const saveDraft = async () => {
+      if (!request) return;
+      setIsSubmitting(true);
+      try {
+          const submissionsData: AthleteSubmission[] = Object.entries(submissions).map(([k, v]) => ({
+              testId: k,
+              data: v,
+              submittedAt: Date.now()
+          }));
+          
+          await updateDoc(doc(db, 'custom_requests', request.id), {
+              submissions: submissionsData
+          });
+          alert("Draft saved successfully.");
+      } catch (e) {
+          console.error("Error saving draft", e);
+          alert("Failed to save draft.");
+      } finally {
+          setIsSubmitting(false);
+      }
   };
 
   const submitAll = async (e: React.FormEvent) => {
@@ -123,10 +161,10 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
              </div>
           </div>
           <button 
-            onClick={() => navigate('/profile')}
+            onClick={() => navigate('/profile/courses')}
             className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-all shadow-xl"
           >
-            Go to My Profile
+            Go to My Courses
           </button>
         </div>
       </div>
@@ -254,11 +292,19 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
              ))}
           </div>
 
-          <div className="pt-12 border-t border-neutral-100">
+          <div className="pt-12 border-t border-neutral-100 flex gap-4">
+             <button 
+                type="button"
+                onClick={saveDraft}
+                disabled={isSubmitting}
+                className="flex-1 py-8 bg-neutral-100 text-neutral-500 rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-200 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+             >
+                Save Draft
+             </button>
              <button 
                 type="submit"
                 disabled={!isAllFilled || isSubmitting}
-                className="w-full py-8 bg-black text-white rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-800 transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-20 disabled:cursor-not-allowed group"
+                className="flex-[2] py-8 bg-black text-white rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-800 transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-20 disabled:cursor-not-allowed group"
              >
                 {isSubmitting ? (
                    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -269,12 +315,12 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                    </>
                 )}
              </button>
-             {!isAllFilled && (
-                <p className="text-center text-[10px] font-black uppercase text-neutral-300 tracking-widest mt-6 animate-pulse">
-                   Please finish all {allTests.length} questions to submit
+          </div>
+          {!isAllFilled && (
+                <p className="text-center text-[10px] font-black uppercase text-neutral-300 tracking-widest mt-0 animate-pulse">
+                   Finish all {allTests.length} questions to submit
                 </p>
              )}
-          </div>
         </form>
       </div>
     </div>

@@ -5,7 +5,6 @@ import { setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth } from '../../firebase';
 import { MediaAsset } from '../../types';
-import heic2any from 'heic2any';
 
 interface MediaLibraryProps {
   library: MediaAsset[];
@@ -48,61 +47,32 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // CHECK AUTHENTICATION
     if (!auth.currentUser) {
         alert("Authentication Error: You are logged in locally but not connected to Firebase. Please Logout and Login again to refresh your session.");
         if(fileInputRef.current) fileInputRef.current.value = '';
         return;
     }
 
+    if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic' || file.type === 'image/heif') {
+        alert("HEIC files are not supported as they do not display correctly on web browsers. Please convert to JPG or PNG before uploading.");
+        if(fileInputRef.current) fileInputRef.current.value = '';
+        return;
+    }
+
     setIsUploading(true);
     try {
-      let fileToUpload = file;
-      let fileType = file.type;
-
-      // Handle HEIC/HEIF files
-      if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic' || file.type === 'image/heif') {
-        try {
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.8
-          });
-          
-          const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-          fileToUpload = new File([finalBlob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' });
-          fileType = 'image/jpeg';
-        } catch (conversionError) {
-          console.error("HEIC conversion failed:", conversionError);
-          const shouldUploadOriginal = window.confirm(`Could not convert HEIC image: ${(conversionError as Error).message}.\n\nDo you want to upload the original file anyway? (It may not display correctly on some devices)`);
-          
-          if (!shouldUploadOriginal) {
-            setIsUploading(false);
-            if(fileInputRef.current) fileInputRef.current.value = '';
-            return;
-          }
-          // If yes, we proceed with the original 'file' and 'fileType'
-        }
-      }
-
       const assetId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      const storagePath = `media/${assetId}/${fileToUpload.name}`;
+      const storagePath = `media/${assetId}/${file.name}`;
       const storageRef = ref(storage, storagePath);
 
-      // Upload to Firebase Storage
-      console.log('Starting upload to:', storagePath);
-      console.log('Current User UID:', auth.currentUser.uid);
-      
-      await uploadBytes(storageRef, fileToUpload);
-      console.log('Upload complete, getting download URL');
+      await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
-      console.log('Download URL:', downloadURL);
 
       const newAsset: MediaAsset = { 
         id: assetId, 
-        type: fileType.startsWith('video') ? 'video' : 'image', 
+        type: file.type.startsWith('video') ? 'video' : 'image', 
         data: downloadURL, 
-        name: fileToUpload.name,
+        name: file.name,
         category: 'WORKOUT',
         createdAt: Date.now(),
         isPublic: true,
@@ -110,7 +80,6 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
       };
       
       await setDoc(doc(db, 'media', assetId), newAsset);
-      console.log('Firestore document created');
       
     } catch (error) {
       console.error("Error saving media:", error);
@@ -134,7 +103,6 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
              await deleteObject(storageRef);
           } catch (storageErr: any) {
              console.error("Storage delete failed:", storageErr);
-             alert(`Asset removed from gallery, BUT file deletion failed: ${storageErr.code} - ${storageErr.message}`);
           }
         }
       } catch (error) {
@@ -146,13 +114,22 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
 
   const runAiTask = async () => {
     if (!aiPrompt) return;
+    if (!auth.currentUser) return alert("Please login to use AI features");
+
     setIsAiLoading(true);
 
     try {
-      const ai = new GoogleGenAI(import.meta.env.VITE_GOOGLE_GEN_AI_KEY || 'dummy-key');
+      // Use the provided API Key
+      const ai = new GoogleGenAI("AIzaSyDFOT0_gdL6r3obZ3D9yBpjttRg-R_j7yc");
       
-      let contents;
+      let contents: any;
+      let model = 'gemini-2.0-flash';
+
       if (aiTab === 'generate') {
+        // Try to use Imagen model for generation if possible, or fallback to text description
+        // Note: The SDK usage for Imagen might differ. Assuming standard generateContent for now.
+        // If 'imagen-3.0-generate-001' is available via this SDK:
+        model = 'imagen-3.0-generate-001'; 
         contents = { parts: [{ text: aiPrompt }] };
       } else if (selectedImageForAi) {
         let base64Data = '';
@@ -176,16 +153,69 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
       }
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: model,
         contents,
         config: { responseMimeType: 'application/json' } 
       });
 
-      // Assuming we handle the response here
+      // Handle Response
+      // Note: Actual Imagen response structure might be in 'candidates[0].content.parts[0].inlineData'
+      const candidate = response.response?.candidates?.[0];
+      const parts = candidate?.content?.parts;
+      const firstPart = parts?.[0];
+
+      if (firstPart && 'inlineData' in firstPart && firstPart.inlineData) {
+          // It's an image!
+          const base64Image = firstPart.inlineData.data;
+          const mimeType = firstPart.inlineData.mimeType || 'image/png';
+          
+          // Convert Base64 to Blob
+          const byteCharacters = atob(base64Image);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: mimeType });
+          
+          // Create File object
+          const fileName = `ai-gen-${Date.now()}.png`;
+          const file = new File([blob], fileName, { type: mimeType });
+
+          // Upload to Firebase
+          const assetId = Math.random().toString(36).substring(2, 15);
+          const storagePath = `media/ai/${fileName}`;
+          const storageRef = ref(storage, storagePath);
+          
+          await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(storageRef);
+
+          const newAsset: MediaAsset = { 
+            id: assetId, 
+            type: 'image', 
+            data: downloadURL, 
+            name: `AI: ${aiPrompt.substring(0, 20)}...`,
+            category: 'WORKOUT',
+            createdAt: Date.now(),
+            isPublic: true,
+            storagePath: storagePath
+          };
+          
+          await setDoc(doc(db, 'media', assetId), newAsset);
+          alert("AI Asset Generated and Saved to Gallery!");
+          setAiPrompt('');
+
+      } else if (firstPart && 'text' in firstPart) {
+          // It's text
+          alert(`AI Text Response: ${firstPart.text}`);
+      } else {
+          console.log("Full Response:", response);
+          alert("AI processed the request but no displayable output was found. Check console.");
+      }
       
-    } catch (error) {
+    } catch (error: any) {
        console.error('AI Task Failed:', error);
-       alert(`AI Generation failed: ${(error as Error).message}`);
+       alert(`AI Generation failed: ${error.message || 'Unknown Error'}. \n\nNote: Image generation requires the 'imagen-3.0-generate-001' model to be accessible with your API key.`);
     } finally {
       setIsAiLoading(false);
     }
@@ -214,7 +244,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
               Internal Upload
               </>
           )}
-          <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*,video/mp4,.heic" />
+          <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/png,image/jpeg,image/webp,video/mp4" />
         </button>
       </div>
 

@@ -238,7 +238,24 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                     <div className="space-y-4">
                        <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Title</label><input type="text" value={courseData.title} onChange={e => setCourseData({...courseData, title: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm md:text-lg outline-none" /></div>
                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Category</label><select value={courseData.category} onChange={e => setCourseData({...courseData, category: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black uppercase text-xs outline-none"><option>CrossFit</option><option>Weightlifting</option></select></div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Category</label>
+                              <select 
+                                value={courseData.category} 
+                                onChange={e => setCourseData({...courseData, category: e.target.value})} 
+                                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black uppercase text-xs outline-none"
+                              >
+                                <option>CrossFit</option>
+                                <option>Weightlifting</option>
+                                <option>Body Building</option>
+                                <option>Powerlifting</option>
+                                <option>Strength & Conditioning</option>
+                                <option>Muay Thai</option>
+                                <option>General Fitness</option>
+                                <option>Hyrox</option>
+                                <option>Running</option>
+                              </select>
+                            </div>
                             <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Price</label><input type="number" value={courseData.price} onChange={e => setCourseData({...courseData, price: parseInt(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm outline-none" /></div>
                        </div>
                        

@@ -20,20 +20,17 @@ interface AdminSiteSettingsProps {
 }
 
 const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, setSiteSettings, library }) => {
+  const [localSettings, setLocalSettings] = useState<SiteSettings>(siteSettings);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [activePickerKey, setActivePickerKey] = useState<keyof SiteSettings | null>(null);
   const [isPurging, setIsPurging] = useState(false);
-  const [cacheSize, setCacheSize] = useState('142.4 MB');
+  const [cacheSize, setCacheSize] = useState('142.4 MB'); // Mock value, in real app would calculate
 
-  const [disciplines, setDisciplines] = useState<CustomDiscipline[]>([]);
-
+  // Sync local state if parent state changes (e.g., initial load from Firestore)
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'disciplines'), (snapshot) => {
-      setDisciplines(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomDiscipline)));
-    });
-    return () => unsub();
-  }, []);
+    setLocalSettings(siteSettings);
+  }, [siteSettings]);
 
   const openPicker = (key: keyof SiteSettings) => {
     setActivePickerKey(key);
@@ -42,7 +39,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
 
   const selectFromLibrary = (data: string) => {
     if (activePickerKey) {
-      setSiteSettings({ ...siteSettings, [activePickerKey]: data });
+      setLocalSettings({ ...localSettings, [activePickerKey]: data });
       setIsPickerOpen(false);
       setActivePickerKey(null);
     }
@@ -51,61 +48,49 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
   const handleSave = async () => {
     setSaveStatus('saving');
     try {
-      await setDoc(doc(db, 'settings', 'site'), siteSettings);
+      // 1. Persist to Firestore
+      await setDoc(doc(db, 'settings', 'site'), localSettings, { merge: true });
+      
+      // 2. Update Global App State (this will trigger updates across the site)
+      setSiteSettings(localSettings);
+      
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert("Failed to save site settings.");
+      alert(`Failed to save site settings: ${(error as Error).message}`);
       setSaveStatus('idle');
     }
   };
 
-  const purgeCache = () => {
-    if (window.confirm("Purge all system cache? This will force-reload all assets and terminate active background syncs.")) {
+  const purgeCache = async () => {
+    if (window.confirm("Purge all system cache? This will force-reload all assets, clear local storage, and terminate active sessions.")) {
       setIsPurging(true);
-      setTimeout(() => {
-        setIsPurging(false);
-        setCacheSize('0.0 KB');
-        alert("Cache purged successfully. All application buffers have been cleared.");
-      }, 2000);
-    }
-  };
-
-  const updateDiscipline = async (id: string, field: keyof CustomDiscipline, val: any) => {
-    const d = disciplines.find(item => item.id === id);
-    if (!d) return;
-    const updated = { ...d, [field]: val };
-    try {
-      await setDoc(doc(db, 'disciplines', id), updated);
-    } catch (error) {
-      console.error("Error updating discipline:", error);
-    }
-  };
-
-  const addDiscipline = async () => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const newD: CustomDiscipline = {
-      id,
-      name: 'New Modality',
-      icon: 'fitness_center',
-      price: 299,
-      assignedCoachId: COACHES[0]?.id || 'c1',
-      diagnostics: []
-    };
-    try {
-      await setDoc(doc(db, 'disciplines', id), newD);
-    } catch (error) {
-      console.error("Error adding discipline:", error);
-    }
-  };
-
-  const removeDiscipline = async (id: string) => {
-    if (window.confirm("Permanently remove this custom course from the catalog?")) {
+      
       try {
-        await deleteDoc(doc(db, 'disciplines', id));
-      } catch (error) {
-        console.error("Error removing discipline:", error);
+          // 1. Clear Local Storage
+          localStorage.clear();
+          
+          // 2. Clear Session Storage
+          sessionStorage.clear();
+          
+          // 3. Clear Browser Cache Storage (Service Workers/Assets)
+          if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map(key => caches.delete(key)));
+          }
+
+          setCacheSize('0.0 KB');
+          
+          setTimeout(() => {
+            setIsPurging(false);
+            alert("Cache purged successfully. The application will now reload.");
+            window.location.reload();
+          }, 1500);
+      } catch (e) {
+          console.error("Cache purge failed", e);
+          setIsPurging(false);
+          alert("Failed to purge complete cache.");
       }
     }
   };
@@ -115,7 +100,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Platform Infrastructure</h1>
-          <p className="text-neutral-400 font-medium">Control global assets, performance logic, and the Bespoke catalog.</p>
+          <p className="text-neutral-400 font-medium">Control global assets and system performance.</p>
         </div>
         <button 
           onClick={handleSave}
@@ -129,69 +114,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-10">
           
-          <section className="bg-white p-10 rounded-[3rem] border border-neutral-100 shadow-2xl space-y-10">
-            <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-black font-display uppercase tracking-tight flex items-center gap-3 text-black">
-                  <span className="material-symbols-outlined text-accent filled">architecture</span> Bespoke Course Catalog
-                </h2>
-                <p className="text-xs text-neutral-400 font-medium uppercase tracking-widest">Disciplines are auto-assigned to coaches for maximum efficiency.</p>
-              </div>
-              <button 
-                onClick={addDiscipline}
-                className="px-6 py-3 bg-neutral-50 border border-neutral-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-sm">add_circle</span> Add Custom Track
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6">
-              {disciplines.map((d) => (
-                <div key={d.id} className="p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 hover:border-black transition-all flex flex-col lg:flex-row items-center gap-10 group">
-                  <div className="w-20 h-20 rounded-[1.5rem] bg-white shadow-xl flex items-center justify-center text-accent shrink-0">
-                    <span className="material-symbols-outlined text-3xl">{d.icon}</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-grow w-full">
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black text-neutral-300 uppercase tracking-widest ml-1">Discipline Name</label>
-                       <input 
-                         type="text" value={d.name} onChange={e => updateDiscipline(d.id, 'name', e.target.value)}
-                         className="w-full bg-white border border-neutral-100 rounded-xl p-4 font-black uppercase text-sm outline-none focus:border-black"
-                       />
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black text-neutral-300 uppercase tracking-widest ml-1">Assigned Head Coach</label>
-                       <select 
-                         value={d.assignedCoachId} onChange={e => updateDiscipline(d.id, 'assignedCoachId', e.target.value)}
-                         className="w-full bg-white border border-neutral-100 rounded-xl p-4 font-bold text-xs outline-none focus:border-black appearance-none"
-                       >
-                         {COACHES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                       </select>
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black text-neutral-300 uppercase tracking-widest ml-1">Entry Price ($)</label>
-                       <input 
-                         type="number" value={d.price} onChange={e => updateDiscipline(d.id, 'price', parseInt(e.target.value))}
-                         className="w-full bg-white border border-neutral-100 rounded-xl p-4 font-black text-accent text-sm outline-none focus:border-accent"
-                       />
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 flex gap-2">
-                     <button 
-                       onClick={() => removeDiscipline(d.id)}
-                       className="w-12 h-12 rounded-xl bg-white border border-neutral-100 text-neutral-300 hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                     >
-                        <span className="material-symbols-outlined">delete</span>
-                     </button>
-                  </div>
-                </div>
-              ))}
-              {disciplines.length === 0 && <p className="text-center text-xs text-neutral-400 py-10 uppercase tracking-widest font-black">Catalog empty.</p>}
-            </div>
-          </section>
-
+          {/* Global Brand Assets Section */}
           <section className="bg-white p-10 rounded-[3rem] border border-neutral-100 shadow-2xl space-y-10">
             <h2 className="text-2xl font-black font-display uppercase tracking-tight flex items-center gap-3">
               <span className="material-symbols-outlined text-accent">palette</span> Global Brand Assets
@@ -203,7 +126,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                     onClick={() => openPicker('logo')}
                     className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 flex items-center justify-center relative group cursor-pointer overflow-hidden transition-all hover:border-black"
                   >
-                    {siteSettings.logo ? <img src={siteSettings.logo} className="max-w-[70%] max-h-[70%] object-contain" alt="Logo" /> : <span className="material-symbols-outlined text-4xl text-neutral-200">add_circle</span>}
+                    {localSettings.logo ? <img src={localSettings.logo} className="max-w-[70%] max-h-[70%] object-contain" alt="Logo" /> : <span className="material-symbols-outlined text-4xl text-neutral-200">add_circle</span>}
                   </div>
                </div>
                <div className="space-y-4">
@@ -212,9 +135,23 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                     onClick={() => openPicker('heroImage')}
                     className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 overflow-hidden relative group cursor-pointer transition-all hover:border-black"
                   >
-                    <img src={siteSettings.heroImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Hero" />
+                    {localSettings.heroImage ? (
+                        <img src={localSettings.heroImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Hero" />
+                    ) : (
+                        <span className="material-symbols-outlined text-4xl text-neutral-200">add_photo_alternate</span>
+                    )}
                   </div>
                </div>
+            </div>
+            
+            <div className="space-y-4">
+               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Hero Headline</label>
+               <input 
+                 type="text" 
+                 value={localSettings.heroHeadline}
+                 onChange={(e) => setLocalSettings({...localSettings, heroHeadline: e.target.value})}
+                 className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl py-5 px-8 text-sm font-black uppercase outline-none focus:ring-4 focus:ring-accent/10 transition-all"
+               />
             </div>
           </section>
         </div>
