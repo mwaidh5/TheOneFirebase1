@@ -50,10 +50,10 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
         <div className="space-y-2">
           <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">Athlete Headquarters</span>
-          <h1 className="text-5xl font-black tracking-tight text-black font-display uppercase">My Enrolled Tracks</h1>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-black font-display uppercase">My Enrolled Tracks</h1>
           <p className="text-neutral-400 font-medium max-w-xl">Continue your progression across your personalized training and educational cycles.</p>
         </div>
-        <Link to="/courses" className="px-8 py-4 bg-neutral-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2">
+        <Link to="/courses" className="w-fit px-8 py-4 bg-neutral-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2">
           <span className="material-symbols-outlined text-lg">explore</span>
           Browse All Programs
         </Link>
@@ -63,15 +63,15 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       {actionRequired && (
         <div className="mb-12 bg-red-50 border border-red-100 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-top-4 duration-500">
            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center">
+              <div className="w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shrink-0">
                  <span className="material-symbols-outlined text-3xl animate-pulse">priority_high</span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 text-left">
                  <h3 className="text-lg font-black text-black uppercase tracking-tight">Diagnostic Intake Required</h3>
-                 <p className="text-xs text-neutral-500 font-medium">Please complete the required questions so our coaches can start building your program.</p>
+                 <p className="text-xs text-neutral-500 font-medium leading-relaxed">Please complete the required questions so our coaches can start building your program.</p>
               </div>
            </div>
-           <Link to="/profile/courses" className="px-8 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
+           <Link to="/profile/courses" className="whitespace-nowrap px-8 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
               View Requests
            </Link>
         </div>
@@ -81,9 +81,9 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       {pendingRequests.length > 0 && (
           <div className="mb-16">
               <h2 className="text-2xl font-black text-black uppercase tracking-tight mb-8">Pending Customizations</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
                   {pendingRequests.map(req => (
-                      <div key={req.id} className="bg-neutral-50 rounded-[3rem] overflow-hidden border border-neutral-100 p-8 flex flex-col justify-between h-full relative group shadow-sm hover:shadow-xl transition-all">
+                      <div key={req.id} className="bg-neutral-50 rounded-[2.5rem] overflow-hidden border border-neutral-100 p-8 flex flex-col justify-between h-full relative group shadow-sm hover:shadow-xl transition-all">
                           <div className="space-y-4">
                               <div className="flex justify-between items-start">
                                   <span className="bg-purple-600 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">Bespoke</span>
@@ -97,7 +97,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                                       </span>
                                   )}
                               </div>
-                              <div>
+                              <div className="text-left">
                                   <h3 className="text-xl font-black text-black uppercase tracking-tight">{req.goal}</h3>
                                   <p className="text-xs text-neutral-400 font-medium mt-1">Sport: {req.sport.toUpperCase()}</p>
                               </div>
@@ -122,45 +122,45 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       )}
 
       {ownedCourses.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
           {ownedCourses.map(course => (
-            <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500 flex flex-col relative">
-              <div className="relative h-64 overflow-hidden shrink-0">
+            <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500 flex flex-col relative">
+              <div className="relative h-56 md:h-64 overflow-hidden shrink-0">
                 <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute top-6 left-6 flex gap-2">
+                <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
                   <span className="bg-white/90 backdrop-blur-md text-black text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">{course.category}</span>
                   <span className="bg-green-500 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg">Enrolled</span>
                 </div>
-                <div className="absolute bottom-6 left-6 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg">
+                <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 flex items-center gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white overflow-hidden shadow-lg shrink-0">
                     <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar || 'https://picsum.photos/100'} alt="Coach" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Lead: {course.instructor}</span>
+                  <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest truncate">Lead: {course.instructor}</span>
                 </div>
               </div>
               
-              <div className="p-10 space-y-8 flex-grow flex flex-col">
-                <div className="space-y-4">
-                  <h3 className="text-2xl font-black text-black uppercase tracking-tight font-display leading-tight">{course.title}</h3>
+              <div className="p-6 md:p-8 lg:p-10 space-y-6 md:space-y-8 flex-grow flex flex-col">
+                <div className="space-y-4 text-left">
+                  <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-tight font-display leading-tight line-clamp-2">{course.title}</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
                       <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">Progress</span>
-                      <span className="text-sm font-black text-black">65%</span>
+                      <span className="text-xs md:text-sm font-black text-black">65%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-black h-full w-[65%] rounded-full"></div>
+                      <div className="bg-black h-full w-[65%] rounded-full transition-all duration-1000"></div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-auto pt-6 flex gap-3">
-                   <Link to={`/workout/${course.id}`} className="flex-1 bg-black text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all text-center shadow-lg">
+                <div className="mt-auto pt-4 md:pt-6 flex gap-3">
+                   <Link to={`/workout/${course.id}`} className="flex-1 bg-black text-white py-3.5 md:py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all text-center shadow-lg">
                       Resume Training
                    </Link>
                    <button 
                      onClick={() => handleMessageCoach(course.instructor)}
-                     className="px-4 py-4 bg-neutral-50 text-neutral-400 rounded-xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center group"
+                     className="px-4 py-3.5 md:py-4 bg-neutral-50 text-neutral-400 rounded-xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center group"
                    >
                      <span className="material-symbols-outlined text-[18px] filled">chat</span>
                    </button>
@@ -170,13 +170,13 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
           ))}
         </div>
       ) : pendingRequests.length === 0 && (
-        <div className="py-32 flex flex-col items-center justify-center text-center space-y-6">
+        <div className="py-24 md:py-32 flex flex-col items-center justify-center text-center space-y-6">
           <div className="w-20 h-20 bg-neutral-50 rounded-[2rem] flex items-center justify-center text-neutral-200">
             <span className="material-symbols-outlined text-4xl">school</span>
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-black uppercase text-neutral-400 tracking-tight">No active enrollments</h2>
-            <p className="text-neutral-400 font-medium max-w-sm">Browse our training tracks to start your path to elite performance.</p>
+            <h2 className="text-xl md:text-2xl font-black uppercase text-neutral-400 tracking-tight">No active enrollments</h2>
+            <p className="text-neutral-400 font-medium max-w-sm px-6">Browse our training tracks to start your path to elite performance.</p>
           </div>
           <Link to="/courses" className="px-10 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-neutral-800 transition-all">
             Explore Programs

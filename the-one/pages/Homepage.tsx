@@ -90,11 +90,13 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
               </Link>
             </div>
           </div>
-          <div className="w-full flex-1 aspect-square lg:aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl relative group">
+          {/* Changed aspect ratio for better mobile display and added min-height */}
+          <div className="w-full flex-1 min-h-[400px] lg:h-auto aspect-square lg:aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl relative group bg-neutral-100">
             <img 
               src={settings.heroImage} 
               alt="Athlete" 
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+              loading="eager"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
           </div>

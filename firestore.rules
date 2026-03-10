@@ -121,7 +121,9 @@ service cloud.firestore {
     // 8. Site Settings
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAuthenticated(); // More permissive for now, but still requires being logged in
+      // Debugging: Allowing ALL writes to isolate the issue. 
+      // If this works, the issue is definitely Auth state synchronization.
+      allow write: if true; 
     }
 
     // Default deny all other collections

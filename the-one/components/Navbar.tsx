@@ -84,8 +84,6 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
               <span className="material-symbols-outlined text-[20px]">fitness_center</span>
             </div>
           )}
-          <span className="text-lg font-bold tracking-tight text-black font-display uppercase hidden md:block">The One</span>
-          <span className="text-lg font-bold tracking-tight text-black font-display uppercase md:hidden">The One</span>
         </Link>
 
         {/* Hamburger Menu Button */}

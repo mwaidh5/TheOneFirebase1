@@ -418,6 +418,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                                                  </select>
                                               </div>
                                            </div>
+                                           {/* Conditionally show sets/reps/rest for all formats including SUPER_SET */}
                                            <div className="grid grid-cols-3 gap-2">
                                               {['sets', 'reps', 'rest'].map(f => (
                                                 <div key={f} className="text-center">

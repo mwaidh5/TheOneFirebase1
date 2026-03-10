@@ -18,48 +18,95 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const syncUserToFirestore = async (firebaseUser: any) => {
-    // Check if the user is an admin based on email
-    // This is a simple check. In a real app, you might want to use custom claims or a separate admins collection.
-    const isAdminEmail = ['mwaidh5@gmail.com'].includes(firebaseUser.email?.toLowerCase());
-    
-    // Determine role based on email or existing role in Firestore
-    const defaultRole = isAdminEmail ? UserRole.ADMIN : UserRole.CLIENT;
+  const getDeviceInfo = () => {
+    const ua = navigator.userAgent;
+    let browser = 'Unknown Browser';
+    if (ua.indexOf("Chrome") > -1) browser = "Chrome";
+    else if (ua.indexOf("Safari") > -1) browser = "Safari";
+    else if (ua.indexOf("Firefox") > -1) browser = "Firefox";
 
-    const userData: User = {
-      id: firebaseUser.uid,
-      firstName: firebaseUser.displayName?.split(' ')[0] || 'User',
-      lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-      email: firebaseUser.email || '',
-      role: defaultRole,
-      avatar: firebaseUser.photoURL || `https://picsum.photos/100/100?random=${firebaseUser.uid}`,
-      memberSince: '2024',
-      level: 'Athlete',
+    let os = 'Unknown OS';
+    if (ua.indexOf("Mac") !== -1) os = "Mac OS";
+    else if (ua.indexOf("Win") !== -1) os = "Windows";
+    else if (ua.indexOf("Linux") !== -1) os = "Linux";
+    else if (ua.indexOf("Android") !== -1) os = "Android";
+    else if (ua.indexOf("like Mac") !== -1) os = "iOS";
+
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const location = timeZone.replace('_', ' ');
+
+    return {
+        id: `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userAgent: `${os} (${browser})`,
+        location: location,
+        ip: 'Current Session',
+        isCurrent: true,
+        lastActive: new Date().toLocaleDateString()
+    };
+  };
+
+  const handleDeviceLimit = (uid: string) => {
+    // Check localStorage for existing devices for this user
+    // Note: In a real production app, this should be enforced server-side via custom claims or a dedicated session tracking table in Firestore
+    let storedDevices = JSON.parse(localStorage.getItem('user_devices') || '[]');
+    
+    // Clean up current flag from old devices
+    storedDevices = storedDevices.map((d: any) => ({...d, isCurrent: false}));
+
+    if (storedDevices.length >= 2) {
+        return false; // Limit reached
+    }
+
+    // Add new device
+    const newDevice = getDeviceInfo();
+    storedDevices.push(newDevice);
+    localStorage.setItem('user_devices', JSON.stringify(storedDevices));
+    
+    // Store current session ID to know which one to log out
+    sessionStorage.setItem('current_device_id', newDevice.id);
+
+    return true;
+  };
+
+  const syncUserToFirestore = async (firebaseUser: any) => {
+    
+    // DEVICE LIMIT CHECK
+    const canLogin = handleDeviceLimit(firebaseUser.uid);
+    if (!canLogin) {
+        await auth.signOut();
+        setError('Device limit reached. Please log out or revoke access from another device first.');
+        setLoading(false);
+        return;
+    }
+
+    let role = UserRole.CLIENT;
+    let userData: User = {
+        id: firebaseUser.uid,
+        firstName: firebaseUser.displayName?.split(' ')[0] || 'User',
+        lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+        email: firebaseUser.email || '',
+        role: role,
+        avatar: firebaseUser.photoURL || `https://picsum.photos/100/100?random=${firebaseUser.uid}`,
+        memberSince: new Date().getFullYear().toString(),
+        level: 'Athlete',
     };
 
     try {
       const userRef = doc(db, 'users', firebaseUser.uid);
       const userSnap = await getDoc(userRef);
 
-      if (!userSnap.exists()) {
-        // Create new user document
-        await setDoc(userRef, { ...userData, role: defaultRole.toString() });
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        role = data.role as UserRole;
+        // Update local object with Firestore data to ensure we have the correct role/info
+        userData = { ...userData, ...data, role };
       } else {
-        // User exists, update local state with Firestore data (especially role)
-        const firestoreData = userSnap.data();
-        // Respect existing role unless it's an admin email that needs promotion, 
-        // but for now, let's trust Firestore if it exists, or the hardcoded admin list.
-        const currentRole = isAdminEmail ? 'Admin' : firestoreData.role || 'Client';
-
-        if (currentRole === 'Admin') userData.role = UserRole.ADMIN;
-        else if (currentRole === 'Coach') userData.role = UserRole.COACH;
-        else userData.role = UserRole.CLIENT;
-
-        // Optionally update Firestore if needed (e.g. to sync profile pic)
-        await setDoc(userRef, { ...userData, role: currentRole }, { merge: true });
+         // Create new user if doesn't exist
+         await setDoc(userRef, userData);
       }
     } catch (err) {
       console.error("Error syncing user to Firestore:", err);
+      // Fallback
     }
 
     onLogin(userData);
@@ -79,7 +126,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       await syncUserToFirestore(userCredential.user);
     } catch (err: any) {
-      console.error("Login error code:", err.code); // Log code for debugging
+      console.error("Login error:", err);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
         setError('Wrong password or email.');
       } else if (err.code === 'auth/too-many-requests') {
@@ -87,7 +134,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       } else {
         setError('Failed to sign in. Please try again.');
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -101,8 +147,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       await syncUserToFirestore(result.user);
     } catch (err: any) {
       console.error("Google login error:", err);
-      setError('Google sign-in failed. Please try again.');
-    } finally {
+      if (err.code === 'auth/unauthorized-domain') {
+        setError('This domain is not authorized. Please whitelist it in Firebase Console (Authentication > Settings > Authorized Domains).');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in cancelled.');
+      } else {
+        setError('Google sign-in failed. Please try again.');
+      }
       setLoading(false);
     }
   };

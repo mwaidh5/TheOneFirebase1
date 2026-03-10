@@ -364,9 +364,11 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                {selectedDay.exercises.map((item) => {
                  const isDone = completedExercises.has(item.id);
                  const isExpanded = expandedMediaId === item.id;
+                 const isSuperSet = item.format === 'SUPER_SET';
+                 const isEmom = item.format === 'EMOM';
                  
                  return (
-                   <div key={item.id} className={`bg-white rounded-3xl border transition-all overflow-hidden ${isDone ? 'border-green-300 bg-green-50/10' : 'border-neutral-100 shadow-sm'}`}>
+                   <div key={item.id} className={`bg-white rounded-3xl border transition-all overflow-hidden ${isDone ? 'border-green-300 bg-green-50/10' : isSuperSet ? 'border-purple-200 bg-purple-50/10' : isEmom ? 'border-orange-200 bg-orange-50/10' : 'border-neutral-100 shadow-sm'}`}>
                      <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                        <div className="flex items-center gap-6 flex-1">
                           <button 
@@ -378,7 +380,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
 
                           <div className="space-y-3">
                             <div className="space-y-1 text-left">
-                              <p className="text-[9px] font-black text-neutral-300 uppercase tracking-[0.2em]">{item.format} SESSION</p>
+                              <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isSuperSet ? 'text-purple-500' : isEmom ? 'text-orange-500' : 'text-neutral-300'}`}>{item.format.replace('_', ' ')} SESSION</p>
                               <h3 className={`text-2xl md:text-3xl font-black uppercase leading-none font-display ${isDone ? 'text-green-800' : 'text-black'}`}>{item.name}</h3>
                             </div>
                             

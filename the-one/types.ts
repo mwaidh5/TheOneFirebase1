@@ -13,7 +13,17 @@ export enum CourseLevel {
   ELITE = 'Elite'
 }
 
-export type ExerciseFormat = 'REGULAR' | 'EMOM' | 'SUPER_SET' | 'DROP_SET' | 'AMRAP' | 'FOR_TIME';
+export type ExerciseFormat = 
+  | 'REGULAR' 
+  | 'EMOM' 
+  | 'SUPER_SET' 
+  | 'CIRCUIT' // Alias for Superset mostly, but can be distinct UI
+  | 'DROP_SET' 
+  | 'AMRAP' 
+  | 'FOR_TIME' // For specific tasks like "Run 5k for time"
+  | 'HIIT' 
+  | 'CARDIO' // Monostructural
+  | 'MAX_EFFORT'; // 1RM, 3RM etc.
 
 export interface User {
   id: string;
@@ -71,10 +81,29 @@ export interface Exercise {
   name: string;
   format: ExerciseFormat;
   description?: string;
+  
+  // Standard / Max Effort
   sets?: number;
   reps?: string;
   rest?: string;
-  durationMinutes?: number;
+  weight?: string; // For Max Effort goals (e.g. "85% of 1RM")
+
+  // Cardio / Monostructural
+  distance?: string; // e.g. "5000m"
+  time?: string; // e.g. "20:00"
+  speed?: string; // e.g. "Pace: 5:00/km"
+  calories?: number;
+
+  // HIIT / EMOM / AMRAP
+  workInterval?: string; // "20s"
+  restInterval?: string; // "10s"
+  durationMinutes?: number; // Total EMOM/AMRAP duration
+  rounds?: number; // For Circuits/HIIT
+
+  // Linking for Supersets
+  supersetId?: string; // ID to link exercises together
+  orderInSuperset?: number;
+
   dropSteps?: string; 
   videoUrl?: string;
   imageUrl?: string;

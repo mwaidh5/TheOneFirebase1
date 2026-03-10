@@ -397,12 +397,60 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                              <div className="space-y-6">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1"><label className="text-[8px] font-black text-neutral-300 ml-1">Name</label><input type="text" value={ex.name} onChange={e => updateExercise(exIdx, 'name', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 font-bold text-xs" /></div>
-                                    <div className="space-y-1"><label className="text-[8px] font-black text-neutral-300 ml-1">Type</label><select value={ex.format} onChange={e => updateExercise(exIdx, 'format', e.target.value as any)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[9px] font-black uppercase outline-none"><option value="REGULAR">Reg</option><option value="EMOM">EMOM</option></select></div>
+                                    <div className="space-y-1"><label className="text-[8px] font-black text-neutral-300 ml-1">Type</label><select value={ex.format} onChange={e => updateExercise(exIdx, 'format', e.target.value as any)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[9px] font-black uppercase outline-none">
+                                      <option value="REGULAR">Standard (Straight Sets)</option>
+                                      <option value="SUPER_SET">Superset / Circuit</option>
+                                      <option value="EMOM">EMOM</option>
+                                      <option value="AMRAP">AMRAP</option>
+                                      <option value="HIIT">HIIT (Intervals)</option>
+                                      <option value="CARDIO">Cardio (Monostructural)</option>
+                                      <option value="MAX_EFFORT">Max Effort (1RM/3RM)</option>
+                                      <option value="FOR_TIME">For Time</option>
+                                    </select></div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {['sets', 'reps', 'rest'].map(f => (
-                                        <div key={f} className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{f}</label><input type="text" value={(ex as any)[f]} onChange={e => updateExercise(exIdx, f as any, e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                    ))}
+                                <div className="space-y-4">
+                                   {/* Standard / Max Effort / Drop Set / Superset */}
+                                   {(ex.format === 'REGULAR' || ex.format === 'MAX_EFFORT' || ex.format === 'DROP_SET' || ex.format === 'SUPER_SET') && (
+                                      <div className="grid grid-cols-3 gap-2">
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets} onChange={e => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Reps</label><input type="text" value={ex.reps} onChange={e => updateExercise(exIdx, 'reps', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.rest} onChange={e => updateExercise(exIdx, 'rest', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                      </div>
+                                   )}
+
+                                   {/* Cardio / Monostructural */}
+                                   {(ex.format === 'CARDIO' || ex.format === 'FOR_TIME') && (
+                                      <div className="grid grid-cols-3 gap-2">
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Distance</label><input type="text" value={ex.distance || ''} onChange={e => updateExercise(exIdx, 'distance', e.target.value)} placeholder="5km" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Time Cap</label><input type="text" value={ex.time || ''} onChange={e => updateExercise(exIdx, 'time', e.target.value)} placeholder="20:00" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Pace/Cals</label><input type="text" value={ex.speed || ex.calories || ''} onChange={e => updateExercise(exIdx, 'speed', e.target.value)} placeholder="Zone 2" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                      </div>
+                                   )}
+
+                                   {/* EMOM / AMRAP / HIIT */}
+                                   {(ex.format === 'EMOM' || ex.format === 'AMRAP' || ex.format === 'HIIT') && (
+                                      <div className="space-y-2">
+                                         <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Total Time (Min)</label><input type="number" value={ex.durationMinutes || ''} onChange={e => updateExercise(exIdx, 'durationMinutes', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rounds</label><input type="number" value={ex.rounds || ''} onChange={e => updateExercise(exIdx, 'rounds', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                         </div>
+                                         {ex.format === 'HIIT' && (
+                                            <div className="grid grid-cols-2 gap-2">
+                                               <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Work</label><input type="text" value={ex.workInterval || ''} onChange={e => updateExercise(exIdx, 'workInterval', e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                               <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.restInterval || ''} onChange={e => updateExercise(exIdx, 'restInterval', e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                            </div>
+                                         )}
+                                      </div>
+                                   )}
+
+                                   {/* Superset Linker */}
+                                   {ex.format === 'SUPER_SET' && (
+                                       <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                           <p className="text-[8px] font-black uppercase text-blue-400 mb-2">Circuit Grouping</p>
+                                           <input type="text" value={ex.supersetId || ''} onChange={e => updateExercise(exIdx, 'supersetId', e.target.value)} placeholder="Group A" className="w-full bg-white border border-blue-100 rounded-lg p-2 text-[10px] font-bold" />
+                                           <p className="text-[8px] text-blue-300 mt-1">Give consecutive exercises the same Group ID (e.g. "A") to link them.</p>
+                                       </div>
+                                   )}
                                 </div>
                              </div>
                              <div className="space-y-4">
@@ -471,6 +519,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                 )) : mealPlanLibrary.map(plan => (
                     <button key={plan.id} onClick={() => { setAttachedMealPlan({...plan, id: 'mp-'+Math.random()}); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group text-left"><div><p className="text-sm font-black uppercase">{plan.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{plan.totalCalories} kcal</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 ))}
+                {((isPickerOpen.type === 'exercise' && exerciseLibrary.length === 0) || (isPickerOpen.type === 'workout' && workoutLibrary.length === 0) || (isPickerOpen.type === 'meal' && mealPlanLibrary.length === 0)) && <p className="text-center text-xs text-neutral-400 py-10">Library is empty.</p>}
               </div>
            </div>
         </div>
