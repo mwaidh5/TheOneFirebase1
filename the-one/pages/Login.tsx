@@ -17,6 +17,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // State for handling device limit logic
+  const [showDeviceLimitModal, setShowDeviceLimitModal] = useState(false);
+  const [existingDevices, setExistingDevices] = useState<any[]>([]);
+  const [pendingFirebaseUser, setPendingFirebaseUser] = useState<any>(null);
 
   const getDeviceInfo = () => {
     const ua = navigator.userAgent;
@@ -36,7 +41,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const location = timeZone.replace('_', ' ');
 
     return {
-        id: `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        // Use a consistent ID generation based on User Agent and OS to loosely track "same" browser
+        id: `device_${btoa(ua).substring(0, 10)}`, 
         userAgent: `${os} (${browser})`,
         location: location,
         ip: 'Current Session',
@@ -45,40 +51,45 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
   };
 
-  const handleDeviceLimit = (uid: string) => {
-    // Check localStorage for existing devices for this user
-    // Note: In a real production app, this should be enforced server-side via custom claims or a dedicated session tracking table in Firestore
+  const handleDeviceLimitCheck = (firebaseUser: any) => {
+    // In a real production app, device tracking MUST be server-side.
+    // We are simulating it using localStorage for this demo.
     let storedDevices = JSON.parse(localStorage.getItem('user_devices') || '[]');
     
     // Clean up current flag from old devices
     storedDevices = storedDevices.map((d: any) => ({...d, isCurrent: false}));
 
-    if (storedDevices.length >= 2) {
-        return false; // Limit reached
+    const newDevice = getDeviceInfo();
+    
+    // Check if this specific device is already in the list
+    const existingDeviceIndex = storedDevices.findIndex((d: any) => d.id === newDevice.id);
+
+    if (existingDeviceIndex !== -1) {
+        // It's the same device, just update the last active and current status
+        storedDevices[existingDeviceIndex] = newDevice;
+        localStorage.setItem('user_devices', JSON.stringify(storedDevices));
+        sessionStorage.setItem('current_device_id', newDevice.id);
+        return true;
     }
 
-    // Add new device
-    const newDevice = getDeviceInfo();
+    if (storedDevices.length >= 2) {
+        // Limit reached with a TRULY NEW device, show modal instead of just failing
+        setExistingDevices(storedDevices);
+        setPendingFirebaseUser(firebaseUser);
+        setShowDeviceLimitModal(true);
+        setLoading(false);
+        return false; 
+    }
+
+    // Under limit, proceed to add new device
     storedDevices.push(newDevice);
     localStorage.setItem('user_devices', JSON.stringify(storedDevices));
-    
-    // Store current session ID to know which one to log out
     sessionStorage.setItem('current_device_id', newDevice.id);
 
     return true;
   };
 
-  const syncUserToFirestore = async (firebaseUser: any) => {
-    
-    // DEVICE LIMIT CHECK
-    const canLogin = handleDeviceLimit(firebaseUser.uid);
-    if (!canLogin) {
-        await auth.signOut();
-        setError('Device limit reached. Please log out or revoke access from another device first.');
-        setLoading(false);
-        return;
-    }
-
+  const finalizeLogin = async (firebaseUser: any) => {
     let role = UserRole.CLIENT;
     let userData: User = {
         id: firebaseUser.uid,
@@ -98,23 +109,52 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (userSnap.exists()) {
         const data = userSnap.data();
         role = data.role as UserRole;
-        // Update local object with Firestore data to ensure we have the correct role/info
         userData = { ...userData, ...data, role };
       } else {
-         // Create new user if doesn't exist
          await setDoc(userRef, userData);
       }
     } catch (err) {
       console.error("Error syncing user to Firestore:", err);
-      // Fallback
     }
 
     onLogin(userData);
 
-    // Redirect based on role
     if (userData.role === UserRole.ADMIN) navigate('/admin');
     else if (userData.role === UserRole.COACH) navigate('/coach');
     else navigate('/profile');
+  };
+
+  const syncUserToFirestore = async (firebaseUser: any) => {
+    // DEVICE LIMIT CHECK
+    const canLogin = handleDeviceLimitCheck(firebaseUser);
+    if (!canLogin) return; // Modal will handle the rest
+
+    await finalizeLogin(firebaseUser);
+  };
+
+  const handleRevokeDeviceAndLogin = (deviceIdToRemove: string) => {
+      // Remove selected device
+      const updatedDevices = existingDevices.filter(d => d.id !== deviceIdToRemove);
+      
+      // Add new current device
+      const newDevice = getDeviceInfo();
+      updatedDevices.push(newDevice);
+      
+      // Save
+      localStorage.setItem('user_devices', JSON.stringify(updatedDevices));
+      sessionStorage.setItem('current_device_id', newDevice.id);
+      
+      // Close modal and proceed
+      setShowDeviceLimitModal(false);
+      setLoading(true);
+      finalizeLogin(pendingFirebaseUser);
+  };
+
+  const handleCancelDeviceLimit = () => {
+      auth.signOut();
+      setShowDeviceLimitModal(false);
+      setPendingFirebaseUser(null);
+      setError('Login cancelled due to device limits.');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -159,7 +199,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex-grow flex flex-col items-center justify-center p-6 bg-neutral-50 animate-in fade-in duration-700">
+    <div className="flex-grow flex flex-col items-center justify-center p-6 bg-neutral-50 animate-in fade-in duration-700 relative">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white shadow-2xl">
@@ -172,7 +212,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-6">
           <button 
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={loading || showDeviceLimitModal}
             className="w-full py-4 bg-white border border-neutral-200 text-black rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             <img src="/google.svg" alt="Google" className="w-5 h-5" />
@@ -234,7 +274,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             <button 
               type="submit" 
-              disabled={loading}
+              disabled={loading || showDeviceLimitModal}
               className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {loading ? (
@@ -256,6 +296,57 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </button>
         </p>
       </div>
+
+      {/* DEVICE LIMIT MODAL */}
+      {showDeviceLimitModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden text-left flex flex-col">
+              <div className="p-8 border-b border-neutral-100 bg-neutral-50/50 flex items-start gap-4">
+                 <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-2xl">important_devices</span>
+                 </div>
+                 <div>
+                     <h3 className="text-xl font-black font-display uppercase text-black">Device Limit Reached</h3>
+                     <p className="text-xs font-medium text-neutral-500 mt-1">You are already logged into 2 devices. To continue logging in here, you must revoke access from one of your existing devices.</p>
+                 </div>
+              </div>
+              
+              <div className="p-8 space-y-4">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Active Devices</p>
+                 <div className="space-y-3">
+                     {existingDevices.map((device) => (
+                         <div key={device.id} className="flex items-center justify-between p-4 rounded-2xl border border-neutral-200 bg-white">
+                             <div className="flex items-center gap-4">
+                                <span className="material-symbols-outlined text-neutral-400 text-2xl">
+                                  {device.userAgent.includes('iOS') || device.userAgent.includes('Android') ? 'smartphone' : 'laptop_mac'}
+                                </span>
+                                <div>
+                                    <p className="text-sm font-black uppercase text-black">{device.userAgent}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-0.5">{device.location} • Last: {device.lastActive}</p>
+                                </div>
+                             </div>
+                             <button 
+                                onClick={() => handleRevokeDeviceAndLogin(device.id)}
+                                className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors"
+                             >
+                                Revoke
+                             </button>
+                         </div>
+                     ))}
+                 </div>
+              </div>
+
+              <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end">
+                  <button 
+                    onClick={handleCancelDeviceLimit}
+                    className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-black transition-colors"
+                  >
+                    Cancel Login
+                  </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

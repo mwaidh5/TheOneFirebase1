@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getAuth, updateProfile, updateEmail } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -11,6 +11,7 @@ const ProfileSettings: React.FC = () => {
   const [isMfaSetupOpen, setIsMfaSetupOpen] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(() => localStorage.getItem('mfa_enabled_u1') === 'true');
   const [otpValue, setOtpValue] = useState('');
+  const navigate = useNavigate();
   
   // Dynamic Device Info State
   const [devices, setDevices] = useState<any[]>([]);
@@ -28,11 +29,22 @@ const ProfileSettings: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Check if this session is an admin impersonating a user
+  const isImpersonating = sessionStorage.getItem('is_impersonating') === 'true';
 
   useEffect(() => {
     // Generate/Load active devices simulation
     // In a real app, this would come from a server tracking sessions.
-    // For this demo, we'll store them in localStorage and enforce the limit.
+    
+    let storedDevices = JSON.parse(localStorage.getItem('user_devices') || '[]');
+
+    // If we are impersonating, we don't want to show or register this session as a user device
+    if (isImpersonating) {
+        // Just show the existing devices without adding the admin's current session
+        setDevices(storedDevices.map((d: any) => ({...d, isCurrent: false})));
+        return;
+    }
     
     const ua = navigator.userAgent;
     let browser = 'Unknown Browser';
@@ -50,17 +62,21 @@ const ProfileSettings: React.FC = () => {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const location = timeZone.replace('_', ' ');
 
+    // Try to get the current session ID set during login
+    const currentSessionId = sessionStorage.getItem('current_device_id');
+
+    // If we somehow don't have a session ID and we aren't impersonating, we should probably be logged out,
+    // but for this demo, we'll try to recover gracefully if possible, or just create one.
+    const activeSessionId = currentSessionId || `device_${Date.now()}`;
+
     const currentDevice = {
-        id: 'current_session_1',
+        id: activeSessionId,
         userAgent: `${os} (${browser})`,
         location: location,
         ip: 'Current Session',
         isCurrent: true,
         lastActive: new Date().toLocaleDateString()
     };
-
-    // Load existing devices or create mock ones
-    let storedDevices = JSON.parse(localStorage.getItem('user_devices') || '[]');
     
     if (storedDevices.length === 0) {
         // First time, just the current device
@@ -68,21 +84,21 @@ const ProfileSettings: React.FC = () => {
     } else {
         // Ensure current device is in the list and marked as current
         storedDevices = storedDevices.map((d: any) => ({...d, isCurrent: false}));
-        const existingIdx = storedDevices.findIndex((d: any) => d.id === 'current_session_1');
+        const existingIdx = storedDevices.findIndex((d: any) => d.id === activeSessionId);
         if (existingIdx >= 0) {
             storedDevices[existingIdx] = currentDevice;
         } else {
-            storedDevices.push(currentDevice);
+            // It should have been added during login, but if not (e.g. page refresh before setting), add it
+            if (storedDevices.length < 2) {
+                storedDevices.push(currentDevice);
+            }
         }
     }
-
-    // Limit to 2 devices max. If a 3rd is added, we should handle it (simulate lock out).
-    // For the settings page, we just display what's there. The actual blocking would happen on Login.
     
     setDevices(storedDevices);
     localStorage.setItem('user_devices', JSON.stringify(storedDevices));
 
-  }, []);
+  }, [isImpersonating]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -165,13 +181,22 @@ const ProfileSettings: React.FC = () => {
         localStorage.setItem('user_devices', JSON.stringify(updatedDevices));
         alert("Device access revoked.");
         
-        // If they revoked their current device, log them out
-        if (deviceId === 'current_session_1') {
+        // If they revoked their current device (and aren't impersonating), log them out
+        if (deviceId === sessionStorage.getItem('current_device_id') && !isImpersonating) {
              auth.signOut().then(() => {
-                 window.location.href = '/login';
+                 navigate('/login');
              });
         }
     }
+  };
+
+  const endImpersonation = () => {
+      sessionStorage.removeItem('is_impersonating');
+      // To properly end impersonation in this demo setup without server-side tracking,
+      // the safest route is to force a logout so the admin can log back into their own account.
+      auth.signOut().then(() => {
+          navigate('/login');
+      });
   };
 
   // Add a dummy device for testing if under limit
@@ -202,6 +227,17 @@ const ProfileSettings: React.FC = () => {
       <div className="space-y-2 mb-12">
         <h1 className="text-4xl font-black font-display uppercase tracking-tight text-black leading-none">Account Logic</h1>
         <p className="text-neutral-400 font-medium">Manage your athlete identity and platform security protocols.</p>
+        {isImpersonating && (
+            <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-3 text-orange-700">
+                    <span className="material-symbols-outlined">visibility</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">Admin Impersonation Mode Active</span>
+                </div>
+                <button onClick={endImpersonation} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-orange-700 transition-colors shadow-md">
+                    End Session
+                </button>
+            </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -314,10 +350,10 @@ const ProfileSettings: React.FC = () => {
 
                    <button 
                     type="submit" 
-                    disabled={saving}
+                    disabled={saving || isImpersonating}
                     className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-neutral-800 transition-all shadow-lg disabled:opacity-50"
                    >
-                     {saving ? 'Saving...' : 'Commit Identity Changes'}
+                     {isImpersonating ? 'Disabled in Impersonation' : (saving ? 'Saving...' : 'Commit Identity Changes')}
                    </button>
                </form>
             </div>
@@ -347,14 +383,16 @@ const ProfileSettings: React.FC = () => {
                      {!mfaEnabled ? (
                         <button 
                           onClick={() => setIsMfaSetupOpen(true)}
-                          className="px-8 py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition-all shadow-lg shadow-accent/20"
+                          disabled={isImpersonating}
+                          className="px-8 py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
                         >
                           Setup Protocol
                         </button>
                      ) : (
                         <button 
-                          onClick={() => { if(window.confirm("Disable MFA protection?")) { setMfaEnabled(false); localStorage.removeItem('mfa_enabled_u1'); } }}
-                          className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all"
+                          onClick={() => { if(!isImpersonating && window.confirm("Disable MFA protection?")) { setMfaEnabled(false); localStorage.removeItem('mfa_enabled_u1'); } }}
+                          disabled={isImpersonating}
+                          className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all disabled:opacity-50"
                         >
                           Deactivate
                         </button>
@@ -397,17 +435,21 @@ const ProfileSettings: React.FC = () => {
                             </div>
                             <button 
                               onClick={() => revokeDevice(device.id)}
-                              className="w-10 h-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm group"
+                              disabled={isImpersonating}
+                              className="w-10 h-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm group disabled:opacity-50"
                               title="Revoke Access"
                             >
                                <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">delete</span>
                             </button>
                          </div>
                      ))}
+                     {devices.length === 0 && (
+                         <p className="text-center text-neutral-400 text-xs italic py-4">No registered devices found.</p>
+                     )}
                   </div>
                   
                   {/* Developer testing tool */}
-                  {devices.length < 2 && (
+                  {devices.length < 2 && !isImpersonating && (
                       <button onClick={addTestDevice} className="w-full py-4 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400 hover:text-black hover:border-black transition-colors">
                           + Simulate Another Login (Test)
                       </button>

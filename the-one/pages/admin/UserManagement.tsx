@@ -155,6 +155,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses 
   };
 
   const handleImpersonateUser = (userData: UserData) => {
+    // Set a flag in session storage indicating this is an impersonated session
+    // so it doesn't count towards the device limit for the impersonated user
+    sessionStorage.setItem('is_impersonating', 'true');
+    
     const userToLogin: User = {
       id: userData.id,
       firstName: userData.name.split(' ')[0],
