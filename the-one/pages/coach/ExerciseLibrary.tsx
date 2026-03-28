@@ -59,7 +59,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
       const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            ex.creatorName?.toLowerCase().includes(searchQuery.toLowerCase());
       // Strict filtering: Only Admin sees all; Coach sees only their own.
-      const hasPermission = currentUser.role === UserRole.ADMIN || ex.creatorId === currentUser.id;
+      const hasPermission = currentUser.role === UserRole.ADMIN || ex.creatorId === currentUser.id || ex.isPublic === true;
       return matchesSearch && hasPermission;
     });
   }, [exerciseLibrary, currentUser, searchQuery]);

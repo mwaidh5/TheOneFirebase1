@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { MealPlan, Meal, FoodItem, User, UserRole } from '../../types';
+import { MealPlan, Meal, MealItem, MealOption, FoodItem, User, UserRole } from '../../types';
 
 interface MealLibraryProps {
   currentUser: User;
@@ -19,7 +19,7 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
                            p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            p.creatorName?.toLowerCase().includes(searchQuery.toLowerCase());
       // Strict filtering: Only Admin sees all; Coach sees only their own.
-      const hasPermission = currentUser.role === UserRole.ADMIN || p.creatorId === currentUser.id;
+      const hasPermission = currentUser.role === UserRole.ADMIN || p.creatorId === currentUser.id || p.isPublic === true;
       return matchesSearch && hasPermission;
     });
   }, [mealPlanLibrary, currentUser, searchQuery]);
@@ -82,11 +82,19 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
         items: (m.items || []).map(i => ({
           id: i.id,
           name: i.name || '',
-          amount: i.amount || '',
-          calories: Number(i.calories) || 0,
-          protein: Number(i.protein) || 0,
-          carbs: Number(i.carbs) || 0,
-          fat: Number(i.fat) || 0
+          options: (i.options || []).map(o => ({
+            id: o.id,
+            name: o.name || '',
+            items: (o.items || []).map(fi => ({
+              id: fi.id,
+              name: fi.name || '',
+              amount: fi.amount || '',
+              calories: Number(fi.calories) || 0,
+              protein: Number(fi.protein) || 0,
+              carbs: Number(fi.carbs) || 0,
+              fat: Number(fi.fat) || 0
+            }))
+          }))
         }))
       }))
     };
@@ -111,15 +119,43 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
     });
   };
 
-  const addFoodToMeal = (mealIdx: number) => {
+  const addMealItem = (mealIdx: number) => {
     const nextMeals = [...(activePlan.meals || [])];
-    nextMeals[mealIdx].items.push({ id: Math.random().toString(), name: '', amount: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+    nextMeals[mealIdx].items.push({ id: Math.random().toString(), name: 'New Element', options: [] });
     setActivePlan({ ...activePlan, meals: nextMeals });
   };
 
-  const updateFoodItem = (mealIdx: number, foodIdx: number, field: keyof FoodItem, val: any) => {
+  const addOptionToItem = (mealIdx: number, itemIdx: number) => {
     const nextMeals = [...(activePlan.meals || [])];
-    nextMeals[mealIdx].items[foodIdx] = { ...nextMeals[mealIdx].items[foodIdx], [field]: val };
+    nextMeals[mealIdx].items[itemIdx].options.push({ id: Math.random().toString(), name: 'Option', items: [] });
+    setActivePlan({ ...activePlan, meals: nextMeals });
+  };
+
+  const addFoodToOption = (mealIdx: number, itemIdx: number, optionIdx: number) => {
+    const nextMeals = [...(activePlan.meals || [])];
+    nextMeals[mealIdx].items[itemIdx].options[optionIdx].items.push({ id: Math.random().toString(), name: '', amount: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+    setActivePlan({ ...activePlan, meals: nextMeals });
+  };
+
+
+  const updateMealItem = (mealIdx: number, itemIdx: number, name: string) => {
+    const nextMeals = [...(activePlan.meals || [])];
+    nextMeals[mealIdx].items[itemIdx].name = name;
+    setActivePlan({ ...activePlan, meals: nextMeals });
+  };
+
+  const updateOption = (mealIdx: number, itemIdx: number, optionIdx: number, name: string) => {
+    const nextMeals = [...(activePlan.meals || [])];
+    nextMeals[mealIdx].items[itemIdx].options[optionIdx].name = name;
+    setActivePlan({ ...activePlan, meals: nextMeals });
+  };
+
+  const updateFoodItem = (mealIdx: number, itemIdx: number, optionIdx: number, foodIdx: number, field: keyof FoodItem, val: any) => {
+    const nextMeals = [...(activePlan.meals || [])];
+    nextMeals[mealIdx].items[itemIdx].options[optionIdx].items[foodIdx] = { 
+      ...nextMeals[mealIdx].items[itemIdx].options[optionIdx].items[foodIdx], 
+      [field]: val 
+    };
     setActivePlan({ ...activePlan, meals: nextMeals });
   };
 
@@ -279,46 +315,92 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
                                 className="text-lg md:text-xl font-black uppercase text-black bg-transparent outline-none focus:text-accent w-full"
                              />
                              <div className="flex gap-2 shrink-0 ml-4">
-                                <button onClick={() => addFoodToMeal(mIdx)} className="p-2 text-accent hover:bg-accent/5 rounded-lg"><span className="material-symbols-outlined text-xl">add_circle</span></button>
+                                <button onClick={() => addMealItem(mIdx)} className="p-2 text-accent hover:bg-accent/5 rounded-lg"><span className="material-symbols-outlined text-xl">add_circle</span></button>
                                 <button onClick={() => removeMeal(mIdx)} className="p-2 text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-xl">delete</span></button>
                              </div>
                           </div>
 
-                          <div className="space-y-3">
-                             {meal.items.map((food, fIdx) => (
-                                <div key={food.id} className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 bg-neutral-50 p-3 md:p-4 rounded-xl md:rounded-2xl border border-neutral-100 relative">
-                                   <button 
-                                     onClick={() => { const n = [...activePlan.meals!]; n[mIdx].items.splice(fIdx, 1); setActivePlan({...activePlan, meals: n}); }}
-                                     className="md:hidden absolute top-2 right-2 text-neutral-300 hover:text-red-500"
-                                   >
-                                      <span className="material-symbols-outlined text-base">close</span>
-                                   </button>
-
-                                   <div className="md:col-span-5 grid grid-cols-2 gap-2">
-                                      <div className="space-y-0.5">
-                                         <label className="text-[7px] md:text-[8px] font-black uppercase text-neutral-300 ml-1">Element</label>
-                                         <input type="text" value={food.name} onChange={e => updateFoodItem(mIdx, fIdx, 'name', e.target.value)} className="w-full bg-white p-2 md:p-3 rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold outline-none" placeholder="e.g. Chicken" />
-                                      </div>
-                                      <div className="space-y-0.5">
-                                         <label className="text-[7px] md:text-[8px] font-black uppercase text-neutral-300 ml-1">Amount</label>
-                                         <input type="text" value={food.amount} onChange={e => updateFoodItem(mIdx, fIdx, 'amount', e.target.value)} className="w-full bg-white p-2 md:p-3 rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold outline-none" placeholder="100g" />
-                                      </div>
-                                   </div>
-                                   <div className="md:col-span-6 grid grid-cols-4 gap-2">
-                                      {['calories', 'protein', 'carbs', 'fat'].map(m => (
-                                        <div key={m} className="space-y-0.5 text-center">
-                                          <label className="text-[7px] md:text-[8px] font-black uppercase text-neutral-300">{m.substr(0,1)}</label>
-                                          <input type="number" value={(food as any)[m]} onChange={e => updateFoodItem(mIdx, fIdx, m as any, parseInt(e.target.value))} className="w-full bg-white p-2 md:p-3 rounded-lg md:rounded-xl text-[9px] md:text-xs font-black text-center outline-none" />
-                                        </div>
-                                      ))}
-                                   </div>
-                                   <div className="hidden md:flex md:col-span-1 justify-end items-center">
+                          <div className="space-y-6">
+                             {meal.items.map((item, iIdx) => (
+                                <div key={item.id} className="p-4 md:p-6 bg-neutral-50 rounded-2xl border border-neutral-200">
+                                  <div className="flex justify-between items-center mb-4">
+                                    <input 
+                                      type="text" value={item.name} 
+                                      onChange={e => updateMealItem(mIdx, iIdx, e.target.value)}
+                                      placeholder="Element Name (e.g. Protein)"
+                                      className="text-sm md:text-base font-black uppercase bg-transparent outline-none border-b border-neutral-300"
+                                    />
+                                    <div className="flex gap-2">
+                                      <button onClick={() => addOptionToItem(mIdx, iIdx)} className="text-[10px] font-bold text-accent px-3 py-1 bg-white rounded-md border border-neutral-200">+ Add Option</button>
                                       <button onClick={() => {
-                                        const n = [...activePlan.meals!]; n[mIdx].items.splice(fIdx, 1); setActivePlan({...activePlan, meals: n});
-                                      }} className="text-neutral-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-xl">remove_circle</span></button>
-                                   </div>
+                                        const n = [...activePlan.meals!]; n[mIdx].items.splice(iIdx, 1); setActivePlan({...activePlan, meals: n});
+                                      }} className="text-neutral-400 hover:text-red-500"><span className="material-symbols-outlined text-base">close</span></button>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                                    {item.options.map((option, oIdx) => (
+                                      <div key={option.id} className="min-w-[300px] p-4 bg-white rounded-xl border-2 border-neutral-100 shrink-0 relative">
+                                        <div className="flex justify-between items-center mb-4 border-b border-neutral-50 pb-2">
+                                          <input 
+                                            type="text" value={option.name} 
+                                            onChange={e => updateOption(mIdx, iIdx, oIdx, e.target.value)}
+                                            placeholder="Option Name"
+                                            className="text-xs font-black uppercase outline-none bg-transparent"
+                                          />
+                                          <div className="flex gap-2">
+                                            <button onClick={() => addFoodToOption(mIdx, iIdx, oIdx)} className="text-accent hover:bg-accent/5 p-1 rounded-md"><span className="material-symbols-outlined text-sm">add</span></button>
+                                            <button onClick={() => {
+                                              const n = [...activePlan.meals!]; n[mIdx].items[iIdx].options.splice(oIdx, 1); setActivePlan({...activePlan, meals: n});
+                                            }} className="text-neutral-300 hover:text-red-500 p-1"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                          </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                          {option.items.map((food, fIdx) => (
+                                            <div key={food.id} className="grid grid-cols-12 gap-2 bg-neutral-50 p-2 rounded-lg relative group">
+                                              <button 
+                                                onClick={() => { const n = [...activePlan.meals!]; n[mIdx].items[iIdx].options[oIdx].items.splice(fIdx, 1); setActivePlan({...activePlan, meals: n}); }}
+                                                className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                              >
+                                                <span className="material-symbols-outlined text-[12px]">close</span>
+                                              </button>
+
+                                              <div className="col-span-12 grid grid-cols-2 gap-2 mb-2">
+                                                <input type="text" value={food.name} onChange={e => updateFoodItem(mIdx, iIdx, oIdx, fIdx, 'name', e.target.value)} className="w-full bg-white px-2 py-1.5 rounded-md text-[10px] font-bold outline-none" placeholder="Food (e.g. Chicken)" />
+                                                <input type="text" value={food.amount} onChange={e => updateFoodItem(mIdx, iIdx, oIdx, fIdx, 'amount', e.target.value)} className="w-full bg-white px-2 py-1.5 rounded-md text-[10px] font-bold outline-none" placeholder="Amount (e.g. 100g)" />
+                                              </div>
+                                              <div className="col-span-12 grid grid-cols-4 gap-1">
+                                                {['calories', 'protein', 'carbs', 'fat'].map(m => (
+                                                  <div key={m} className="flex flex-col items-center">
+                                                    <span className="text-[6px] font-black uppercase text-neutral-400 mb-0.5">{m.substr(0,1)}</span>
+                                                    <input type="number" value={(food as any)[m]} onChange={e => updateFoodItem(mIdx, iIdx, oIdx, fIdx, m as any, parseInt(e.target.value))} className="w-full bg-white py-1 rounded-md text-[9px] font-black text-center outline-none" />
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          ))}
+                                          {option.items.length === 0 && (
+                                            <div className="text-center py-4 text-[10px] font-bold text-neutral-300 uppercase">No food items added</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {item.options.length === 0 && (
+                                      <div className="w-full p-8 border-2 border-dashed border-neutral-200 rounded-xl text-center flex flex-col items-center justify-center text-neutral-300 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => addOptionToItem(mIdx, iIdx)}>
+                                        <span className="material-symbols-outlined text-2xl mb-2">add_circle</span>
+                                        <span className="text-[10px] font-bold uppercase">Add First Option</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                              ))}
+                             {meal.items.length === 0 && (
+                               <div className="text-center py-10 border-2 border-dashed border-neutral-100 rounded-2xl cursor-pointer hover:bg-neutral-50 transition-colors" onClick={() => addMealItem(mIdx)}>
+                                  <span className="material-symbols-outlined text-3xl text-neutral-300 mb-2">restaurant</span>
+                                  <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Click to add meal elements (e.g. Protein, Carbs)</p>
+                               </div>
+                             )}
                           </div>
                        </div>
                     ))}

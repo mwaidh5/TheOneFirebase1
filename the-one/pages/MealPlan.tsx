@@ -1,8 +1,69 @@
+import React, { useState } from 'react';
 
-import React from 'react';
-import { MEALS } from '../constants';
+// Using mock data for now to represent the new structure where a meal has options
+const MOCK_MEAL_PLAN = {
+  id: 'mp1',
+  name: 'Performance Plan',
+  totalCalories: 2800,
+  meals: [
+    {
+      id: 'm1',
+      label: 'Breakfast',
+      items: [
+        {
+          id: 'i1',
+          name: 'Carbohydrates',
+          options: [
+            { id: 'o1', name: 'Oatmeal', items: [{ name: 'Oats', amount: '100g' }, { name: 'Berries', amount: '50g' }] },
+            { id: 'o2', name: 'Toast', items: [{ name: 'Whole Wheat Bread', amount: '2 slices' }, { name: 'Jam', amount: '1 tbsp' }] }
+          ]
+        },
+        {
+          id: 'i2',
+          name: 'Protein',
+          options: [
+            { id: 'o3', name: 'Eggs', items: [{ name: 'Whole Eggs', amount: '3' }] },
+            { id: 'o4', name: 'Protein Shake', items: [{ name: 'Whey Protein', amount: '1 scoop' }, { name: 'Milk', amount: '250ml' }] }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'm2',
+      label: 'Lunch',
+      items: [
+        {
+          id: 'i3',
+          name: 'Base',
+          options: [
+            { id: 'o5', name: 'Rice Bowl', items: [{ name: 'White Rice', amount: '150g' }] },
+            { id: 'o6', name: 'Sweet Potato', items: [{ name: 'Roasted Sweet Potato', amount: '200g' }] }
+          ]
+        },
+        {
+          id: 'i4',
+          name: 'Protein',
+          options: [
+            { id: 'o7', name: 'Chicken', items: [{ name: 'Chicken Breast', amount: '150g' }] },
+            { id: 'o8', name: 'Beef', items: [{ name: 'Lean Ground Beef', amount: '150g' }] }
+          ]
+        }
+      ]
+    }
+  ]
+};
 
 const MealPlan: React.FC = () => {
+  // Store the selected option for each item (mealId_itemId -> optionId)
+  const [selections, setSelections] = useState<Record<string, string>>({});
+
+  const handleSelectOption = (mealId: string, itemId: string, optionId: string) => {
+    setSelections(prev => ({
+      ...prev,
+      [`${mealId}_${itemId}`]: optionId
+    }));
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
@@ -95,34 +156,63 @@ const MealPlan: React.FC = () => {
         <div className="lg:col-span-8 space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-display uppercase">Scheduled Meals</h2>
-            <span className="text-sm text-neutral-400 font-bold uppercase tracking-widest">4 meals • 2,750 kcal</span>
+            <span className="text-sm text-neutral-400 font-bold uppercase tracking-widest">{MOCK_MEAL_PLAN.meals.length} meals • {MOCK_MEAL_PLAN.totalCalories} kcal</span>
           </div>
 
-          <div className="grid gap-6">
-            {MEALS.map(meal => (
-              <div key={meal.id} className="group relative flex flex-col sm:flex-row gap-6 p-5 rounded-3xl border border-neutral-100 bg-white hover:border-black hover:shadow-xl transition-all cursor-pointer">
-                <div className="h-40 sm:h-32 w-full sm:w-32 rounded-2xl overflow-hidden shrink-0">
-                  <img src={meal.image} alt={meal.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+          <div className="grid gap-8">
+            {MOCK_MEAL_PLAN.meals.map(meal => (
+              <div key={meal.id} className="group flex flex-col gap-6 p-8 rounded-[2rem] border border-neutral-100 bg-white shadow-sm hover:shadow-xl transition-all">
+                <div className="flex justify-between items-center border-b border-neutral-100 pb-4">
+                  <h3 className="text-2xl font-black text-black font-display uppercase tracking-tight">{meal.label}</h3>
                 </div>
-                <div className="flex flex-col flex-1 justify-center gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest">{meal.type}</span>
-                    <span className="text-xs text-neutral-400 font-bold flex items-center gap-1 uppercase">
-                      <span className="material-symbols-outlined text-[16px]">schedule</span> {meal.time}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold text-black font-display">{meal.name}</h3>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-400 font-medium uppercase tracking-wider">
-                    <span className="text-black font-bold">{meal.calories} kcal</span>
-                    <span>{meal.protein}g Protein</span>
-                    <span>{meal.carbs}g Carbs</span>
-                    <span>{meal.fat}g Fat</span>
-                  </div>
-                </div>
-                <div className="hidden sm:flex items-center pr-2">
-                  <div className="bg-neutral-50 group-hover:bg-black group-hover:text-white p-2 rounded-full transition-all">
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </div>
+                
+                <div className="space-y-8">
+                  {meal.items.map((item) => (
+                    <div key={item.id} className="space-y-4">
+                      <div className="flex items-center gap-2">
+                         <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
+                         <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">{item.name}</h4>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+                        {item.options.map((option) => {
+                          const isSelected = selections[`${meal.id}_${item.id}`] === option.id;
+                          return (
+                            <label 
+                              key={option.id} 
+                              className={`
+                                flex flex-col gap-3 p-5 rounded-2xl border-2 cursor-pointer transition-all min-w-[240px] shrink-0
+                                ${isSelected 
+                                  ? 'border-black bg-black text-white shadow-lg scale-[1.02]' 
+                                  : 'border-neutral-100 bg-neutral-50 hover:border-neutral-300 text-black'}
+                              `}
+                            >
+                              <div className="flex justify-between items-start">
+                                <span className="font-black uppercase tracking-tight text-lg">{option.name}</span>
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-white bg-white' : 'border-neutral-300 bg-white'}`}>
+                                  {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-black"></div>}
+                                </div>
+                                <input 
+                                  type="radio" 
+                                  name={`meal-${meal.id}-item-${item.id}`} 
+                                  className="hidden"
+                                  checked={isSelected}
+                                  onChange={() => handleSelectOption(meal.id, item.id, option.id)}
+                                />
+                              </div>
+                              <div className={`text-sm font-medium space-y-1 ${isSelected ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                                {option.items.map((fi, idx) => (
+                                  <div key={idx} className="flex justify-between">
+                                    <span>{fi.name}</span>
+                                    <span className="font-bold">{fi.amount}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

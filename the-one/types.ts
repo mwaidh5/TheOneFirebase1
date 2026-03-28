@@ -133,10 +133,22 @@ export interface FoodItem {
   fat: number;
 }
 
+export interface MealOption {
+  id: string;
+  name: string;
+  items: FoodItem[];
+}
+
+export interface MealItem {
+  id: string;
+  name: string;
+  options: MealOption[];
+}
+
 export interface Meal {
   id: string;
   label: string;
-  items: FoodItem[];
+  items: MealItem[];
 }
 
 export interface MealPlan {
