@@ -6,47 +6,12 @@
   "storage": {
     "rules": "storage.rules"
   },
-  "hosting": {
-    "public": "the-one/dist",
+  "apphosting": {
+    "backendId": "firebase-studio-export",
+    "rootDir": "the-one",
     "ignore": [
-      "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(eot|otf|ttf|ttc|woff|font.css)",
-        "headers": [
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "*"
-          }
-        ]
-      },
-      {
-        "source": "**/*.@(jpg|jpeg|gif|png)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=7200"
-          }
-        ]
-      },
-      {
-        "source": "index.html",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      }
     ]
   }
 }
