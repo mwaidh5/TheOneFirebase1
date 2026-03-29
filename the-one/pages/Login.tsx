@@ -54,7 +54,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const handleDeviceLimitCheck = (firebaseUser: any) => {
     // In a real production app, device tracking MUST be server-side.
     // We are simulating it using localStorage for this demo.
-    let storedDevices = JSON.parse(localStorage.getItem('user_devices') || '[]');
+    const storageKey = `user_devices_${firebaseUser.uid}`;
+    let storedDevices = JSON.parse(localStorage.getItem(storageKey) || '[]');
     
     // Clean up current flag from old devices
     storedDevices = storedDevices.map((d: any) => ({...d, isCurrent: false}));
@@ -67,8 +68,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (existingDeviceIndex !== -1) {
         // It's the same device, just update the last active and current status
         storedDevices[existingDeviceIndex] = newDevice;
-        localStorage.setItem('user_devices', JSON.stringify(storedDevices));
-        sessionStorage.setItem('current_device_id', newDevice.id);
+        localStorage.setItem(storageKey, JSON.stringify(storedDevices));
+        sessionStorage.setItem(`current_device_id_${firebaseUser.uid}`, newDevice.id);
         return true;
     }
 
@@ -83,8 +84,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     // Under limit, proceed to add new device
     storedDevices.push(newDevice);
-    localStorage.setItem('user_devices', JSON.stringify(storedDevices));
-    sessionStorage.setItem('current_device_id', newDevice.id);
+    localStorage.setItem(`user_devices_${firebaseUser.uid}`, JSON.stringify(storedDevices));
+    sessionStorage.setItem(`current_device_id_${firebaseUser.uid}`, newDevice.id);
 
     return true;
   };
@@ -141,8 +142,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       updatedDevices.push(newDevice);
       
       // Save
-      localStorage.setItem('user_devices', JSON.stringify(updatedDevices));
-      sessionStorage.setItem('current_device_id', newDevice.id);
+      localStorage.setItem(`user_devices_${pendingFirebaseUser.uid}`, JSON.stringify(updatedDevices));
+      sessionStorage.setItem(`current_device_id_${pendingFirebaseUser.uid}`, newDevice.id);
       
       // Close modal and proceed
       setShowDeviceLimitModal(false);

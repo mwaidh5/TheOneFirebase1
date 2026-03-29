@@ -6,7 +6,7 @@ service firebase.storage {
     function isAdmin() {
       // Corrected to check 'role' field instead of 'isAdmin'
       return request.auth != null && 
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
     }
 
     // 2. Helper function to check if the file is an Image or Video
@@ -23,7 +23,7 @@ service firebase.storage {
       // RULES FOR UPLOADING / OVERWRITING
       // If they are an admin, let them upload anything.
       // Otherwise, they must be logged in AND the file must be an image/video.
-      allow create, update: if isAdmin() || (request.auth != null && isImageOrVideo());
+      allow create, update: if (request.auth != null && isImageOrVideo()) || isAdmin();
 
       // RULES FOR DELETING
       // For safety, let's only allow the admin to delete files. 

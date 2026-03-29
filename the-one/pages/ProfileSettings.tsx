@@ -6,10 +6,14 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User } from '../types';
 
-const ProfileSettings: React.FC = () => {
+interface ProfileSettingsProps {
+  currentUser: User;
+}
+
+const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialUser }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing'>('profile');
   const [isMfaSetupOpen, setIsMfaSetupOpen] = useState(false);
-  const [mfaEnabled, setMfaEnabled] = useState(() => localStorage.getItem('mfa_enabled_u1') === 'true');
+  const [mfaEnabled, setMfaEnabled] = useState(() => localStorage.getItem(`mfa_enabled_${initialUser.id}`) === 'true');
   const [otpValue, setOtpValue] = useState('');
   const navigate = useNavigate();
   
@@ -17,15 +21,17 @@ const ProfileSettings: React.FC = () => {
   const [devices, setDevices] = useState<any[]>([]);
 
   const auth = getAuth();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User>(initialUser);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
+    firstName: initialUser.firstName || '',
+    lastName: initialUser.lastName || '',
+    email: initialUser.email || '',
     weight: '',
     height: '',
     age: '',
-    fitnessLevel: ''
+    fitnessLevel: '',
+    bodyFat: '',
+    trainingGoal: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,7 +43,9 @@ const ProfileSettings: React.FC = () => {
     // Generate/Load active devices simulation
     // In a real app, this would come from a server tracking sessions.
     
-    let storedDevices = JSON.parse(localStorage.getItem('user_devices') || '[]');
+    // Use scoped key
+    const storageKey = `user_devices_${currentUser.id}`;
+    let storedDevices = JSON.parse(localStorage.getItem(storageKey) || '[]');
 
     // If we are impersonating, we don't want to show or register this session as a user device
     if (isImpersonating) {
@@ -62,11 +70,8 @@ const ProfileSettings: React.FC = () => {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const location = timeZone.replace('_', ' ');
 
-    // Try to get the current session ID set during login
-    const currentSessionId = sessionStorage.getItem('current_device_id');
+    const currentSessionId = sessionStorage.getItem(`current_device_id_${currentUser.id}`);
 
-    // If we somehow don't have a session ID and we aren't impersonating, we should probably be logged out,
-    // but for this demo, we'll try to recover gracefully if possible, or just create one.
     const activeSessionId = currentSessionId || `device_${Date.now()}`;
 
     const currentDevice = {
@@ -79,16 +84,13 @@ const ProfileSettings: React.FC = () => {
     };
     
     if (storedDevices.length === 0) {
-        // First time, just the current device
         storedDevices = [currentDevice];
     } else {
-        // Ensure current device is in the list and marked as current
         storedDevices = storedDevices.map((d: any) => ({...d, isCurrent: false}));
         const existingIdx = storedDevices.findIndex((d: any) => d.id === activeSessionId);
         if (existingIdx >= 0) {
             storedDevices[existingIdx] = currentDevice;
         } else {
-            // It should have been added during login, but if not (e.g. page refresh before setting), add it
             if (storedDevices.length < 2) {
                 storedDevices.push(currentDevice);
             }
@@ -96,43 +98,48 @@ const ProfileSettings: React.FC = () => {
     }
     
     setDevices(storedDevices);
-    localStorage.setItem('user_devices', JSON.stringify(storedDevices));
+    localStorage.setItem(storageKey, JSON.stringify(storedDevices));
 
-  }, [isImpersonating]);
+  }, [isImpersonating, currentUser.id]);
 
   useEffect(() => {
     const fetchUserData = async () => {
-        const user = auth.currentUser;
-        if (user) {
-            const userRef = doc(db, 'users', user.uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                const userData = userSnap.data() as User;
-                setCurrentUser(userData);
-                setFormData({
-                    firstName: userData.firstName || '',
-                    lastName: userData.lastName || '',
-                    email: userData.email || '',
-                    weight: (userData as any).weight || '',
-                    height: (userData as any).height || '',
-                    age: (userData as any).age || '',
-                    fitnessLevel: (userData as any).fitnessLevel || ''
-                });
+        try {
+            if (currentUser && currentUser.id) {
+                const userRef = doc(db, 'users', currentUser.id);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const userData = userSnap.data() as User;
+                    setCurrentUser({...currentUser, ...userData});
+                    setFormData({
+                        firstName: userData.firstName || initialUser.firstName || '',
+                        lastName: userData.lastName || initialUser.lastName || '',
+                        email: userData.email || initialUser.email || '',
+                        weight: (userData as any).weight || '',
+                        height: (userData as any).height || '',
+                        age: (userData as any).age || '',
+                        fitnessLevel: (userData as any).fitnessLevel || '',
+                        bodyFat: (userData as any).bodyFat || '',
+                        trainingGoal: (userData as any).trainingGoal || ''
+                    });
+                }
             }
+        } catch (error) {
+            console.error("Failed to fetch extended user data (this is expected if impersonating):", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
     fetchUserData();
-  }, [auth.currentUser]);
+  }, [currentUser.id, initialUser]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!currentUser.id) return;
 
     try {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'users', currentUser.id);
         
         // Update Firestore
         await updateDoc(userRef, {
@@ -142,15 +149,19 @@ const ProfileSettings: React.FC = () => {
             weight: formData.weight,
             height: formData.height,
             age: formData.age,
-            fitnessLevel: formData.fitnessLevel
+            fitnessLevel: formData.fitnessLevel,
+            bodyFat: formData.bodyFat,
+            trainingGoal: formData.trainingGoal
         });
 
         // Update Auth Profile (Display Name)
-        await updateProfile(user, {
-            displayName: `${formData.firstName} ${formData.lastName}`.trim()
-        });
+        if (auth.currentUser && !isImpersonating) {
+            await updateProfile(auth.currentUser, {
+                displayName: `${formData.firstName} ${formData.lastName}`.trim()
+            });
+        }
 
-        if (formData.email !== user.email) {
+        if (auth.currentUser && formData.email !== auth.currentUser.email && !isImpersonating) {
              alert("Email update requires re-authentication. Please sign out and sign in again to change email safely.");
         }
 
@@ -166,7 +177,7 @@ const ProfileSettings: React.FC = () => {
     e.preventDefault();
     if (otpValue === '123456') {
       setMfaEnabled(true);
-      localStorage.setItem('mfa_enabled_u1', 'true');
+      localStorage.setItem(`mfa_enabled_${currentUser.id}`, 'true');
       setIsMfaSetupOpen(false);
       alert("Logic Secured: Google Authenticator is now linked to your account.");
     } else {
@@ -178,11 +189,11 @@ const ProfileSettings: React.FC = () => {
     if (window.confirm("Revoke access for this device? It will be logged out immediately.")) {
         const updatedDevices = devices.filter(d => d.id !== deviceId);
         setDevices(updatedDevices);
-        localStorage.setItem('user_devices', JSON.stringify(updatedDevices));
+        localStorage.setItem(`user_devices_${currentUser.id}`, JSON.stringify(updatedDevices));
         alert("Device access revoked.");
         
         // If they revoked their current device (and aren't impersonating), log them out
-        if (deviceId === sessionStorage.getItem('current_device_id') && !isImpersonating) {
+        if (deviceId === sessionStorage.getItem(`current_device_id_${currentUser.id}`) && !isImpersonating) {
              auth.signOut().then(() => {
                  navigate('/login');
              });
@@ -215,7 +226,7 @@ const ProfileSettings: React.FC = () => {
       };
       const updated = [...devices, newDevice];
       setDevices(updated);
-      localStorage.setItem('user_devices', JSON.stringify(updated));
+      localStorage.setItem(`user_devices_${currentUser.id}`, JSON.stringify(updated));
   };
 
   if (loading) {
@@ -345,6 +356,31 @@ const ProfileSettings: React.FC = () => {
                                    <option value="Elite">Elite / Competitive</option>
                                </select>
                            </div>
+                           <div className="md:col-span-1 space-y-2">
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Body Fat %</label>
+                               <input 
+                                   type="number" 
+                                   value={formData.bodyFat}
+                                   onChange={(e) => setFormData({...formData, bodyFat: e.target.value})}
+                                   placeholder="e.g. 15"
+                                   className="w-full p-4 bg-neutral-50 rounded-2xl border border-neutral-100 outline-none focus:border-black font-bold" 
+                               />
+                           </div>
+                           <div className="md:col-span-2 space-y-2">
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Core Training Goal</label>
+                               <select 
+                                   value={formData.trainingGoal}
+                                   onChange={(e) => setFormData({...formData, trainingGoal: e.target.value})}
+                                   className="w-full p-4 bg-neutral-50 rounded-2xl border border-neutral-100 outline-none focus:border-black font-bold uppercase text-xs"
+                                >
+                                   <option value="">-- Select Goal --</option>
+                                   <option value="Hypertrophy">Hypertrophy (Muscle Gain)</option>
+                                   <option value="Strength">Raw Power & Strength</option>
+                                   <option value="Endurance">Cardiovascular Endurance</option>
+                                   <option value="Weight Loss">Weight Loss & Toning</option>
+                                   <option value="Athletic Performance">Athletic Performance / Agility</option>
+                               </select>
+                           </div>
                        </div>
                    </div>
 
@@ -390,7 +426,7 @@ const ProfileSettings: React.FC = () => {
                         </button>
                      ) : (
                         <button 
-                          onClick={() => { if(!isImpersonating && window.confirm("Disable MFA protection?")) { setMfaEnabled(false); localStorage.removeItem('mfa_enabled_u1'); } }}
+                          onClick={() => { if(!isImpersonating && window.confirm("Disable MFA protection?")) { setMfaEnabled(false); localStorage.removeItem(`mfa_enabled_${currentUser.id}`); } }}
                           disabled={isImpersonating}
                           className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all disabled:opacity-50"
                         >

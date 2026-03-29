@@ -60,6 +60,9 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
       
       setAthletes(fetchedAthletes);
       setIsLoading(false);
+    }, (error) => {
+      console.error("Failed to fetch athletes (likely permission denied due to impersonation rules):", error);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();

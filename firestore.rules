@@ -16,12 +16,12 @@ service cloud.firestore {
 
     // Check if the user is an Admin
     function isAdmin() {
-      return hasRole('Admin');
+      return hasRole('ADMIN');
     }
     
     // Check if the user is a Coach
     function isCoach() {
-      return hasRole('Coach');
+      return hasRole('COACH');
     }
 
     // Check if the user is accessing their own document
@@ -83,8 +83,8 @@ service cloud.firestore {
     match /conversations/{conversationId} {
       allow read: if isAuthenticated() && (
         request.auth.uid in resource.data.participants || 
-        hasRole('Admin') || 
-        hasRole('Support')
+        hasRole('ADMIN') || 
+        hasRole('SUPPORT')
       );
       
       allow create: if isAuthenticated() && (
@@ -93,21 +93,21 @@ service cloud.firestore {
       
       allow update: if isAuthenticated() && (
         request.auth.uid in resource.data.participants || 
-        hasRole('Admin') || 
-        hasRole('Support')
+        hasRole('ADMIN') || 
+        hasRole('SUPPORT')
       );
 
       match /messages/{messageId} {
         allow read, list: if isAuthenticated() && (
           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants || 
-          hasRole('Admin') || 
-          hasRole('Support')
+          hasRole('ADMIN') || 
+          hasRole('SUPPORT')
         );
         
         allow create: if isAuthenticated() && (
           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants || 
-          hasRole('Admin') || 
-          hasRole('Support')
+          hasRole('ADMIN') || 
+          hasRole('SUPPORT')
         );
       }
     }

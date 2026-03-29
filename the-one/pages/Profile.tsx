@@ -1,19 +1,40 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MOCK_USER, COURSES, COACHES } from '../constants';
+import { COURSES, COACHES } from '../constants';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts';
+import { User } from '../types';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db, storage } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const Profile: React.FC = () => {
+interface ProfileProps {
+  currentUser: User;
+}
+
+const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
+  const [userData, setUserData] = useState<any>(currentUser);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  useEffect(() => {
+     if (currentUser?.id) {
+         const unsub = onSnapshot(doc(db, 'users', currentUser.id), (doc) => {
+             if (doc.exists()) {
+                 setUserData({ ...currentUser, ...doc.data() });
+             }
+         });
+         return () => unsub();
+     }
+  }, [currentUser]);
   const navigate = useNavigate();
-  const data = [
-    { name: 'M', val: 40 },
-    { name: 'T', val: 65 },
-    { name: 'W', val: 30 },
-    { name: 'T', val: 85 },
-    { name: 'F', val: 50 },
-    { name: 'S', val: 90 },
-    { name: 'S', val: 20 },
+  const data = userData?.activityChart || [
+    { name: 'M', val: 0 },
+    { name: 'T', val: 0 },
+    { name: 'W', val: 0 },
+    { name: 'T', val: 0 },
+    { name: 'F', val: 0 },
+    { name: 'S', val: 0 },
+    { name: 'S', val: 0 },
   ];
 
   const handleMessageCoach = (instructorName: string) => {
@@ -21,6 +42,28 @@ const Profile: React.FC = () => {
     if (coach) {
       navigate(`/profile/messages?coachId=${coach.id}`);
     }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !currentUser?.id) return;
+      
+      setIsUploading(true);
+      try {
+          // Use cache-busting timestamp for uniqueness
+          const fileRef = ref(storage, `avatars/${currentUser.id}_${Date.now()}`);
+          await uploadBytes(fileRef, file, { contentType: file.type || 'image/jpeg' });
+          const url = await getDownloadURL(fileRef);
+          
+          await setDoc(doc(db, 'users', currentUser.id), {
+              avatar: url
+          }, { merge: true });
+      } catch (error: any) {
+          console.error("Error uploading avatar", error);
+          alert("Firebase rejected the upload: " + error.code + " - " + error.message);
+      } finally {
+          setIsUploading(false);
+      }
   };
 
   return (
@@ -41,17 +84,26 @@ const Profile: React.FC = () => {
         <div className="lg:col-span-4 space-y-10">
           <div className="bg-white rounded-[3rem] p-10 border border-neutral-100 shadow-sm flex flex-col items-center text-center">
             <div className="relative mb-8">
-              <div className="w-40 h-40 rounded-[2.5rem] overflow-hidden border-8 border-neutral-50 shadow-2xl">
-                <img src={MOCK_USER.avatar} alt="Profile" className="w-full h-full object-cover" />
+              <div className="w-40 h-40 rounded-[2.5rem] overflow-hidden border-8 border-neutral-50 shadow-2xl relative bg-neutral-100 flex items-center justify-center">
+                {userData.avatar ? (
+                    <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                    <span className="material-symbols-outlined text-[64px] text-neutral-300">person</span>
+                )}
               </div>
-              <button className="absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-2xl shadow-xl hover:bg-accent transition-all">
-                <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-              </button>
+              <label className={`absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-2xl shadow-xl hover:bg-accent transition-all cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
+                {isUploading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                    <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+                )}
+              </label>
             </div>
-            <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">{MOCK_USER.firstName} {MOCK_USER.lastName}</h2>
-            <p className="text-sm font-bold text-neutral-400 mt-1 uppercase tracking-widest">{MOCK_USER.email}</p>
+            <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">{userData.firstName} {userData.lastName}</h2>
+            <p className="text-sm font-bold text-neutral-400 mt-1 uppercase tracking-widest">{userData.email}</p>
             <div className="mt-8 flex gap-3">
-              <span className="bg-neutral-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">RX Level</span>
+              <span className="bg-neutral-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">{userData.fitnessLevel || 'Athlete'} Level</span>
               <span className="bg-accent text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Active Member</span>
             </div>
           </div>
@@ -63,9 +115,9 @@ const Profile: React.FC = () => {
             </h3>
             <div className="space-y-6">
               {[
-                { label: 'Body Weight', val: '185 lbs', trend: '-2%', up: false },
-                { label: 'Body Fat %', val: '14.5%', trend: 'Good', up: true },
-                { label: 'Training Goal', val: 'Hypertrophy', trend: null }
+                { label: 'Body Weight', val: userData.weight ? `${userData.weight} lbs` : '—', trend: null },
+                { label: 'Body Fat %', val: userData.bodyFat ? `${userData.bodyFat}%` : '—', trend: null },
+                { label: 'Training Goal', val: userData.trainingGoal || 'General', trend: null }
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between pb-6 border-b border-neutral-50 last:border-0 last:pb-0">
                   <div>
@@ -73,7 +125,7 @@ const Profile: React.FC = () => {
                     <p className="text-xl font-black text-black uppercase">{stat.val}</p>
                   </div>
                   {stat.trend && (
-                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${stat.up ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-neutral-50 text-neutral-600`}>
                       {stat.trend}
                     </span>
                   )}
@@ -97,9 +149,9 @@ const Profile: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-12">
                 {[
-                  { l: 'Workouts', v: '42', t: '+5%' },
-                  { l: 'Min Logged', v: '1,240', t: 'Elite' },
-                  { l: 'Calories', v: '14.5k', t: 'Optimal' }
+                  { l: 'Workouts', v: userData?.workoutsCompleted || '0', t: userData?.workoutsCompleted ? '+Active' : 'Baseline' },
+                  { l: 'Min Logged', v: userData?.minutesLogged || '0', t: userData?.minutesLogged ? 'On Track' : 'Baseline' },
+                  { l: 'Calories', v: userData?.caloriesBurned || '0', t: userData?.caloriesBurned ? 'Optimal' : 'Baseline' }
                 ].map(s => (
                   <div key={s.l} className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-2">
                     <p className="text-[10px] text-neutral-500 font-black uppercase tracking-[0.2em]">{s.l}</p>

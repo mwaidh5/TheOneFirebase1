@@ -2,14 +2,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Message {
   id: string;
   senderId: string;
   text: string;
   timestamp: any;
+  imageUrl?: string;
+  videoUrl?: string;
 }
 
 interface Conversation {
@@ -20,7 +23,7 @@ interface Conversation {
   unreadCount: number; // Legacy/Global
   unreadCounts?: { [userId: string]: number }; // Per-user unread counts
   type?: 'support' | 'coach_client' | 'general';
-  participantDetails?: { [userId: string]: User }; // Local cache of user details
+  participantDetails?: { [userId: string]: Partial<User> }; // Cached user details
 }
 
 interface ChatProps {
@@ -35,6 +38,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [usersCache, setUsersCache] = useState<{ [userId: string]: User }>({});
 
@@ -93,6 +97,8 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                 const userSnap = await getDoc(doc(db, 'users', uid));
                 if (userSnap.exists()) {
                     newUsersCache[uid] = userSnap.data() as User;
+                } else {
+                    newUsersCache[uid] = { id: uid, firstName: 'Deleted', lastName: 'User' } as any;
                 }
               } catch (e) { console.error(e); }
           }
@@ -100,8 +106,10 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
       }
 
       setConversations(visibleConvos);
+      setConversationsLoaded(true);
     }, (error) => {
         console.error("Error fetching conversations:", error);
+        setConversationsLoaded(true);
     });
 
     return () => unsubscribe();
@@ -158,12 +166,12 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
             setActiveThreadId(existingConv.id);
             setShowThreadList(false);
         } else {
-            if (conversations.length > 0) {
+            if (conversationsLoaded) {
                  createConversation(targetCoachId);
             }
         }
     }
-  }, [location.search, conversations]);
+  }, [location.search, conversations, conversationsLoaded]);
 
   const createConversation = async (targetId: string) => {
       const isSupportChat = targetId === 'support' || targetId === 'support-team';
@@ -181,13 +189,20 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
       if (!isSupportChat) participants.push(targetId);
       if (isSupportChat) participants.push('support-team');
 
+      const participantDetails: any = {};
+      participantDetails[currentUser.id] = { firstName: currentUser.firstName, lastName: currentUser.lastName, avatar: currentUser.avatar };
+      if (usersCache[targetId]) {
+          participantDetails[targetId] = { firstName: usersCache[targetId].firstName, lastName: usersCache[targetId].lastName, avatar: usersCache[targetId].avatar };
+      }
+
       const newConvData = {
           participants,
           lastMessage: '',
           lastMessageTimestamp: serverTimestamp(),
           unreadCount: 0,
           unreadCounts: {}, // Initialize empty
-          type: (isSupportChat ? 'support' : 'general') as 'support' | 'general'
+          type: (isSupportChat ? 'support' : 'general') as 'support' | 'general',
+          participantDetails
       };
 
       try {
@@ -202,8 +217,9 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
           setConversations(prev => [newConv, ...prev]);
           setActiveThreadId(docRef.id);
           setShowThreadList(false);
-      } catch (error) {
+      } catch (error: any) {
           console.error("Error creating conversation", error);
+          alert("Failed to start chat. " + (error.message.includes('permission') ? 'This action is disabled while Impersonating another user.' : error.message));
       }
   };
 
@@ -302,9 +318,17 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   };
 
   const getRecipientDetails = (conv: Conversation) => {
-      const recipientId = getRecipientId(conv);
+      const recipientId = getRecipientId(conv) || '';
       if (recipientId === 'support-team') return { firstName: 'Platform', lastName: 'Support', avatar: 'https://via.placeholder.com/150?text=Support' };
-      return usersCache[recipientId || ''] || { firstName: 'Unknown', lastName: '', avatar: '' };
+      
+      const cachedDetail = conv.participantDetails?.[recipientId];
+      const liveDetail = usersCache[recipientId];
+      
+      if (liveDetail && liveDetail.firstName !== 'Deleted') return liveDetail;
+      if (cachedDetail) return cachedDetail;
+      if (liveDetail && liveDetail.firstName === 'Deleted') return { ...liveDetail, isDeleted: true } as any;
+      
+      return { firstName: 'Unknown', lastName: '', avatar: '' };
   };
 
   const startSupportChat = async () => {
@@ -317,8 +341,43 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
       }
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !activeThreadId) return;
+      
+      setIsUploading(true);
+      try {
+          const fileRef = ref(storage, `chat/${activeThreadId}/${Date.now()}_${file.name}`);
+          await uploadBytes(fileRef, file);
+          const url = await getDownloadURL(fileRef);
+          
+          const isVideo = file.type.startsWith('video/');
+          const msgData: any = {
+              senderId: currentUser.id,
+              text: isVideo ? 'Sent a video' : 'Sent an image',
+              timestamp: serverTimestamp()
+          };
+          if (isVideo) msgData.videoUrl = url;
+          else msgData.imageUrl = url;
+
+          await addDoc(collection(db, `conversations/${activeThreadId}/messages`), msgData);
+          
+          const updates: any = { lastMessage: msgData.text, lastMessageTimestamp: serverTimestamp() };
+          await setDoc(doc(db, 'conversations', activeThreadId), updates, { merge: true });
+          
+      } catch (err) {
+          console.error("Upload failed", err);
+      }
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
-    <div className="flex-grow flex bg-white min-h-[calc(100vh-80px)] overflow-hidden relative">
+    <div className="flex-grow flex bg-white h-[calc(100vh-80px)] overflow-hidden relative">
+      <input type="file" className="hidden" ref={fileInputRef} accept="image/*,video/*" onChange={handleFileUpload} />
       {/* Sidebar */}
       <div className={`${showThreadList ? 'flex' : 'hidden md:flex'} w-full md:w-80 lg:w-96 border-r border-neutral-100 flex-col shrink-0 bg-neutral-50/30 absolute inset-0 z-20 md:relative`}>
         <div className="p-6 md:p-8 border-b border-neutral-100 bg-white flex justify-between items-center">
@@ -336,6 +395,8 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
           {conversations.map(conv => {
             const isActive = activeThreadId === conv.id;
             const recipient = getRecipientDetails(conv);
+            
+            if (recipient.firstName === 'Unknown' || recipient.isDeleted) return null;
             
             // Calculate unread for display
             let unread = 0;
@@ -393,7 +454,10 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                 return (
                   <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-[85%]`}>
                     <div className={`p-3 md:p-4 rounded-2xl text-sm font-medium ${isMine ? 'bg-black text-white rounded-tr-none ml-auto' : 'bg-white text-black border border-neutral-100 rounded-tl-none mr-auto'}`}>
-                      {msg.text}
+                      {msg.imageUrl && <img src={msg.imageUrl} className="max-w-[200px] md:max-w-xs rounded-xl mb-2 object-cover" alt="attachment" />}
+                      {msg.videoUrl && <video src={msg.videoUrl} controls className="max-w-[200px] md:max-w-xs rounded-xl mb-2" />}
+                      {msg.text && msg.text !== 'Sent an image' && msg.text !== 'Sent a video' && <span>{msg.text}</span>}
+                      {msg.text && (msg.text === 'Sent an image' || msg.text === 'Sent a video') && !(msg.imageUrl || msg.videoUrl) && <span>{msg.text}</span>}
                     </div>
                     <span className="text-[9px] font-bold text-neutral-300 mt-1 uppercase">
                         {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...'}
@@ -403,10 +467,13 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
               })}
             </div>
 
-            <form onSubmit={handleSendMessage} className="p-4 md:p-8 border-t border-neutral-100 bg-white">
-              <div className="flex items-center gap-2 md:gap-4 bg-neutral-50 p-1 md:p-2 rounded-2xl border border-neutral-100">
-                <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Message..." className="flex-1 bg-transparent border-none outline-none p-3 md:p-4 text-sm font-medium" />
-                <button type="submit" disabled={!inputText.trim()} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20"><span className="material-symbols-outlined">send</span></button>
+            <form onSubmit={handleSendMessage} className="p-4 md:p-8 border-t border-neutral-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.05)] relative z-10">
+              <div className="flex items-center gap-2 md:gap-4 bg-neutral-50 p-1 md:p-2 rounded-2xl border border-neutral-200 focus-within:border-black transition-all">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-black">
+                  {isUploading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">attach_file</span>}
+                </button>
+                <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Message..." className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-medium" />
+                <button type="submit" disabled={!inputText.trim()} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-sm md:text-base">send</span></button>
               </div>
             </form>
           </>
