@@ -103,7 +103,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   }
 
   const toggleExercise = (exId: string) => {
-    const next = new Set(completedExercises);
+    const next = new Set<string>(completedExercises);
     if (next.has(exId)) next.delete(exId);
     else next.add(exId);
     setCompletedExercises(next);
@@ -111,7 +111,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   };
 
   const toggleDayFinished = (dayId: string) => {
-    const next = new Set(completedDays);
+    const next = new Set<string>(completedDays);
     if (next.has(dayId)) next.delete(dayId);
     else next.add(dayId);
     setCompletedDays(next);
@@ -119,7 +119,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   };
 
   const toggleWeekFinished = (weekId: string) => {
-    const next = new Set(completedWeeks);
+    const next = new Set<string>(completedWeeks);
     if (next.has(weekId)) next.delete(weekId);
     else next.add(weekId);
     setCompletedWeeks(next);
@@ -137,12 +137,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     // Save log logic (could be another collection 'workout_logs')
     // For now, just mark day as complete
     if (selectedDay) {
-        const nextEx = new Set(completedExercises);
+        const nextEx = new Set<string>(completedExercises);
         selectedDay.exercises.forEach(ex => nextEx.add(ex.id));
         setCompletedExercises(nextEx);
         saveProgress('exercises', nextEx);
         
-        const nextDay = new Set(completedDays);
+        const nextDay = new Set<string>(completedDays);
         nextDay.add(selectedDay.id);
         setCompletedDays(nextDay);
         saveProgress('days', nextDay);
@@ -361,37 +361,61 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   </button>
                </div>
 
-               {selectedDay.exercises.map((item) => {
+               {selectedDay.exercises.map((item, index) => {
                  const isDone = completedExercises.has(item.id);
                  const isExpanded = expandedMediaId === item.id;
                  const isSuperSet = item.format === 'SUPER_SET';
-                 const isEmom = item.format === 'EMOM';
+                 const isEmom = item.format === 'EMOM' || item.format === 'AMRAP' || item.format === 'HIIT';
+                 const isCardio = item.format === 'CARDIO' || item.format === 'FOR_TIME';
+                 
+                 const previousEx = index > 0 ? selectedDay.exercises[index - 1] : null;
+                 const nextEx = index < selectedDay.exercises.length - 1 ? selectedDay.exercises[index + 1] : null;
+                 
+                 const isMiddleOrStartOfSuperset = isSuperSet && nextEx?.format === 'SUPER_SET' && (item.supersetId === nextEx.supersetId || (!item.supersetId && !nextEx.supersetId));
+                 
+                 let statsToRender = [
+                    {label: 'SETS', val: item.sets || '1'}, 
+                    {label: 'REPS', val: item.reps || '-'}, 
+                    {label: 'REST', val: item.rest || 'N/A'}
+                 ];
+
+                 if (isCardio) {
+                    statsToRender = [
+                        {label: 'DISTANCE', val: item.distance || '-'}, 
+                        {label: 'TIME CAP', val: item.time || '-'}, 
+                        {label: 'PACE/CALS', val: item.speed || item.calories || '-'}
+                    ];
+                 } else if (isEmom) {
+                    statsToRender = [
+                        {label: 'ROUNDS', val: item.rounds || '-'}, 
+                        {label: 'TOTAL TIME', val: item.durationMinutes ? `${item.durationMinutes}m` : '-'},
+                        {label: 'WORK/REST', val: item.workInterval ? `${item.workInterval}/${item.restInterval}` : '-'}
+                    ];
+                 }
                  
                  return (
-                   <div key={item.id} className={`bg-white rounded-3xl border transition-all overflow-hidden ${isDone ? 'border-green-300 bg-green-50/10' : isSuperSet ? 'border-purple-200 bg-purple-50/10' : isEmom ? 'border-orange-200 bg-orange-50/10' : 'border-neutral-100 shadow-sm'}`}>
+                   <React.Fragment key={item.id}>
+                   <div className={`bg-white rounded-3xl border transition-all overflow-hidden ${isDone ? 'border-green-300 bg-green-50/10' : isSuperSet ? 'border-purple-200 bg-purple-50/20 shadow-[0_0_20px_rgba(168,85,247,0.05)] relative' : isEmom ? 'border-orange-200 bg-orange-50/10' : isCardio ? 'border-blue-200 bg-blue-50/20 border-l-8 border-l-blue-400' : 'border-neutral-100 shadow-sm'}`}>
+                      {isSuperSet && <div className="absolute top-0 left-0 w-2 h-full bg-purple-400"></div>}
                      <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                        <div className="flex items-center gap-6 flex-1">
                           <button 
                             onClick={() => toggleExercise(item.id)}
-                            className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all shadow-lg shrink-0 border ${isDone ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-neutral-100 text-neutral-200 hover:border-black'}`}
+                            className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all shadow-lg shrink-0 border z-10 ${isDone ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-neutral-100 text-neutral-200 hover:border-black'}`}
                           >
                              <div className={`w-7 h-7 rounded-full border-4 ${isDone ? 'bg-white border-white' : 'border-neutral-100'}`}></div>
                           </button>
 
-                          <div className="space-y-3">
+                          <div className="space-y-3 z-10">
                             <div className="space-y-1 text-left">
-                              <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isSuperSet ? 'text-purple-500' : isEmom ? 'text-orange-500' : 'text-neutral-300'}`}>{item.format.replace('_', ' ')} SESSION</p>
+                              <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isSuperSet ? 'text-purple-500' : isEmom ? 'text-orange-500' : isCardio ? 'text-blue-500' : 'text-neutral-300'}`}>{item.format.replace('_', ' ')} {isSuperSet && item.supersetId ? `(${item.supersetId})` : 'SESSION'}</p>
                               <h3 className={`text-2xl md:text-3xl font-black uppercase leading-none font-display ${isDone ? 'text-green-800' : 'text-black'}`}>{item.name}</h3>
                             </div>
                             
                             <div className="flex flex-wrap gap-2">
-                              {[
-                                {label: 'SETS', val: item.sets || '1'}, 
-                                {label: 'REPS', val: item.reps || '-'}, 
-                                {label: 'REST', val: item.rest || 'N/A'}
-                              ].map(stat => (
-                                <div key={stat.label} className="bg-neutral-50/50 rounded-lg py-2 px-4 text-center border border-neutral-50">
-                                  <p className="text-[7px] uppercase font-black text-neutral-300 tracking-[0.2em] mb-0.5">{stat.label}</p>
+                              {statsToRender.map(stat => (
+                                <div key={stat.label} className={`bg-neutral-50/50 rounded-lg py-2 px-4 text-center border ${isSuperSet ? 'border-purple-100' : isCardio ? 'border-blue-100' : 'border-neutral-50'}`}>
+                                  <p className="text-[7px] uppercase font-black text-neutral-400 tracking-[0.2em] mb-0.5">{stat.label}</p>
                                   <p className="text-base font-black text-black leading-none">{stat.val}</p>
                                 </div>
                               ))}
@@ -399,7 +423,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                           </div>
                        </div>
 
-                       <div className="flex flex-col justify-center self-end sm:self-center">
+                       <div className="flex flex-col justify-center self-end sm:self-center z-10">
                           <button 
                             onClick={() => toggleMedia(item.id)}
                             className={`w-14 h-14 rounded-xl transition-all shadow-xl flex items-center justify-center ${isExpanded ? 'bg-accent text-white' : 'bg-neutral-900 text-white hover:bg-black'}`}
@@ -410,7 +434,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                      </div>
 
                      {isExpanded && (
-                        <div className="border-t border-neutral-100 bg-neutral-50/50 p-6 animate-in slide-in-from-top-4 duration-500">
+                        <div className="border-t border-neutral-100 bg-neutral-50/50 p-6 animate-in slide-in-from-top-4 duration-500 z-10 relative">
                           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                              <div className="lg:col-span-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -446,6 +470,15 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                         </div>
                      )}
                    </div>
+                   {isMiddleOrStartOfSuperset && (
+                       <div className="flex justify-center -my-2 relative z-10">
+                           <div className="bg-purple-100 text-purple-700 border-2 border-white rounded-full px-4 py-1.5 text-[8px] font-black tracking-[0.2em] uppercase flex items-center gap-1.5 shadow-md">
+                               <span className="material-symbols-outlined text-xs">link</span>
+                               Grouped Superset
+                           </div>
+                       </div>
+                   )}
+                   </React.Fragment>
                  );
                })}
             </div>

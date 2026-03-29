@@ -96,7 +96,6 @@ const SortableExercise = ({ ex, exIdx, updateExercise, setIsPickerOpen, weeks, a
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { setDoc, doc, getDoc, collection, getDocs, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, UserRole, User } from '../../types';
 
 interface AddCourseProps {
@@ -536,88 +535,25 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                     </div>
                  </div>
                  
-                 <div className="space-y-6">
-                    {activeDay?.exercises.map((ex, exIdx) => (
-                       <div key={ex.id} className="p-5 md:p-8 bg-neutral-50 rounded-2xl md:rounded-[2.5rem] border border-neutral-100 relative group space-y-6">
-                          <div className="absolute top-4 md:top-6 right-4 md:right-6 flex gap-3">
-                             <button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> Exercises Library</button>
-                             <button onClick={() => { const n = [...weeks]; n[activeWeekIdx].days[activeDayIdx].exercises.splice(exIdx, 1); setWeeks(n); }} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-lg">delete</span></button>
-                          </div>
-                          
-                          <div className="space-y-6">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                   <label className="text-[8px] font-black text-neutral-300 ml-1">Name</label>
-                                   <input type="text" value={ex.name} onChange={e => updateExercise(exIdx, 'name', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 font-bold text-xs" />
-                                </div>
-                                <div className="space-y-1">
-                                   <label className="text-[8px] font-black text-neutral-300 ml-1">Type</label>
-                                   <select value={ex.format} onChange={e => updateExercise(exIdx, 'format', e.target.value as any)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[9px] font-black uppercase outline-none">
-                                      <option value="REGULAR">Standard (Straight Sets)</option>
-                                      <option value="SUPER_SET">Superset / Circuit</option>
-                                      <option value="EMOM">EMOM</option>
-                                      <option value="AMRAP">AMRAP</option>
-                                      <option value="HIIT">HIIT (Intervals)</option>
-                                      <option value="CARDIO">Cardio (Monostructural)</option>
-                                      <option value="MAX_EFFORT">Max Effort (1RM/3RM)</option>
-                                      <option value="FOR_TIME">For Time</option>
-                                   </select>
-                                </div>
-                             </div>
-
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                   {(ex.format === 'REGULAR' || ex.format === 'MAX_EFFORT' || ex.format === 'DROP_SET' || ex.format === 'SUPER_SET') && (
-                                      <div className="grid grid-cols-3 gap-2">
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets} onChange={e => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Reps</label><input type="text" value={ex.reps} onChange={e => updateExercise(exIdx, 'reps', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.rest} onChange={e => updateExercise(exIdx, 'rest', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                      </div>
-                                   )}
-
-                                   {(ex.format === 'CARDIO' || ex.format === 'FOR_TIME') && (
-                                      <div className="grid grid-cols-3 gap-2">
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Distance</label><input type="text" value={ex.distance || ''} onChange={e => updateExercise(exIdx, 'distance', e.target.value)} placeholder="5km" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Time Cap</label><input type="text" value={ex.time || ''} onChange={e => updateExercise(exIdx, 'time', e.target.value)} placeholder="20:00" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Pace/Cals</label><input type="text" value={ex.speed || ex.calories || ''} onChange={e => updateExercise(exIdx, 'speed', e.target.value)} placeholder="Zone 2" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                      </div>
-                                   )}
-
-                                   {(ex.format === 'EMOM' || ex.format === 'AMRAP' || ex.format === 'HIIT') && (
-                                      <div className="space-y-2">
-                                         <div className="grid grid-cols-2 gap-2">
-                                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Total Time (Min)</label><input type="number" value={ex.durationMinutes || ''} onChange={e => updateExercise(exIdx, 'durationMinutes', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rounds</label><input type="number" value={ex.rounds || ''} onChange={e => updateExercise(exIdx, 'rounds', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         </div>
-                                         {ex.format === 'HIIT' && (
-                                            <div className="grid grid-cols-2 gap-2">
-                                               <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Work</label><input type="text" value={ex.workInterval || ''} onChange={e => updateExercise(exIdx, 'workInterval', e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                               <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.restInterval || ''} onChange={e => updateExercise(exIdx, 'restInterval', e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                            </div>
-                                         )}
-                                      </div>
-                                   )}
-
-                                   {ex.format === 'SUPER_SET' && (
-                                       <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 mt-2">
-                                           <p className="text-[8px] font-black uppercase text-blue-400 mb-2">Circuit Grouping</p>
-                                           <input type="text" value={ex.supersetId || ''} onChange={e => updateExercise(exIdx, 'supersetId', e.target.value)} placeholder="Group A" className="w-full bg-white border border-blue-100 rounded-lg p-2 text-[10px] font-bold" />
-                                       </div>
-                                   )}
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: exIdx, activeField: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${ex.imageUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">Photo</span></button>
-                                        <button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: exIdx, activeField: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${ex.videoUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">Video</span></button>
-                                    </div>
-                                    <textarea rows={2} value={ex.description} onChange={e => updateExercise(exIdx, 'description', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[10px] font-medium resize-none" placeholder="Coaching Notes..." />
-                                </div>
-                             </div>
-                          </div>
+                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={activeDay?.exercises.map((e: any) => e.id) || []} strategy={verticalListSortingStrategy}>
+                       <div className="space-y-6">
+                          {activeDay?.exercises.map((ex, exIdx) => (
+                             <SortableExercise 
+                                key={ex.id}
+                                ex={ex}
+                                exIdx={exIdx}
+                                updateExercise={updateExercise}
+                                setIsPickerOpen={setIsPickerOpen}
+                                weeks={weeks}
+                                activeWeekIdx={activeWeekIdx}
+                                activeDayIdx={activeDayIdx}
+                                setWeeks={setWeeks}
+                             />
+                          ))}
                        </div>
-                    ))}
-                 </div>
+                    </SortableContext>
+                 </DndContext>
               </div>
            )}
 
