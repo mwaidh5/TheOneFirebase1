@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { COURSES, COACHES } from '../constants';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts';
 import { User } from '../types';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db, storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -15,7 +15,8 @@ interface ProfileProps {
 const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
   const [userData, setUserData] = useState<any>(currentUser);
   const [isUploading, setIsUploading] = useState(false);
-  
+  const [workoutLogs, setWorkoutLogs] = useState<any[]>([]);
+
   useEffect(() => {
      if (currentUser?.id) {
          const unsub = onSnapshot(doc(db, 'users', currentUser.id), (doc) => {
@@ -25,6 +26,17 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
          });
          return () => unsub();
      }
+  }, [currentUser]);
+
+  // Load workout logs
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const logsRef = collection(db, 'users', currentUser.id, 'workout_logs');
+    getDocs(query(logsRef, orderBy('loggedAt', 'desc'), limit(10)))
+      .then(snap => {
+        setWorkoutLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      })
+      .catch(() => setWorkoutLogs([]));
   }, [currentUser]);
   const navigate = useNavigate();
   const data = userData?.activityChart || [
@@ -179,9 +191,59 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
             <span className="material-symbols-outlined text-[200px] absolute -bottom-20 -right-20 text-white/5 rotate-12">analytics</span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">Active Programs</h2>
-            <Link to="/courses" className="text-[10px] font-black text-accent uppercase tracking-[0.3em] hover:underline">Browse All</Link>
+          {/* ── Recent Workout Activity ── */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">Recent Activity</h2>
+            </div>
+            {workoutLogs.length === 0 ? (
+              <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
+                <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">fitness_center</span>
+                <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">No sessions logged yet.<br/>Complete a workout to see your history here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {workoutLogs.map((log) => {
+                  const mins = Math.round((log.durationSeconds || 0) / 60);
+                  const secs = (log.durationSeconds || 0) % 60;
+                  const durationStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                  const dateStr = log.loggedDate
+                    ? new Date(log.loggedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : '—';
+                  return (
+                    <div key={log.id} className="bg-white rounded-2xl border border-neutral-100 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="w-12 h-12 bg-black text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-white/50 leading-none">{log.loggedDayName?.slice(0,3) ?? '—'}</span>
+                        <span className="text-lg font-black leading-tight">{log.loggedDate ? new Date(log.loggedDate + 'T12:00:00').getDate() : '—'}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mb-0.5">{log.courseTitle || 'Session'} · Wk {log.weekNum} · Day {log.dayNumber}</p>
+                        <p className="text-base font-black uppercase text-black leading-tight truncate">{log.dayTitle || 'Training Session'}</p>
+                        <p className="text-[9px] font-bold text-neutral-400 mt-0.5">{dateStr}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="material-symbols-outlined text-xs text-accent">timer</span>
+                          <span className="text-sm font-black text-black tabular-nums">{durationStr}</span>
+                        </div>
+                        <p className="text-[8px] font-black uppercase tracking-widest text-neutral-300">Duration</p>
+                        {log.rpe && (
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest text-neutral-500">RPE {log.rpe}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Active Programs ── */}
+          <div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">Active Programs</h2>
+              <Link to="/courses" className="text-[10px] font-black text-accent uppercase tracking-[0.3em] hover:underline">Browse All</Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
