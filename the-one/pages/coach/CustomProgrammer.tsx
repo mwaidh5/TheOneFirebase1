@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Exercise, ExerciseFormat, MediaAsset, WeekProgram, Course, CustomCourseRequest, DiagnosticTest, ExerciseTemplate, WorkoutTemplate, MealPlan, CourseLevel } from '../../types';
+import AICourseGenerator from '../../components/AICourseGenerator';
 
 const PremiumSelect: React.FC<{
   value: string;
@@ -96,6 +97,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [isPickerOpen, setIsPickerOpen] = useState<{ type: 'exercise' | 'workout' | 'meal' | 'media', activeIndex: number | null }>({ type: 'exercise', activeIndex: null });
   const [selectedMealPlan, setSelectedMealPlan] = useState<MealPlan | null>(null);
+  const [isAIOpen, setIsAIOpen] = useState(false);
 
   useEffect(() => {
       // Fetch Request
@@ -442,7 +444,14 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                         placeholder="Day Name..."
                       />
                    </div>
-                   <div className="flex gap-4">
+                   <div className="flex gap-4 flex-wrap">
+                      <button
+                        onClick={() => setIsAIOpen(true)}
+                        className="px-6 py-4 bg-gradient-to-r from-violet-600 to-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-accent/30 hover:shadow-lg transition-all flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                        AI Generate
+                      </button>
                       <button 
                          onClick={() => setIsPickerOpen({ type: 'workout', activeIndex: 0 })}
                          className="px-6 py-4 bg-neutral-50 text-neutral-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm flex items-center gap-2"
@@ -707,6 +716,13 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
               </div>
            </div>
         </div>
+      )}
+      {isAIOpen && (
+        <AICourseGenerator
+          context="custom"
+          onGenerated={(generatedWeeks) => setWeeks(generatedWeeks)}
+          onClose={() => setIsAIOpen(false)}
+        />
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc, query } from 'firebase/firestore';
 import { db } from './firebase';
+import { useNotifications } from './hooks/useNotifications';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -169,6 +170,9 @@ const App: React.FC = () => {
   };
 
   const isLoggedIn = !!currentUser;
+
+  // FCM Push Notifications — requests permission and saves token on login
+  useNotifications(currentUser);
 
   return (
     <Router>

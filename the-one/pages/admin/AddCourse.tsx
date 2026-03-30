@@ -97,6 +97,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { setDoc, doc, getDoc, collection, getDocs, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Course, Exercise, WeekProgram, DayProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, UserRole, User } from '../../types';
+import AICourseGenerator from '../../components/AICourseGenerator';
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -138,6 +139,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'settings' | 'workouts' | 'nutrition'>('settings');
   const [isPickerOpen, setIsPickerOpen] = useState<{ type: 'exercise' | 'workout' | 'meal' | 'media', activeExIdx: number | null, activeField?: 'imageUrl' | 'videoUrl' | 'courseImage' | 'courseVideo' }>({ type: 'exercise', activeExIdx: null });
+  const [isAIOpen, setIsAIOpen] = useState(false);
   
   const [coaches, setCoaches] = useState<User[]>([]);
   const [clients, setClients] = useState<User[]>([]);
@@ -529,7 +531,14 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                        <span className="text-[9px] font-black uppercase text-accent">W{weeks[activeWeekIdx].weekNumber}D{activeDay?.dayNumber}</span>
                        <input type="text" value={activeDay?.title || ''} onChange={e => { const n = [...weeks]; n[activeWeekIdx].days[activeDayIdx].title = e.target.value; setWeeks(n); }} className="text-xl md:text-3xl font-black uppercase text-black bg-transparent outline-none w-full" />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                       <button
+                         onClick={() => setIsAIOpen(true)}
+                         className="px-4 py-2 bg-gradient-to-r from-violet-600 to-accent text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 shadow-lg hover:shadow-accent/30 transition-all hover:-translate-y-0.5"
+                       >
+                         <span className="material-symbols-outlined text-base">auto_awesome</span>
+                         AI Generate
+                       </button>
                        <button onClick={() => setIsPickerOpen({ type: 'workout', activeExIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase border border-neutral-100 flex items-center gap-2"><span className="material-symbols-outlined text-base">library_add</span> Blueprint</button>
                        <button onClick={addExercise} className="px-4 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-2"><span className="material-symbols-outlined text-base">add</span> Exercise</button>
                     </div>
@@ -648,6 +657,13 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
             </div>
           </div>
         </div>
+      )}
+      {isAIOpen && (
+        <AICourseGenerator
+          context="course"
+          onGenerated={(generatedWeeks) => setWeeks(generatedWeeks)}
+          onClose={() => setIsAIOpen(false)}
+        />
       )}
     </div>
   );

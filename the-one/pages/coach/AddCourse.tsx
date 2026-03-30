@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { setDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { Course, Exercise, WeekProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, User } from '../../types';
+import AICourseGenerator from '../../components/AICourseGenerator';
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -43,6 +44,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'settings' | 'workouts' | 'nutrition'>('workouts');
   const [isPickerOpen, setIsPickerOpen] = useState<{ type: 'exercise' | 'workout' | 'meal' | 'media', activeExIdx: number | null, activeField?: 'imageUrl' | 'videoUrl' }>({ type: 'exercise', activeExIdx: null });
+  const [isAIOpen, setIsAIOpen] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
@@ -540,6 +542,13 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
             </div>
           </div>
         </div>
+      )}
+      {isAIOpen && (
+        <AICourseGenerator
+          context="course"
+          onGenerated={(generatedWeeks) => setWeeks(generatedWeeks)}
+          onClose={() => setIsAIOpen(false)}
+        />
       )}
     </div>
   );
