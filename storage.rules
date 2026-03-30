@@ -23,7 +23,9 @@ service firebase.storage {
       // RULES FOR UPLOADING / OVERWRITING
       // If they are an admin, let them upload anything.
       // Otherwise, they must be logged in AND the file must be an image/video.
-      allow create, update: if (request.auth != null && isImageOrVideo()) || isAdmin();
+      // FIX: Added 50MB file size limit for non-admins to prevent storage abuse
+      allow create, update: if isAdmin() ||
+        (request.auth != null && isImageOrVideo() && request.resource.size < 50 * 1024 * 1024);
 
       // RULES FOR DELETING
       // For safety, let's only allow the admin to delete files. 

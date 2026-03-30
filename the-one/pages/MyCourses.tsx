@@ -5,6 +5,7 @@ import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestor
 import { db } from '../firebase';
 import { Course, User, UserRole, Coach, CustomCourseRequest } from '../types';
 import { COACHES } from '../constants';
+import LazyImage from '../components/LazyImage';
 
 interface MyCoursesProps {
   currentUser?: User | null;
@@ -126,7 +127,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
           {ownedCourses.map(course => (
             <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500 flex flex-col relative">
               <div className="relative h-56 md:h-64 overflow-hidden shrink-0">
-                <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" />
+                <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" displayWidth={600} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
                   <span className="bg-white/90 backdrop-blur-md text-black text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">{course.category}</span>

@@ -10,6 +10,19 @@ interface LoginProps {
   onLogin: (user: User) => void;
 }
 
+// Rate limit: 5 failed attempts → 60s lockout (stored in sessionStorage for tab persistence)
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 60_000;
+
+function getLoginAttemptData() {
+  try {
+    return JSON.parse(sessionStorage.getItem('_login_rt') || '{"count":0,"until":0}');
+  } catch { return { count: 0, until: 0 }; }
+}
+function setLoginAttemptData(data: { count: number; until: number }) {
+  sessionStorage.setItem('_login_rt', JSON.stringify(data));
+}
+
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -17,6 +30,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [honeypot, setHoneypot] = useState(''); // Hidden bot trap
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  const lockoutTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Tick down the lockout countdown
+  React.useEffect(() => {
+    const data = getLoginAttemptData();
+    if (data.until > Date.now()) {
+      const remaining = Math.ceil((data.until - Date.now()) / 1000);
+      setLockoutRemaining(remaining);
+      lockoutTimerRef.current = setInterval(() => {
+        const left = Math.ceil((data.until - Date.now()) / 1000);
+        if (left <= 0) {
+          setLockoutRemaining(0);
+          clearInterval(lockoutTimerRef.current!);
+        } else {
+          setLockoutRemaining(left);
+        }
+      }, 1000);
+    }
+    return () => { if (lockoutTimerRef.current) clearInterval(lockoutTimerRef.current); };
+  }, []);
   
   // State for handling device limit logic
   const [showDeviceLimitModal, setShowDeviceLimitModal] = useState(false);
@@ -161,19 +196,49 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    // Honeypot check — bots fill hidden fields, humans don't
+    if (honeypot) return;
+
+    // Client-side rate limiting
+    const rtData = getLoginAttemptData();
+    if (rtData.until > Date.now()) {
+      const secs = Math.ceil((rtData.until - Date.now()) / 1000);
+      setError(`Too many failed attempts. Try again in ${secs}s.`);
+      return;
+    }
+
+    setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Reset attempt counter on success
+      setLoginAttemptData({ count: 0, until: 0 });
       await syncUserToFirestore(userCredential.user);
     } catch (err: any) {
       console.error("Login error:", err);
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-        setError('Wrong password or email.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many failed attempts. Please try again later.');
+
+      // Increment failed attempt counter
+      const newCount = rtData.count + 1;
+      if (newCount >= MAX_ATTEMPTS) {
+        const until = Date.now() + LOCKOUT_MS;
+        setLoginAttemptData({ count: 0, until });
+        const secs = Math.ceil(LOCKOUT_MS / 1000);
+        setLockoutRemaining(secs);
+        lockoutTimerRef.current = setInterval(() => {
+          const left = Math.ceil((until - Date.now()) / 1000);
+          if (left <= 0) { setLockoutRemaining(0); clearInterval(lockoutTimerRef.current!); }
+          else setLockoutRemaining(left);
+        }, 1000);
+        setError(`Too many failed attempts. Locked out for ${secs}s.`);
       } else {
-        setError('Failed to sign in. Please try again.');
+        setLoginAttemptData({ count: newCount, until: 0 });
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+          setError(`Wrong password or email. ${MAX_ATTEMPTS - newCount} attempt${MAX_ATTEMPTS - newCount !== 1 ? 's' : ''} remaining.`);
+        } else if (err.code === 'auth/too-many-requests') {
+          setError('Too many failed attempts. Please try again later.');
+        } else {
+          setError('Failed to sign in. Please try again.');
+        }
       }
       setLoading(false);
     }
@@ -227,6 +292,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           <form className="space-y-6" onSubmit={handleLogin}>
+            {/* Honeypot — hidden from humans, bots fill this in and get silently rejected */}
+            <input
+              type="text"
+              name="_confirm_email"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              autoComplete="off"
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
+            />
             <div className="space-y-2 text-left">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Email Address</label>
               <input 
@@ -273,10 +349,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </p>
             )}
 
+            {lockoutRemaining > 0 && (
+              <div className="flex items-center gap-3 p-4 bg-red-50 rounded-2xl border border-red-100">
+                <span className="material-symbols-outlined text-red-500 text-lg">timer</span>
+                <p className="text-xs font-black text-red-500 uppercase tracking-widest">
+                  Locked out — try again in {lockoutRemaining}s
+                </p>
+              </div>
+            )}
+
             <button 
               type="submit" 
-              disabled={loading || showDeviceLimitModal}
-              className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+              disabled={loading || showDeviceLimitModal || lockoutRemaining > 0}
+              className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>

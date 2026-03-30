@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { Exercise, ExerciseFormat, MediaAsset, WeekProgram, Course, CustomCourseRequest, DiagnosticTest, ExerciseTemplate, WorkoutTemplate, MealPlan } from '../../types';
+import { Exercise, ExerciseFormat, MediaAsset, WeekProgram, Course, CustomCourseRequest, DiagnosticTest, ExerciseTemplate, WorkoutTemplate, MealPlan, CourseLevel } from '../../types';
 
 const PremiumSelect: React.FC<{
   value: string;
@@ -213,7 +213,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
         title: `Custom: ${request.goal}`,
         description: `Bespoke program for ${request.athleteName}.`,
         price: request.price,
-        level: 'Intermediate',
+        level: CourseLevel.INTERMEDIATE,
         duration: `${weeks.length} Weeks`,
         image: courseImage,
         instructor: 'Coach Team', // Ideally current user name

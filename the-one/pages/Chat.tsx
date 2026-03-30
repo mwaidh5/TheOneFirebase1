@@ -36,6 +36,8 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   const [inputText, setInputText] = useState('');
   const [showThreadList, setShowThreadList] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastMessageTimeRef = useRef<number>(0); // Rate limit: 1 message/second
+  const MAX_MSG_LENGTH = 2000;
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
@@ -249,6 +251,14 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activeThreadId) return;
+
+    // Rate limit: max 1 message per second
+    const now = Date.now();
+    if (now - lastMessageTimeRef.current < 1000) return;
+    lastMessageTimeRef.current = now;
+
+    // Length cap
+    if (inputText.length > MAX_MSG_LENGTH) return;
 
     const text = inputText;
     setInputText(''); // Optimistic clear
@@ -472,8 +482,19 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-black">
                   {isUploading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">attach_file</span>}
                 </button>
-                <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Message..." className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-medium" />
-                <button type="submit" disabled={!inputText.trim()} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-sm md:text-base">send</span></button>
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value.slice(0, MAX_MSG_LENGTH))}
+                  placeholder="Message..."
+                  className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-medium"
+                />
+                {inputText.length > MAX_MSG_LENGTH * 0.8 && (
+                  <span className={`text-[9px] font-black shrink-0 ${inputText.length >= MAX_MSG_LENGTH ? 'text-red-500' : 'text-neutral-300'}`}>
+                    {inputText.length}/{MAX_MSG_LENGTH}
+                  </span>
+                )}
+                <button type="submit" disabled={!inputText.trim() || inputText.length > MAX_MSG_LENGTH} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-sm md:text-base">send</span></button>
               </div>
             </form>
           </>

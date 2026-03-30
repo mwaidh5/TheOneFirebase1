@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { collection, onSnapshot, query, limit, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Course, CustomCourseRequest, User } from '../types';
+import LazyImage from '../components/LazyImage';
 
 interface HomepageProps {
   currentUser?: User | null;
@@ -113,7 +114,7 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             </h2>
           </div>
           <div className="h-[500px] rounded-[3rem] overflow-hidden shadow-xl border border-white/10">
-            <img src={settings.missionImage} className="w-full h-full object-cover" alt="Mission" />
+            <LazyImage src={settings.missionImage} alt="Mission" className="w-full h-full object-cover" displayWidth={900} />
           </div>
         </div>
       </section>
@@ -163,7 +164,7 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
               {featuredCourses.map(course => (
                 <Link key={course.id} to={`/courses/${course.id}`} className="group flex flex-col rounded-[2.5rem] border border-neutral-100 bg-white overflow-hidden hover:shadow-2xl transition-all duration-500">
                   <div className="h-72 overflow-hidden relative">
-                    <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                    <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" displayWidth={600} />
                     <div className="absolute top-6 left-6">
                       <span className="bg-white/90 backdrop-blur-md text-black text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-sm">{course.category}</span>
                     </div>

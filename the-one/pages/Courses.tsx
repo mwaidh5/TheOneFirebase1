@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Course, User } from '../types';
+import LazyImage from '../components/LazyImage';
 
 interface CoursesProps {
   courses: Course[];
@@ -117,7 +118,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
             return (
               <Link key={course.id} to={`/courses/${course.id}`} className="group bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col">
                 <div className="relative h-72 overflow-hidden shrink-0">
-                  <img src={course.image} alt={course.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+                  <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" displayWidth={600} />
                   <div className="absolute top-6 left-6 flex gap-2">
                     <span className="bg-white/90 backdrop-blur-md text-black text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-sm">{course.category}</span>
                     {isOwned && (
