@@ -7,6 +7,7 @@ interface AICourseGeneratorProps {
   onGenerated: (weeks: WeekProgram[]) => void;
   onClose: () => void;
   context?: 'course' | 'custom'; // slight prompt tuning per context
+  currentWeeks?: WeekProgram[]; // passed from AddCourse to preserve context
 }
 
 const EXAMPLE_PROMPT = `Week 1:
@@ -26,14 +27,18 @@ const EXAMPLE_PROMPT = `Week 1:
 Week 2:
   Monday: Same as Week 1 Session A but add 2.5kg to squat`;
 
-function buildPrompt(text: string, context: 'course' | 'custom'): string {
+function buildPrompt(text: string, context: 'course' | 'custom', currentWeeks?: WeekProgram[]): string {
   const contextNote = context === 'custom'
     ? 'This is a bespoke program for a specific athlete. Be precise with coaching notes.'
     : 'This is a public course for multiple athletes. Keep descriptions general but motivating.';
 
+  const currentProgramText = currentWeeks && currentWeeks.length > 0 && currentWeeks[0].days[0].exercises.length > 0
+    ? `\nCURRENT PROGRAM STATE (JSON):\n${JSON.stringify(currentWeeks, null, 2)}\n\nIMPORTANT: The user wants to modify or add to this existing program. DO NOT delete existing weeks or days unless explicitly asked. Return the COMPLETE, updated JSON array of all weeks and days.`
+    : '';
+
   return `You are an elite strength & conditioning coach. ${contextNote}
 
-Convert the following plain-text workout program into a structured JSON array of WeekProgram objects.
+Convert the following plain-text workout program (or modification instructions) into a structured JSON array of WeekProgram objects.${currentProgramText}
 
 RULES:
 - Return ONLY valid JSON, no markdown, no explanations.
@@ -80,7 +85,7 @@ ${text}
 Return a JSON array of WeekProgram objects:`;
 }
 
-const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({ onGenerated, onClose, context = 'course' as 'course' | 'custom' }) => {
+const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({ onGenerated, onClose, context = 'course' as 'course' | 'custom', currentWeeks }) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [preview, setPreview] = useState<WeekProgram[] | null>(null);
@@ -94,7 +99,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({ onGenerated, onCl
     setPreview(null);
 
     try {
-      const result = await aiModel.generateContent(buildPrompt(prompt, context));
+      const result = await aiModel.generateContent(buildPrompt(prompt, context, currentWeeks));
       const text = result.response.text();
       
       // Parse and validate

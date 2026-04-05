@@ -702,6 +702,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       {isAIOpen && (
         <AICourseGenerator
           context="course"
+          currentWeeks={weeks}
           onGenerated={(generatedWeeks) => setWeeks(generatedWeeks)}
           onClose={() => setIsAIOpen(false)}
         />

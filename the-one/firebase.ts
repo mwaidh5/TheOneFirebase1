@@ -30,7 +30,7 @@ export const storage = getStorage(app);
 // See: Firebase Console → AI Logic → Get Started
 const ai = getAI(app, { backend: new GoogleAIBackend() });
 export const aiModel = getGenerativeModel(ai, {
-  model: "gemini-2.5-flash-lite",
+  model: "gemini-2.5-pro",
   generationConfig: {
     responseMimeType: "application/json",
     temperature: 0.4,   // Lower = more consistent structured output

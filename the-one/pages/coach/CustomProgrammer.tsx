@@ -720,6 +720,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
       {isAIOpen && (
         <AICourseGenerator
           context="custom"
+          currentWeeks={weeks}
           onGenerated={(generatedWeeks) => setWeeks(generatedWeeks)}
           onClose={() => setIsAIOpen(false)}
         />
