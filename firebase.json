@@ -19,6 +19,10 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "apphosting": {
+    "backendId": "the-one",
+    "rootDir": "the-one"
   }
 }
 
