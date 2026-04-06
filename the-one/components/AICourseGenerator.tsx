@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { aiModel } from '../firebase';
 import { WeekProgram, ExerciseFormat } from '../types';
+import { jsonrepair } from 'jsonrepair';
 
 interface AICourseGeneratorProps {
   onGenerated: (weeks: WeekProgram[]) => void;
@@ -50,7 +51,7 @@ RULES:
 - "reps" is always a string (e.g. "10", "AMRAP", "5-8").
 - "rest" is always a string (e.g. "90s", "3 min", "2:00").
 - "sets" is always a number.
-- Add a brief "description" coaching note for each exercise (1 sentence max).
+- Add a brief "description" coaching note for each exercise (1 sentence max). DO NOT use double quotes (") inside the description string, use single quotes (') instead. DO NOT include newlines (\n) inside any strings.
 - If a day is "Rest" or "Recovery", include it with an empty exercises array and title "Rest Day".
 
 SCHEMA (TypeScript):
@@ -104,13 +105,28 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({ onGenerated, onCl
       
       // Parse and validate
       let parsed: WeekProgram[];
+      
+      // Cleanup common Gemini JSON issues
+      let cleanText = text.trim();
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.replace(/^```json/, '').replace(/```$/, '').trim();
+      } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/^```/, '').replace(/```$/, '').trim();
+      }
+      
       try {
-        parsed = JSON.parse(text);
-      } catch {
-        // Try extracting JSON array if wrapped in extra text
-        const match = text.match(/\[[\s\S]*\]/);
-        if (!match) throw new Error('Could not parse AI response as JSON.');
-        parsed = JSON.parse(match[0]);
+        try {
+          // Fast path: valid JSON
+          parsed = JSON.parse(cleanText);
+        } catch (e) {
+          // If the AI reaches the max output tokens, it truncates the JSON.
+          // Or if it forgets a comma. jsonrepair rebuilds missing brackets and quotes.
+          const repaired = jsonrepair(cleanText);
+          parsed = JSON.parse(repaired);
+        }
+      } catch (e: any) {
+        console.error("Original broken JSON:", text);
+        throw new Error('Failed to repair and parse AI response. Please use a shorter prompt. (' + e.message + ')');
       }
 
       if (!Array.isArray(parsed) || parsed.length === 0) {
