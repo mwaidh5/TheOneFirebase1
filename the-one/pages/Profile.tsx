@@ -38,16 +38,54 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
       })
       .catch(() => setWorkoutLogs([]));
   }, [currentUser]);
+  const [activityView, setActivityView] = useState<'weekly' | 'monthly'>('weekly');
   const navigate = useNavigate();
-  const data = userData?.activityChart || [
-    { name: 'M', val: 0 },
-    { name: 'T', val: 0 },
-    { name: 'W', val: 0 },
-    { name: 'T', val: 0 },
-    { name: 'F', val: 0 },
-    { name: 'S', val: 0 },
-    { name: 'S', val: 0 },
-  ];
+
+  // Firestore stores activityChart Mon-first (index 0=Mon … 6=Sun).
+  // Always remap to Sat-first for display.
+  const storedChart = userData?.activityChart;
+  const weeklyData: { name: string; val: number }[] =
+    storedChart && storedChart.length === 7
+      ? [
+          { name: 'S', val: storedChart[5]?.val ?? 0 }, // Sat
+          { name: 'S', val: storedChart[6]?.val ?? 0 }, // Sun
+          { name: 'M', val: storedChart[0]?.val ?? 0 }, // Mon
+          { name: 'T', val: storedChart[1]?.val ?? 0 }, // Tue
+          { name: 'W', val: storedChart[2]?.val ?? 0 }, // Wed
+          { name: 'T', val: storedChart[3]?.val ?? 0 }, // Thu
+          { name: 'F', val: storedChart[4]?.val ?? 0 }, // Fri
+        ]
+      : [
+          { name: 'S', val: 0 },
+          { name: 'S', val: 0 },
+          { name: 'M', val: 0 },
+          { name: 'T', val: 0 },
+          { name: 'W', val: 0 },
+          { name: 'T', val: 0 },
+          { name: 'F', val: 0 },
+        ];
+
+  // Monthly: aggregate workoutLogs into 4 weekly buckets for the current month.
+  const monthlyData: { name: string; val: number }[] = (() => {
+    const now = new Date();
+    const weeks = [
+      { name: 'W1', val: 0 },
+      { name: 'W2', val: 0 },
+      { name: 'W3', val: 0 },
+      { name: 'W4', val: 0 },
+    ];
+    workoutLogs.forEach(log => {
+      if (!log.loggedDate) return;
+      const d = new Date(log.loggedDate + 'T12:00:00');
+      if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) {
+        const week = Math.min(Math.floor((d.getDate() - 1) / 7), 3);
+        weeks[week].val += 1;
+      }
+    });
+    return weeks;
+  })();
+
+  const data = activityView === 'weekly' ? weeklyData : monthlyData;
 
   const handleMessageCoach = (instructorName: string) => {
     const coach = COACHES.find(c => c.name.includes(instructorName.split(' ')[0]));
@@ -154,8 +192,14 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
               <div className="flex items-center justify-between mb-12">
                 <h2 className="text-2xl font-black font-display uppercase tracking-tight">Activity Cycle</h2>
                 <div className="flex gap-2 bg-white/5 p-1 rounded-2xl">
-                  <button className="px-6 py-2 bg-white text-black text-[10px] font-black rounded-xl uppercase tracking-widest shadow-xl">Weekly</button>
-                  <button className="px-6 py-2 text-neutral-500 text-[10px] font-black uppercase tracking-widest hover:text-white">Monthly</button>
+                  <button
+                    onClick={() => setActivityView('weekly')}
+                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${activityView === 'weekly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
+                  >Weekly</button>
+                  <button
+                    onClick={() => setActivityView('monthly')}
+                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${activityView === 'monthly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
+                  >Monthly</button>
                 </div>
               </div>
 

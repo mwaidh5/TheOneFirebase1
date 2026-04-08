@@ -74,7 +74,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
   };
 
   return (
-    <header className="sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-gray-100 h-20">
+    <header className="site-navbar sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-gray-100 h-20">
       <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
           {logo ? (

@@ -20,6 +20,15 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
   const [isFinished, setIsFinished] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Hide the global navbar on this focused form page
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.id = 'diagnostic-no-nav';
+    style.textContent = 'header.site-navbar { display: none !important; }';
+    document.head.appendChild(style);
+    return () => { document.getElementById('diagnostic-no-nav')?.remove(); };
+  }, []);
+
   useEffect(() => {
       const fetchRequest = async () => {
           if (!id) return;
@@ -173,29 +182,41 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
 
   return (
     <div className="bg-neutral-50 min-h-screen pb-24 text-left animate-in fade-in duration-700">
-      <div className="bg-white border-b border-neutral-100 sticky top-20 z-40">
-        <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-           <div className="space-y-1">
-              <nav className="flex items-center gap-3 text-[10px] font-black text-accent uppercase tracking-[0.3em]">
-                 <span className="w-2 h-2 rounded-full bg-accent animate-ping"></span>
-                 Custom Workout Questions
-              </nav>
-              <h1 className="text-3xl font-black font-display uppercase text-black leading-none">Athlete Assessment</h1>
-           </div>
-           <div className="flex items-center gap-6 min-w-[300px]">
-              <div className="flex-1 space-y-2">
-                 <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                    <span className="text-neutral-400">Progress</span>
-                    <span className="text-accent">{Math.round(progress)}%</span>
-                 </div>
-                 <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden border border-neutral-50">
-                    <div className="h-full bg-black transition-all duration-700" style={{ width: `${progress}%` }}></div>
-                 </div>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-black text-lg shadow-lg">
-                 {completedCount}/{allTests.length}
-              </div>
-           </div>
+      {/* Title — scrolls normally */}
+      <div className="bg-white border-b border-neutral-100">
+        <div className="max-w-5xl mx-auto px-6 py-8 space-y-1">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => navigate('/profile/courses')}
+              className="flex items-center gap-2 text-[10px] font-black text-neutral-400 uppercase tracking-widest hover:text-black transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              Back to My Courses
+            </button>
+          </div>
+          <nav className="flex items-center gap-3 text-[10px] font-black text-accent uppercase tracking-[0.3em]">
+            <span className="w-2 h-2 rounded-full bg-accent animate-ping"></span>
+            Custom Workout Questions
+          </nav>
+          <h1 className="text-3xl font-black font-display uppercase text-black leading-none">Athlete Assessment</h1>
+        </div>
+      </div>
+
+      {/* Progress strip — sticks at very top */}
+      <div className="bg-white border-b border-neutral-100 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-6">
+          <div className="flex-1 space-y-1.5">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+              <span className="text-neutral-400">Progress</span>
+              <span className="text-accent">{Math.round(progress)}%</span>
+            </div>
+            <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+              <div className="h-full bg-black transition-all duration-700" style={{ width: `${progress}%` }}></div>
+            </div>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-black text-base shadow-lg shrink-0">
+            {completedCount}/{allTests.length}
+          </div>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Course, User, UserRole, Coach, CustomCourseRequest } from '../types';
 import { COACHES } from '../constants';
@@ -15,6 +15,7 @@ interface MyCoursesProps {
 const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
   const navigate = useNavigate();
   const [customRequests, setCustomRequests] = useState<CustomCourseRequest[]>([]);
+  const [logsByCourseId, setLogsByCourseId] = useState<Record<string, Set<number>>>({});
 
   useEffect(() => {
     if (!currentUser) {
@@ -23,12 +24,30 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
     }
 
     const q = query(collection(db, 'custom_requests'), where('athleteId', '==', currentUser.id));
-    
+
     const unsub = onSnapshot(q, (snapshot) => {
       setCustomRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomCourseRequest)));
     });
 
     return () => unsub();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const logsRef = collection(db, 'users', currentUser.id, 'workout_logs');
+    getDocs(query(logsRef, orderBy('loggedAt', 'desc'))).then(snap => {
+      const map: Record<string, Set<number>> = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        const cid: string = data.courseId;
+        const wn: number = data.weekNum;
+        if (cid && wn) {
+          if (!map[cid]) map[cid] = new Set();
+          map[cid].add(wn);
+        }
+      });
+      setLogsByCourseId(map);
+    }).catch(() => {});
   }, [currentUser]);
 
   // Filter courses based on user's enrollment
@@ -124,7 +143,11 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
 
       {ownedCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-          {ownedCourses.map(course => (
+          {ownedCourses.map(course => {
+            const totalWeeks = course.weeks?.length || 1;
+            const completedWeeks = logsByCourseId[course.id]?.size || 0;
+            const pct = Math.min(Math.round((completedWeeks / totalWeeks) * 100), 100);
+            return (
             <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500 flex flex-col relative">
               <div className="relative h-56 md:h-64 overflow-hidden shrink-0">
                 <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" displayWidth={600} />
@@ -140,17 +163,17 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                   <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest truncate">Lead: {course.instructor}</span>
                 </div>
               </div>
-              
+
               <div className="p-6 md:p-8 lg:p-10 space-y-6 md:space-y-8 flex-grow flex flex-col">
                 <div className="space-y-4 text-left">
                   <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-tight font-display leading-tight line-clamp-2">{course.title}</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">Progress</span>
-                      <span className="text-xs md:text-sm font-black text-black">65%</span>
+                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">{completedWeeks}/{totalWeeks} weeks done</span>
+                      <span className="text-xs md:text-sm font-black text-black">{pct}%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-black h-full w-[65%] rounded-full transition-all duration-1000"></div>
+                      <div className="bg-black h-full rounded-full transition-all duration-1000" style={{ width: `${pct}%` }}></div>
                     </div>
                   </div>
                 </div>
@@ -168,7 +191,8 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       ) : pendingRequests.length === 0 && (
         <div className="py-24 md:py-32 flex flex-col items-center justify-center text-center space-y-6">
