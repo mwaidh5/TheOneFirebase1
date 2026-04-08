@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -36,14 +37,15 @@ const AdminDashboard: React.FC = () => {
       };
       fetchData();
 
-      // Live Logs
-      const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(20));
+      // Live Logs — reads from system_logs (written by logEvent utility)
+      const q = query(collection(db, "system_logs"), orderBy("createdAt", "desc"), limit(20));
       const unsubscribe = onSnapshot(q, (snapshot) => {
           setLogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
 
       return () => unsubscribe();
   }, []);
+
 
   const runSystemScan = () => {
     setIsScanning(true);
@@ -152,17 +154,32 @@ const AdminDashboard: React.FC = () => {
             {logs.length === 0 ? (
                 <div className="p-8 text-center text-neutral-400 text-xs">No recent activity</div>
             ) : (
-                logs.map((ev, i) => (
-                <div key={ev.id || i} className="px-8 py-6 hover:bg-neutral-50 transition-all border-b border-neutral-50 last:border-0 relative group">
-                    <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md bg-neutral-50 ${ev.type === 'ORDER' ? 'text-green-500' : 'text-accent'}`}>{ev.type || 'SYSTEM'}</span>
-                    <span className="text-[8px] font-bold text-neutral-300 uppercase tracking-widest">• {ev.createdAt?.toDate ? formatDistanceToNow(ev.createdAt.toDate(), { addSuffix: true }) : 'Just now'}</span>
-                    </div>
-                    <p className="text-xs font-bold text-black leading-relaxed group-hover:text-accent transition-colors">{ev.text || ev.title}</p>
-                </div>
-                ))
+                logs.map((ev, i) => {
+                  const typeColors: Record<string, string> = {
+                    USER_SIGNUP: 'text-purple-500',
+                    USER_LOGIN: 'text-accent',
+                    COURSE_ENROLL: 'text-green-500',
+                    WORKOUT_COMPLETE: 'text-orange-500',
+                    CUSTOM_REQUEST: 'text-yellow-600',
+                    CUSTOM_PROGRAM_SENT: 'text-blue-500',
+                    COURSE_CREATED: 'text-teal-500',
+                    SYSTEM: 'text-neutral-400',
+                  };
+                  const color = typeColors[ev.type] || 'text-accent';
+                  return (
+                  <div key={ev.id || i} className="px-8 py-5 hover:bg-neutral-50 transition-all border-b border-neutral-50 last:border-0 relative group">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md bg-neutral-50 ${color}`}>{ev.type || 'SYSTEM'}</span>
+                        <span className="text-[8px] font-bold text-neutral-300 uppercase tracking-widest">• {ev.createdAt?.toDate ? formatDistanceToNow(ev.createdAt.toDate(), { addSuffix: true }) : 'Just now'}</span>
+                      </div>
+                      <p className="text-xs font-bold text-black leading-relaxed group-hover:text-accent transition-colors">{ev.title}</p>
+                      {ev.description && <p className="text-[10px] text-neutral-400 font-medium mt-0.5 leading-snug">{ev.description}</p>}
+                  </div>
+                  );
+                })
             )}
           </div>
+
           <div className="p-6 bg-black text-white rounded-b-[3rem] flex items-center gap-4">
              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center animate-pulse">
                 <span className="material-symbols-outlined text-[20px] filled">auto_awesome</span>
@@ -176,9 +193,9 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Platform Status Modal */}
-      {isStatusOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300 overflow-hidden">
-           <div className="bg-neutral-950 w-full max-w-2xl rounded-[3.5rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col border border-white/10">
+      {isStatusOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center py-8 px-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300 overflow-y-auto">
+           <div className="bg-neutral-950 w-full max-w-2xl rounded-[3.5rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col border border-white/10 my-auto">
               <div className="p-10 border-b border-white/5 flex justify-between items-center bg-white/5 shrink-0">
                  <div className="text-left space-y-1">
                     <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">Infrastructure Diagnostic</p>
@@ -256,7 +273,8 @@ const AdminDashboard: React.FC = () => {
                  </div>
               </div>
            </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

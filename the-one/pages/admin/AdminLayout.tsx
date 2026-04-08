@@ -156,6 +156,10 @@ const AdminLayout: React.FC = () => {
             <span className={`material-symbols-outlined ${isActive('/admin/settings') ? 'filled text-accent' : ''}`}>settings</span>
             Settings
           </Link>
+          <Link to="/admin/activity" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/activity') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+            <span className={`material-symbols-outlined ${isActive('/admin/activity') ? 'filled text-accent' : ''}`}>receipt_long</span>
+            Log History
+          </Link>
         </nav>
       </aside>
 

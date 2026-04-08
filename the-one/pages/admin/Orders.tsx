@@ -173,7 +173,7 @@ const AdminOrders: React.FC = () => {
 
       {/* Progression Modal (Previously implemented) */}
       {viewingProgress && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative p-12 space-y-10 text-left">
             <button 
               onClick={() => setViewingProgress(null)}

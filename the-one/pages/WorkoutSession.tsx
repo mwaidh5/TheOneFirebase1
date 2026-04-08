@@ -4,31 +4,37 @@ import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, User } from '../types';
+import { logEvent } from '../hooks/useLogEvent';
 
 interface WorkoutSessionProps {
   courses?: Course[];
   currentUser: User;
 }
 
-// ─── Timer Hook ────────────────────────────────────────────────────────────────
+// ─── Timer Hook (wall-clock based — survives phone lock & tab switching) ───────
+const TIMER_KEY = 'theone_session_start_ts';
+const TIMER_PAUSED_KEY = 'theone_session_paused_at';
+const TIMER_ACCUMULATED_KEY = 'theone_session_accumulated_ms';
+
 function useSessionTimer(isRunning: boolean) {
-  const [elapsed, setElapsed] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const elapsedRef = useRef(0);
-
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        elapsedRef.current += 1;
-        setElapsed(elapsedRef.current);
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+  const [elapsed, setElapsed] = useState<number>(() => {
+    // On mount, recover elapsed time from localStorage if a session was in progress
+    const startTs = localStorage.getItem(TIMER_KEY);
+    const accumulated = Number(localStorage.getItem(TIMER_ACCUMULATED_KEY) || '0');
+    const pausedAt = localStorage.getItem(TIMER_PAUSED_KEY);
+    if (startTs) {
+      if (pausedAt) {
+        // Was paused — return accumulated seconds at pause point
+        return Math.floor(accumulated / 1000);
+      }
+      // Was running — compute how long has elapsed since start
+      const bonus = Date.now() - Number(startTs);
+      return Math.floor((accumulated + bonus) / 1000);
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning]);
+    return 0;
+  });
 
-  const reset = () => { elapsedRef.current = 0; setElapsed(0); };
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fmt = (s: number) => {
     const hh = String(Math.floor(s / 3600)).padStart(2, '0');
@@ -36,7 +42,59 @@ function useSessionTimer(isRunning: boolean) {
     const ss = String(s % 60).padStart(2, '0');
     return `${hh}:${mm}:${ss}`;
   };
-  return { display: fmt(elapsed), elapsed, reset, elapsedRef, fmt };
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    if (isRunning) {
+      // Mark the start of the current running window
+      if (!localStorage.getItem(TIMER_KEY)) {
+        localStorage.setItem(TIMER_KEY, String(Date.now()));
+      }
+      // Clear any pause marker
+      localStorage.removeItem(TIMER_PAUSED_KEY);
+
+      // Every second, re-derive elapsed from wall-clock (never drifts)
+      intervalRef.current = setInterval(() => {
+        const startTs = Number(localStorage.getItem(TIMER_KEY) || Date.now());
+        const accumulated = Number(localStorage.getItem(TIMER_ACCUMULATED_KEY) || '0');
+        const totalMs = accumulated + (Date.now() - startTs);
+        setElapsed(Math.floor(totalMs / 1000));
+      }, 1000);
+    }
+
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning]);
+
+  // When paused: snapshot the accumulated time and clear the running start
+  const pauseTimer = () => {
+    const startTs = localStorage.getItem(TIMER_KEY);
+    if (startTs) {
+      const accumulated = Number(localStorage.getItem(TIMER_ACCUMULATED_KEY) || '0');
+      const totalMs = accumulated + (Date.now() - Number(startTs));
+      localStorage.setItem(TIMER_ACCUMULATED_KEY, String(totalMs));
+      localStorage.removeItem(TIMER_KEY);
+      localStorage.setItem(TIMER_PAUSED_KEY, '1');
+    }
+  };
+
+  // When resuming from pause: set a fresh start timestamp
+  const resumeTimer = () => {
+    localStorage.setItem(TIMER_KEY, String(Date.now()));
+    localStorage.removeItem(TIMER_PAUSED_KEY);
+  };
+
+  const reset = () => {
+    localStorage.removeItem(TIMER_KEY);
+    localStorage.removeItem(TIMER_PAUSED_KEY);
+    localStorage.removeItem(TIMER_ACCUMULATED_KEY);
+    setElapsed(0);
+  };
+
+  // Derived elapsed from latest state
+  const elapsedRef = { current: elapsed };
+
+  return { display: fmt(elapsed), elapsed, reset, elapsedRef, fmt, pauseTimer, resumeTimer };
 }
 
 // ─── Superset Grouping ─────────────────────────────────────────────────────────
@@ -121,7 +179,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   }>({ results: {}, notes: '', rpe: 7 });
 
   // ── Timer — ticks when workoutStarted AND NOT paused ───────────────────────
-  const { display: timerDisplay, elapsed: timerElapsed, reset: resetTimer, fmt: fmtTime } = useSessionTimer(workoutStarted && !isPaused);
+  const { display: timerDisplay, elapsed: timerElapsed, reset: resetTimer, fmt: fmtTime, pauseTimer, resumeTimer } = useSessionTimer(workoutStarted && !isPaused);
 
   // ─── Load Progress ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -204,17 +262,32 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   }
 
   const handleStartWorkout = () => {
-    resetTimer();
+    resetTimer(); // clears any leftover localStorage state
     setIsPaused(false);
     setFinalTime(null);
     setWorkoutStarted(true);
+    // Seed the wall-clock start timestamp for the new session
+    localStorage.setItem(TIMER_KEY, String(Date.now()));
+    localStorage.removeItem(TIMER_PAUSED_KEY);
+    localStorage.removeItem(TIMER_ACCUMULATED_KEY);
     if (selectedDay) {
       const firstUncompleted = selectedDay.exercises.find(ex => !completedExercises.has(ex.id));
       setActiveExerciseId(firstUncompleted?.id ?? null);
     }
   };
 
-  const handlePauseResume = () => setIsPaused(p => !p);
+  const handlePauseResume = () => {
+    setIsPaused(p => {
+      if (!p) {
+        // Going from running → paused
+        pauseTimer();
+      } else {
+        // Going from paused → running
+        resumeTimer();
+      }
+      return !p;
+    });
+  };
 
   const toggleExercise = (exId: string) => {
     const next = new Set<string>(completedExercises);
@@ -271,6 +344,18 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           activityChart: chartUpdate,
         }, { merge: true });
       } catch (err) { console.error('Error updating profile stats', err); }
+
+        // Log workout completion to system_logs
+        logEvent({
+          type: 'WORKOUT_COMPLETE',
+          title: 'Session Completed',
+          description: `${currentUser.firstName} ${currentUser.lastName} finished "${selectedDay?.title}" (${course.title} · Wk ${selectedWeek?.weekNumber ?? 1}).`,
+          userId: currentUser.id,
+          userName: `${currentUser.firstName} ${currentUser.lastName}`,
+          userEmail: currentUser.email,
+          userAvatar: (currentUser as any).avatar,
+          meta: { courseId: course.id, courseTitle: course.title, weekNumber: selectedWeek?.weekNumber, dayTitle: selectedDay?.title, durationSeconds: captured },
+        });
     } else {
       // UNDO: untick all exercises for this day and restart timer
       next.delete(dayId);

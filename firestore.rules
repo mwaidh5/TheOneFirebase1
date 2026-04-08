@@ -142,6 +142,26 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 9. System Logs — written by any authenticated user (client SDK), read only by Admin
+    match /system_logs/{logId} {
+      // Any logged-in user can create a log entry (login, signup, workout finish, etc.)
+      allow create: if isAuthenticated();
+      // Only admins can read log history in the dashboard
+      allow read: if isAdmin();
+      // Nobody can update or delete logs (immutable audit trail)
+      allow update, delete: if false;
+    }
+
+    // 10. Workout Logs (per-user subcollection)
+    match /users/{userId}/workout_logs/{logId} {
+      allow read, write: if isOwner(userId) || isAdmin() || isCoach();
+    }
+
+    // 11. Notifications
+    match /notifications/{notifId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

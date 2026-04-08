@@ -199,7 +199,7 @@ const AdminCustomRequests: React.FC = () => {
 
       {/* Manual Lead Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-left">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-left">
            <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden p-10 space-y-8">
                <div className="flex justify-between items-center">
                    <h3 className="text-2xl font-black font-display uppercase tracking-tight">Manual Lead</h3>
@@ -291,7 +291,7 @@ const AdminCustomRequests: React.FC = () => {
 
       {/* Inspector Modal */}
       {inspectingReq && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-left">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-left">
           <div className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
             <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 shrink-0">
                <div className="space-y-1 text-left">

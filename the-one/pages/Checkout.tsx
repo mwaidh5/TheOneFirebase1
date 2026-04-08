@@ -5,6 +5,7 @@ import { updateDoc, doc, arrayUnion, addDoc, collection, serverTimestamp, getDoc
 import { db } from '../firebase';
 import { User, Course } from '../types';
 import { CUSTOM_DISCIPLINES } from '../constants';
+import { logEvent } from '../hooks/useLogEvent';
 
 interface CheckoutProps {
   currentUser: User | null;
@@ -145,6 +146,20 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
         setPaymentStep('success');
         setIsProcessing(false);
         localStorage.setItem('automated_msg_purchase', 'true');
+
+        // Log enrollment to system_logs
+        logEvent({
+          type: isCustom ? 'CUSTOM_REQUEST' : 'COURSE_ENROLL',
+          title: isCustom ? 'Custom Program Purchased' : 'Course Enrollment',
+          description: isCustom
+            ? `${currentUser.firstName} ${currentUser.lastName} purchased a custom program ($${total}).`
+            : `${currentUser.firstName} ${currentUser.lastName} enrolled in "${displayCourse.title}" ($${total}).`,
+          userId: currentUser.id,
+          userName: `${currentUser.firstName} ${currentUser.lastName}`,
+          userEmail: currentUser.email,
+          userAvatar: (currentUser as any).avatar,
+          meta: { courseId: redirectId, courseTitle: displayCourse.title, amount: total },
+        });
         
         // 5. Redirect
         setTimeout(() => {

@@ -5,6 +5,7 @@ import { UserRole, User } from '../types';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { logEvent } from '../hooks/useLogEvent';
 
 interface SignupProps {
   onSignup: (user: User) => void;
@@ -50,7 +51,18 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
       });
 
       onSignup(newUser);
-      
+
+      // Log new signup to system_logs
+      logEvent({
+        type: 'USER_SIGNUP',
+        title: 'New Athlete Registered',
+        description: `${newUser.firstName} ${newUser.lastName} (${newUser.email}) created an account.`,
+        userId: newUser.id,
+        userName: `${newUser.firstName} ${newUser.lastName}`,
+        userEmail: newUser.email,
+        userAvatar: newUser.avatar,
+      });
+
       if (newUser.role === UserRole.ADMIN) {
         navigate('/admin');
       } else {

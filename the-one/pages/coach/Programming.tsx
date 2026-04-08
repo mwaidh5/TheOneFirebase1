@@ -117,7 +117,7 @@ const CoachProgramming: React.FC = () => {
 
       {/* WOD Editor Modal (Compact) */}
       {editingWod && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
            <div className="bg-white w-full max-w-lg rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative">
               <div className="p-6 md:p-10 border-b border-neutral-100 flex justify-between items-center">
                  <h3 className="text-xl md:text-2xl font-black font-display uppercase tracking-tight">Edit Session</h3>
@@ -170,7 +170,7 @@ const CoachProgramming: React.FC = () => {
 
       {/* Library Modal (Compact) */}
       {isLibraryOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-lg animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-lg animate-in fade-in duration-300">
            <div className="bg-neutral-900 w-full max-w-4xl rounded-[2.5rem] md:rounded-[4rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] border border-white/5">
               <div className="p-8 md:p-12 border-b border-white/5 flex justify-between items-center shrink-0">
                  <h3 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight text-white">WOD Library</h3>

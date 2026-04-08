@@ -106,7 +106,7 @@ const AdminCoupons: React.FC = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
            <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                  <h3 className="text-2xl font-black font-display uppercase text-black">New Master Coupon</h3>

@@ -163,7 +163,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
 
       {/* Athlete Detail Modal */}
       {selectedAthlete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
             <button 
               onClick={() => setSelectedAthlete(null)}

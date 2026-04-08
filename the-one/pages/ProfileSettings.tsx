@@ -529,7 +529,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
 
       {/* MFA SETUP MODAL */}
       {isMfaSetupOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
            <div className="bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 shrink-0">
                  <div className="text-left space-y-1">

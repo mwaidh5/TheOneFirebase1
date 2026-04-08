@@ -5,6 +5,7 @@ import { UserRole, User } from '../types';
 import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { logEvent } from '../hooks/useLogEvent';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -154,6 +155,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     onLogin(userData);
+
+    // Log the login event to system_logs
+    logEvent({
+      type: 'USER_LOGIN',
+      title: 'User Login',
+      description: `${userData.firstName} ${userData.lastName} signed in.`,
+      userId: userData.id,
+      userName: `${userData.firstName} ${userData.lastName}`,
+      userEmail: userData.email,
+      userAvatar: userData.avatar,
+    });
 
     if (userData.role === UserRole.ADMIN) navigate('/admin');
     else if (userData.role === UserRole.COACH) navigate('/coach');
