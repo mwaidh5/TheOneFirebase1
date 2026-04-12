@@ -169,11 +169,11 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null);
 
   // ── Previous lift logs ──────────────────────────────────────────────────────
-  const [prevLifts, setPrevLifts] = useState<Record<string, string>>({});
+  const [prevLifts, setPrevLifts] = useState<Record<string, any>>({});
 
   // ── Log Data ────────────────────────────────────────────────────────────────
   const [logData, setLogData] = useState<{
-    results: Record<string, string>;
+    results: Record<string, { weight: string; reps: string }>;
     notes: string;
     rpe: number;
   }>({ results: {}, notes: '', rpe: 7 });
@@ -343,6 +343,27 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           lastWorkoutDayName: dayNames[now.getDay()],
           activityChart: chartUpdate,
         }, { merge: true });
+
+        // ── Auto-save inline weight/reps to workout_logs ──────────────────
+        if (Object.keys(logData.results).length > 0) {
+          const logKey = `${course.id}_${selectedWeek?.weekNumber ?? 0}_${selectedDay?.id}`;
+          const logRef = doc(db, 'users', currentUser.id, 'workout_logs', logKey);
+          await setDoc(logRef, {
+            courseId: course.id,
+            courseTitle: course.title,
+            weekNum: selectedWeek?.weekNumber ?? 0,
+            dayId: selectedDay?.id,
+            dayTitle: selectedDay?.title,
+            dayNumber: selectedDay?.dayNumber,
+            loggedAt: now.getTime(),
+            loggedDate: now.toISOString().split('T')[0],
+            loggedDayName: dayNames[now.getDay()],
+            results: logData.results,
+            durationSeconds: captured,
+            rpe: logData.rpe,
+            completed: true,
+          }, { merge: true });
+        }
       } catch (err) { console.error('Error updating profile stats', err); }
 
         // Log workout completion to system_logs
@@ -408,6 +429,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           rpe: logData.rpe,
           results: logData.results,
           durationSeconds: timerElapsed,
+          completed: false,
         }, { merge: true });
       } catch (err) { console.error("Error saving workout log", err); }
     }
@@ -548,9 +570,39 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-xs text-neutral-400">history</span>
                 <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">Last:</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-accent">{prevLift}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-accent">
+                  {typeof prevLift === 'object' ? `${(prevLift as any).weight || '—'} kg × ${(prevLift as any).reps || '—'} reps` : prevLift}
+                </span>
               </div>
             )}
+
+            {/* Inline weight + reps inputs */}
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] text-neutral-400 font-medium">Weight:</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="kg"
+                  value={logData.results[item.id]?.weight || ''}
+                  onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [item.id]: { ...logData.results[item.id], weight: e.target.value } } })}
+                  className="w-12 bg-transparent border-b border-neutral-200 focus:border-black outline-none text-[9px] font-black text-black text-center transition-colors"
+                />
+                <span className="text-[9px] text-neutral-400 font-medium">kg</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] text-neutral-400 font-medium">Reps:</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="#"
+                  value={logData.results[item.id]?.reps || ''}
+                  onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [item.id]: { ...logData.results[item.id], reps: e.target.value } } })}
+                  className="w-10 bg-transparent border-b border-neutral-200 focus:border-black outline-none text-[9px] font-black text-black text-center transition-colors"
+                />
+                <span className="text-[9px] text-neutral-400 font-medium">reps</span>
+              </div>
+            </div>
           </div>
 
           {/* ── Right: Image (always shown) ──────────────────── */}
@@ -884,20 +936,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     Finish Session
                   </button>
                 )}
-                <button
-                  onClick={() => setIsLogModalOpen(true)}
-                  className="w-full py-3.5 bg-accent text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 transition-all shadow-lg shadow-accent/20"
-                >
-                  <span className="material-symbols-outlined text-sm">edit_note</span>
-                  Log Workout Weights &amp; Intensity
-                </button>
-                <button
-                  onClick={() => navigate(`/profile/messages?coachId=c1`)}
-                  className="w-full py-3 bg-neutral-50 border border-neutral-100 text-neutral-500 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black hover:text-white hover:border-black transition-all"
-                >
-                  <span className="material-symbols-outlined text-sm">chat</span>
-                  Message Coach
-                </button>
+
               </div>
             </div>
 
@@ -1038,7 +1077,9 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                           <p className="text-base font-black text-black uppercase leading-none">{ex.name}</p>
                           {prevLifts[ex.id] && (
                             <p className="text-[8px] font-black text-accent uppercase tracking-widest mt-0.5">
-                              Last: {prevLifts[ex.id]}
+                              Last: {typeof prevLifts[ex.id] === 'object'
+                                ? `${prevLifts[ex.id]?.weight || '—'} kg × ${prevLifts[ex.id]?.reps || '—'} reps`
+                                : prevLifts[ex.id]}
                             </p>
                           )}
                         </div>
@@ -1046,25 +1087,25 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                           <p className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Prescribed</p>
                           <p className="text-xs font-bold text-neutral-500 uppercase">{ex.sets} Sets × {ex.reps}</p>
                         </div>
-                        <div className="md:col-span-5">
-                          <label className="text-[8px] font-black text-accent uppercase tracking-widest mb-1 block">Actual Result <span className="text-neutral-300 font-medium normal-case tracking-normal">(optional)</span></label>
-                          <input
-                            type="text"
-                            placeholder={prevLifts[ex.id]
-                              ? `Last: ${prevLifts[ex.id]}`
-                              : (ex.format === 'CARDIO' || ex.format === 'FOR_TIME')
-                                ? 'e.g. 5.2 km / 22:30'
-                                : ex.format === 'EMOM' || ex.format === 'AMRAP' || ex.format === 'HIIT'
-                                  ? 'e.g. 8 rounds / 12:00'
-                                  : 'e.g. 80 kg × 8 reps'
-                            }
-                            className="w-full bg-white border border-neutral-200 rounded-lg p-3 text-sm font-black uppercase outline-none focus:border-accent transition-all"
-                            value={logData.results[ex.id] || ''}
-                            onChange={(e) => setLogData({
-                              ...logData,
-                              results: { ...logData.results, [ex.id]: e.target.value }
-                            })}
-                          />
+                        <div className="md:col-span-5 flex gap-3">
+                          <div className="flex-1">
+                            <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1 block">Weight (kg)</label>
+                            <input
+                              type="text" inputMode="decimal" placeholder="e.g. 80"
+                              className="w-full bg-white border border-neutral-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-accent transition-all"
+                              value={(logData.results[ex.id] as any)?.weight || ''}
+                              onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [ex.id]: { ...(logData.results[ex.id] as any), weight: e.target.value } } })}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1 block">Reps Done</label>
+                            <input
+                              type="text" inputMode="numeric" placeholder="e.g. 8"
+                              className="w-full bg-white border border-neutral-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-accent transition-all"
+                              value={(logData.results[ex.id] as any)?.reps || ''}
+                              onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [ex.id]: { ...(logData.results[ex.id] as any), reps: e.target.value } } })}
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}

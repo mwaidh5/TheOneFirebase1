@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { COURSES, COACHES } from '../constants';
-import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
 import { User } from '../types';
-import { doc, onSnapshot, setDoc, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, query, orderBy } from 'firebase/firestore';
 import { db, storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -12,108 +12,197 @@ interface ProfileProps {
   currentUser: User;
 }
 
+interface UserProfile extends User {
+  weight?: string;
+  bodyFat?: string;
+  trainingGoal?: string;
+  avatar?: string;
+  fitnessLevel?: string;
+  workoutsCompleted?: number;
+  minutesLogged?: number;
+  caloriesBurned?: number;
+}
+
+interface WorkoutLog {
+  id: string;
+  courseId?: string;
+  courseTitle?: string;
+  weekNum?: number;
+  dayId?: string;
+  dayTitle?: string;
+  dayNumber?: number;
+  loggedAt?: number;
+  loggedDayName?: string;
+  results?: Record<string, { weight?: string; reps?: string } | string>;
+  durationSeconds?: number;
+  rpe?: number;
+  completed?: boolean;
+}
+
+interface ChartEntry {
+  name: string;
+  val: number;
+  isToday: boolean;
+}
+
+const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function getWeekMonday(weekOffset: number): Date {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday + weekOffset * 7);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function isSameCalendarDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function fmtShort(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
-  const [userData, setUserData] = useState<any>(currentUser);
+  const [userData, setUserData] = useState<UserProfile>(currentUser as UserProfile);
   const [isUploading, setIsUploading] = useState(false);
-  const [workoutLogs, setWorkoutLogs] = useState<any[]>([]);
+  const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [activityView, setActivityView] = useState<'weekly' | 'monthly'>('weekly');
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
-     if (currentUser?.id) {
-         const unsub = onSnapshot(doc(db, 'users', currentUser.id), (doc) => {
-             if (doc.exists()) {
-                 setUserData({ ...currentUser, ...doc.data() });
-             }
-         });
-         return () => unsub();
-     }
+    if (!currentUser?.id) return;
+    const unsub = onSnapshot(doc(db, 'users', currentUser.id), (snap) => {
+      if (snap.exists()) setUserData({ ...currentUser, ...snap.data() } as UserProfile);
+    });
+    return () => unsub();
   }, [currentUser]);
 
-  // Load workout logs
   useEffect(() => {
     if (!currentUser?.id) return;
     const logsRef = collection(db, 'users', currentUser.id, 'workout_logs');
-    getDocs(query(logsRef, orderBy('loggedAt', 'desc'), limit(10)))
-      .then(snap => {
-        setWorkoutLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      })
-      .catch(() => setWorkoutLogs([]));
-  }, [currentUser]);
-  const [activityView, setActivityView] = useState<'weekly' | 'monthly'>('weekly');
-  const navigate = useNavigate();
-
-  // Firestore stores activityChart Mon-first (index 0=Mon … 6=Sun).
-  // Always remap to Sat-first for display.
-  const storedChart = userData?.activityChart;
-  const weeklyData: { name: string; val: number }[] =
-    storedChart && storedChart.length === 7
-      ? [
-          { name: 'S', val: storedChart[5]?.val ?? 0 }, // Sat
-          { name: 'S', val: storedChart[6]?.val ?? 0 }, // Sun
-          { name: 'M', val: storedChart[0]?.val ?? 0 }, // Mon
-          { name: 'T', val: storedChart[1]?.val ?? 0 }, // Tue
-          { name: 'W', val: storedChart[2]?.val ?? 0 }, // Wed
-          { name: 'T', val: storedChart[3]?.val ?? 0 }, // Thu
-          { name: 'F', val: storedChart[4]?.val ?? 0 }, // Fri
-        ]
-      : [
-          { name: 'S', val: 0 },
-          { name: 'S', val: 0 },
-          { name: 'M', val: 0 },
-          { name: 'T', val: 0 },
-          { name: 'W', val: 0 },
-          { name: 'T', val: 0 },
-          { name: 'F', val: 0 },
-        ];
-
-  // Monthly: aggregate workoutLogs into 4 weekly buckets for the current month.
-  const monthlyData: { name: string; val: number }[] = (() => {
-    const now = new Date();
-    const weeks = [
-      { name: 'W1', val: 0 },
-      { name: 'W2', val: 0 },
-      { name: 'W3', val: 0 },
-      { name: 'W4', val: 0 },
-    ];
-    workoutLogs.forEach(log => {
-      if (!log.loggedDate) return;
-      const d = new Date(log.loggedDate + 'T12:00:00');
-      if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) {
-        const week = Math.min(Math.floor((d.getDate() - 1) / 7), 3);
-        weeks[week].val += 1;
-      }
+    const unsub = onSnapshot(query(logsRef, orderBy('loggedAt', 'desc')), (snap) => {
+      setAllLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkoutLog)));
     });
-    return weeks;
-  })();
+    return () => unsub();
+  }, [currentUser]);
 
-  const data = activityView === 'weekly' ? weeklyData : monthlyData;
+  // ── Weekly chart ──────────────────────────────────────────────────────────────
+  const { weeklyData, weekLabel } = useMemo(() => {
+    const monday = getWeekMonday(weekOffset);
+    const sunday = new Date(monday.getTime() + 6 * 86400000);
+    sunday.setHours(23, 59, 59, 999);
+
+    const minutesByDay = new Map<string, number>();
+    allLogs.forEach(log => {
+      if (!log.loggedAt) return;
+      const d = new Date(log.loggedAt);
+      if (d < monday || d > sunday) return;
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      minutesByDay.set(key, (minutesByDay.get(key) ?? 0) + Math.round((log.durationSeconds ?? 0) / 60));
+    });
+
+    const today = new Date();
+    const days: ChartEntry[] = Array.from({ length: 7 }, (_, i) => {
+      const day = new Date(monday.getTime() + i * 86400000);
+      const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+      return {
+        name: `${DAY_LETTERS[day.getDay()]}|${day.getDate()}`,
+        val: minutesByDay.get(key) ?? 0,
+        isToday: isSameCalendarDay(day, today),
+      };
+    });
+
+    return {
+      weeklyData: days,
+      weekLabel: `${fmtShort(monday)} – ${fmtShort(new Date(monday.getTime() + 6 * 86400000))}`,
+    };
+  }, [allLogs, weekOffset]);
+
+  // ── Monthly chart ─────────────────────────────────────────────────────────────
+  const { monthlyData, monthLabel } = useMemo(() => {
+    const now = new Date();
+    const target = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const year = target.getFullYear();
+    const month = target.getMonth();
+    const lastDay = new Date(year, month + 1, 0);
+    lastDay.setHours(23, 59, 59, 999);
+
+    const weeks: ChartEntry[] = [];
+    let cursor = new Date(year, month, 1);
+    while (cursor <= lastDay) {
+      const wStart = new Date(cursor);
+      const wEnd = new Date(cursor.getTime() + 6 * 86400000);
+      if (wEnd > lastDay) wEnd.setTime(lastDay.getTime());
+      wEnd.setHours(23, 59, 59, 999);
+
+      const minutes = allLogs
+        .filter(log => {
+          if (!log.loggedAt) return false;
+          const d = new Date(log.loggedAt);
+          return d >= wStart && d <= wEnd;
+        })
+        .reduce((s, log) => s + Math.round((log.durationSeconds ?? 0) / 60), 0);
+
+      weeks.push({ name: `${wStart.getDate()}–${wEnd.getDate()}`, val: minutes, isToday: false });
+      cursor = new Date(cursor.getTime() + 7 * 86400000);
+    }
+
+    return { monthlyData: weeks, monthLabel: `${MONTH_NAMES[month]} ${year}` };
+  }, [allLogs, monthOffset]);
+
+  const chartData = activityView === 'weekly' ? weeklyData : monthlyData;
+  const navLabel = activityView === 'weekly' ? weekLabel : monthLabel;
+  const isCurrentPeriod = activityView === 'weekly' ? weekOffset >= 0 : monthOffset >= 0;
+
+  const renderTick = ({ x, y, payload }: { x: number; y: number; payload: { value: string; index: number } }) => {
+    const item = chartData[payload.index];
+    const isToday = item?.isToday ?? false;
+    if (activityView === 'weekly') {
+      const [letter, date] = payload.value.split('|');
+      return (
+        <g transform={`translate(${x},${y})`}>
+          <text x={0} y={0} dy={14} textAnchor="middle" fill={isToday ? '#137fec' : '#6b7280'} fontSize={9} fontWeight={900}>{letter}</text>
+          <text x={0} y={0} dy={26} textAnchor="middle" fill={isToday ? '#137fec' : '#52525b'} fontSize={8}>{date}</text>
+        </g>
+      );
+    }
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={14} textAnchor="middle" fill="#6b7280" fontSize={8} fontWeight={700}>{payload.value}</text>
+      </g>
+    );
+  };
+
+  const logsToShow = allLogs.slice(0, visibleCount);
 
   const handleMessageCoach = (instructorName: string) => {
     const coach = COACHES.find(c => c.name.includes(instructorName.split(' ')[0]));
-    if (coach) {
-      navigate(`/profile/messages?coachId=${coach.id}`);
-    }
+    if (coach) navigate(`/profile/messages?coachId=${coach.id}`);
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !currentUser?.id) return;
-      
-      setIsUploading(true);
-      try {
-          // Use cache-busting timestamp for uniqueness
-          const fileRef = ref(storage, `avatars/${currentUser.id}_${Date.now()}`);
-          await uploadBytes(fileRef, file, { contentType: file.type || 'image/jpeg' });
-          const url = await getDownloadURL(fileRef);
-          
-          await setDoc(doc(db, 'users', currentUser.id), {
-              avatar: url
-          }, { merge: true });
-      } catch (error: any) {
-          console.error("Error uploading avatar", error);
-          alert("Firebase rejected the upload: " + error.code + " - " + error.message);
-      } finally {
-          setIsUploading(false);
-      }
+    const file = e.target.files?.[0];
+    if (!file || !currentUser?.id) return;
+    setIsUploading(true);
+    try {
+      const fileRef = ref(storage, `avatars/${currentUser.id}_${Date.now()}`);
+      await uploadBytes(fileRef, file, { contentType: file.type || 'image/jpeg' });
+      const url = await getDownloadURL(fileRef);
+      await setDoc(doc(db, 'users', currentUser.id), { avatar: url }, { merge: true });
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+      alert('Firebase rejected the upload: ' + err.code + ' - ' + err.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -136,17 +225,17 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
             <div className="relative mb-8">
               <div className="w-40 h-40 rounded-[2.5rem] overflow-hidden border-8 border-neutral-50 shadow-2xl relative bg-neutral-100 flex items-center justify-center">
                 {userData.avatar ? (
-                    <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                    <span className="material-symbols-outlined text-[64px] text-neutral-300">person</span>
+                  <span className="material-symbols-outlined text-[64px] text-neutral-300">person</span>
                 )}
               </div>
               <label className={`absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-2xl shadow-xl hover:bg-accent transition-all cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
                 {isUploading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                    <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+                  <span className="material-symbols-outlined text-[20px]">photo_camera</span>
                 )}
               </label>
             </div>
@@ -165,20 +254,15 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
             </h3>
             <div className="space-y-6">
               {[
-                { label: 'Body Weight', val: userData.weight ? `${userData.weight} lbs` : '—', trend: null },
-                { label: 'Body Fat %', val: userData.bodyFat ? `${userData.bodyFat}%` : '—', trend: null },
-                { label: 'Training Goal', val: userData.trainingGoal || 'General', trend: null }
+                { label: 'Body Weight', val: userData.weight ? `${userData.weight} lbs` : '—' },
+                { label: 'Body Fat %', val: userData.bodyFat ? `${userData.bodyFat}%` : '—' },
+                { label: 'Training Goal', val: userData.trainingGoal || 'General' },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between pb-6 border-b border-neutral-50 last:border-0 last:pb-0">
                   <div>
                     <p className="text-[10px] text-neutral-300 uppercase font-black tracking-widest mb-1">{stat.label}</p>
                     <p className="text-xl font-black text-black uppercase">{stat.val}</p>
                   </div>
-                  {stat.trend && (
-                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-neutral-50 text-neutral-600`}>
-                      {stat.trend}
-                    </span>
-                  )}
                 </div>
               ))}
             </div>
@@ -187,9 +271,12 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
 
         {/* Right Column */}
         <div className="lg:col-span-8 space-y-12">
+
+          {/* ── Activity Cycle ── */}
           <div className="bg-black text-white rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-12">
+              {/* Header + view toggle */}
+              <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-black font-display uppercase tracking-tight">Activity Cycle</h2>
                 <div className="flex gap-2 bg-white/5 p-1 rounded-2xl">
                   <button
@@ -203,11 +290,12 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-12">
+              {/* Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-10">
                 {[
-                  { l: 'Workouts', v: userData?.workoutsCompleted || '0', t: userData?.workoutsCompleted ? '+Active' : 'Baseline' },
-                  { l: 'Min Logged', v: userData?.minutesLogged || '0', t: userData?.minutesLogged ? 'On Track' : 'Baseline' },
-                  { l: 'Calories', v: userData?.caloriesBurned || '0', t: userData?.caloriesBurned ? 'Optimal' : 'Baseline' }
+                  { l: 'Workouts', v: userData.workoutsCompleted ?? 0, t: userData.workoutsCompleted ? '+Active' : 'Baseline' },
+                  { l: 'Min Logged', v: userData.minutesLogged ?? 0, t: userData.minutesLogged ? 'On Track' : 'Baseline' },
+                  { l: 'Calories', v: userData.caloriesBurned ?? 0, t: userData.caloriesBurned ? 'Optimal' : 'Baseline' },
                 ].map(s => (
                   <div key={s.l} className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-2">
                     <p className="text-[10px] text-neutral-500 font-black uppercase tracking-[0.2em]">{s.l}</p>
@@ -219,13 +307,53 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
                 ))}
               </div>
 
-              <div className="h-64 w-full">
+              {/* Period navigation */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => activityView === 'weekly' ? setWeekOffset(w => w - 1) : setMonthOffset(m => m - 1)}
+                  className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/70">{navLabel}</span>
+                <button
+                  onClick={() => activityView === 'weekly' ? setWeekOffset(w => Math.min(w + 1, 0)) : setMonthOffset(m => Math.min(m + 1, 0))}
+                  disabled={isCurrentPeriod}
+                  className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </div>
+
+              {/* Chart */}
+              <div className="h-56 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 10, fontWeight: 900}} dy={10} />
-                    <Bar dataKey="val" radius={[8, 8, 0, 0]}>
-                      {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.val > 70 ? '#137fec' : '#333'} />
+                  <BarChart data={chartData} margin={{ bottom: 16 }}>
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={(props: { x: number; y: number; payload: { value: string; index: number } }) => renderTick(props)}
+                      height={40}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const val = payload[0]?.value as number;
+                        return (
+                          <div className="bg-neutral-800 px-3 py-2 rounded-xl text-[10px] font-black text-white shadow-xl border border-white/10">
+                            {val > 0 ? `${val} min` : 'No session'}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="val" radius={[6, 6, 0, 0]}>
+                      {chartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.isToday ? '#137fec' : entry.val > 0 ? '#e4e4e7' : '#3f3f46'}
+                        />
                       ))}
                     </Bar>
                   </BarChart>
@@ -235,49 +363,93 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
             <span className="material-symbols-outlined text-[200px] absolute -bottom-20 -right-20 text-white/5 rotate-12">analytics</span>
           </div>
 
-          {/* ── Recent Workout Activity ── */}
+          {/* ── Recent Activity ── */}
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">Recent Activity</h2>
             </div>
-            {workoutLogs.length === 0 ? (
+            {allLogs.length === 0 ? (
               <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
                 <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">fitness_center</span>
-                <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">No sessions logged yet.<br/>Complete a workout to see your history here.</p>
+                <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">No sessions logged yet.<br />Complete a workout to see your history here.</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {workoutLogs.map((log) => {
-                  const mins = Math.round((log.durationSeconds || 0) / 60);
-                  const secs = (log.durationSeconds || 0) % 60;
+              <div className="space-y-4">
+                {logsToShow.map((log) => {
+                  const mins = Math.round((log.durationSeconds ?? 0) / 60);
+                  const secs = (log.durationSeconds ?? 0) % 60;
                   const durationStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-                  const dateStr = log.loggedDate
-                    ? new Date(log.loggedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  const logDate = log.loggedAt ? new Date(log.loggedAt) : null;
+                  const dateStr = logDate
+                    ? logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : '—';
+                  const dayAbbrev = logDate ? DAY_ABBREVS[logDate.getDay()] : (log.loggedDayName?.slice(0, 3) ?? '—');
+                  // Show duration only for completed workouts (completed !== false handles old logs without the field)
+                  const showDuration = log.completed !== false && (log.durationSeconds ?? 0) > 0;
+                  const resultEntries = log.results ? Object.entries(log.results) : [];
+
                   return (
-                    <div key={log.id} className="bg-white rounded-2xl border border-neutral-100 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
-                      <div className="w-12 h-12 bg-black text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-white/50 leading-none">{log.loggedDayName?.slice(0,3) ?? '—'}</span>
-                        <span className="text-lg font-black leading-tight">{log.loggedDate ? new Date(log.loggedDate + 'T12:00:00').getDate() : '—'}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mb-0.5">{log.courseTitle || 'Session'} · Wk {log.weekNum} · Day {log.dayNumber}</p>
-                        <p className="text-base font-black uppercase text-black leading-tight truncate">{log.dayTitle || 'Training Session'}</p>
-                        <p className="text-[9px] font-bold text-neutral-400 mt-0.5">{dateStr}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="flex items-center gap-1 justify-end">
-                          <span className="material-symbols-outlined text-xs text-accent">timer</span>
-                          <span className="text-sm font-black text-black tabular-nums">{durationStr}</span>
+                    <div key={log.id} className="bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden hover:shadow-md transition-all">
+                      <div className="flex items-center gap-4 p-5">
+                        <div className="w-12 h-12 bg-black text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-white/50 leading-none">{dayAbbrev}</span>
+                          <span className="text-lg font-black leading-tight">{logDate?.getDate() ?? '—'}</span>
                         </div>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-neutral-300">Duration</p>
-                        {log.rpe && (
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest text-neutral-500">RPE {log.rpe}</span>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mb-0.5">{log.courseTitle || 'Session'} · Wk {log.weekNum} · Day {log.dayNumber}</p>
+                          <p className="text-base font-black uppercase text-black leading-tight truncate">{log.dayTitle || 'Training Session'}</p>
+                          <p className="text-[9px] font-bold text-neutral-400 mt-0.5">{dateStr}</p>
+                        </div>
+                        {showDuration ? (
+                          <div className="text-right shrink-0">
+                            <div className="flex items-center gap-1 justify-end">
+                              <span className="material-symbols-outlined text-xs text-accent">timer</span>
+                              <span className="text-sm font-black text-black tabular-nums">{durationStr}</span>
+                            </div>
+                            <p className="text-[8px] font-black uppercase tracking-widest text-neutral-300">Duration</p>
+                            {log.rpe && (
+                              <span className="inline-block mt-1 px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest text-neutral-500">RPE {log.rpe}</span>
+                            )}
+                          </div>
+                        ) : log.rpe ? (
+                          <div className="text-right shrink-0">
+                            <span className="px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest text-neutral-500">RPE {log.rpe}</span>
+                          </div>
+                        ) : null}
                       </div>
+
+                      {resultEntries.length > 0 && (
+                        <div className="border-t border-neutral-50 px-5 py-3 bg-neutral-50/50">
+                          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-neutral-300 mb-2">Logged Results</p>
+                          <div className="flex flex-wrap gap-2">
+                            {resultEntries.map(([exId, result]) => {
+                              const r = typeof result === 'object' ? result : null;
+                              const display = r
+                                ? [r.weight ? `${r.weight} kg` : null, r.reps ? `${r.reps} reps` : null].filter(Boolean).join(' × ')
+                                : typeof result === 'string' ? result : null;
+                              if (!display) return null;
+                              return (
+                                <span key={exId} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-100 rounded-xl shadow-sm">
+                                  <span className="material-symbols-outlined text-[10px] text-accent">fitness_center</span>
+                                  <span className="text-[9px] font-black uppercase tracking-widest text-black">{display}</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+
+                {allLogs.length > visibleCount && (
+                  <button
+                    onClick={() => setVisibleCount(c => c + 10)}
+                    className="w-full py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition-all border border-neutral-100"
+                  >
+                    Show More · {allLogs.length - visibleCount} remaining
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -295,7 +467,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
               <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500">
                 <div className="relative h-56 overflow-hidden">
                   <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-6 left-6 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg">
                       <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar} alt="Coach" className="w-full h-full object-cover" />
@@ -311,16 +483,16 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
                       <span className="text-sm font-black text-black">65%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-2 border border-neutral-100 overflow-hidden">
-                      <div className="bg-black h-full rounded-full w-[65%] transition-all duration-1000"></div>
+                      <div className="bg-black h-full rounded-full w-[65%] transition-all duration-1000" />
                     </div>
                   </div>
                   <div className="flex gap-4">
                     <Link to={`/workout/${course.id}`} className="flex-[2] text-center bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-xl">
                       Resume
                     </Link>
-                    <button 
+                    <button
                       onClick={() => handleMessageCoach(course.instructor)}
-                      className="flex-1 bg-neutral-50 text-black py-4 rounded-2xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center group/btn"
+                      className="flex-1 bg-neutral-50 text-black py-4 rounded-2xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center"
                     >
                       <span className="material-symbols-outlined text-[20px] filled">chat</span>
                     </button>
@@ -329,6 +501,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
               </div>
             ))}
           </div>
+
         </div>
       </div>
     </div>

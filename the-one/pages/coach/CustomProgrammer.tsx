@@ -496,6 +496,17 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                                     </div>
                                   ))}
                                </div>
+                               <div className="flex items-center gap-2 mt-1 px-1">
+                                  <span className="text-[10px] text-neutral-400 font-medium">Last weight:</span>
+                                  <input
+                                    type="text"
+                                    value={ex.weight || ''}
+                                    onChange={e => updateExercise(exIdx, 'weight', e.target.value)}
+                                    placeholder="e.g. 80"
+                                    className="w-16 bg-transparent border-b border-neutral-200 focus:border-black outline-none text-[10px] font-black text-black text-center transition-colors"
+                                  />
+                                  <span className="text-[10px] text-neutral-400 font-medium">kg</span>
+                               </div>
                             </div>
                             <div className="flex flex-col justify-center">
                                <textarea rows={2} value={ex.description} onChange={e => updateExercise(exIdx, 'description', e.target.value)} placeholder="Personal tips for this athlete..." className="w-full bg-white border border-neutral-100 rounded-2xl p-4 text-xs font-medium resize-none outline-none shadow-sm focus:border-black" />
