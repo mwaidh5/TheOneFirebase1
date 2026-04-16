@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, User } from '../types';
 import { logEvent } from '../hooks/useLogEvent';
@@ -135,6 +135,11 @@ function groupExercises(exercises: Exercise[]): ExerciseBlock[] {
   return blocks;
 }
 
+// Normalize exercise names for fuzzy matching (strips case, spaces, punctuation)
+function normalizeExerciseName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUser }) => {
   const { id } = useParams();
   const location = useLocation();
@@ -168,8 +173,16 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   // ── Active exercise ─────────────────────────────────────────────────────────
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null);
 
+  // ── Per-exercise weight unit ────────────────────────────────────────────────
+  const [exerciseUnits, setExerciseUnits] = useState<Record<string, 'kg' | 'lbs'>>({});
+  const getUnit = (exId: string): 'kg' | 'lbs' => exerciseUnits[exId] || 'kg';
+  const setUnit = (exId: string, unit: 'kg' | 'lbs') =>
+    setExerciseUnits((prev: Record<string, 'kg' | 'lbs'>) => ({ ...prev, [exId]: unit }));
+
   // ── Previous lift logs ──────────────────────────────────────────────────────
   const [prevLifts, setPrevLifts] = useState<Record<string, any>>({});
+  // Keyed by normalized exercise name — used for cross-course history matching
+  const [prevLiftsByName, setPrevLiftsByName] = useState<Record<string, { weight: string; reps: string; unit: string; loggedAt: number }>>({});
 
   // ── Log Data ────────────────────────────────────────────────────────────────
   const [logData, setLogData] = useState<{
@@ -196,7 +209,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     return () => unsub();
   }, [currentUser, course]);
 
-  // ─── Load Previous Lifts ────────────────────────────────────────────────────
+  // ─── Load Previous Lifts (exact day match) ──────────────────────────────────
   useEffect(() => {
     if (!currentUser || !course || !selectedDay) return;
     const logKey = `${course.id}_${selectedWeek?.weekNumber ?? 0}_${selectedDay.id}`;
@@ -212,6 +225,30 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     return () => unsub();
   }, [currentUser, course, selectedDay, selectedWeek]);
 
+  // ─── Load All Lifts by Normalized Name (cross-course history) ───────────────
+  useEffect(() => {
+    if (!currentUser) return;
+    const logsRef = collection(db, 'users', currentUser.id, 'workout_logs');
+    const unsub = onSnapshot(logsRef, (snap) => {
+      const byName: Record<string, { weight: string; reps: string; unit: string; loggedAt: number }> = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (!data.results || !data.loggedAt) return;
+        Object.values(data.results).forEach((result: unknown) => {
+          const r = result as { weight?: string; reps?: string; name?: string; unit?: string } | null;
+          if (!r?.weight || !r?.name) return;
+          const key = normalizeExerciseName(r.name);
+          const existing = byName[key];
+          if (!existing || data.loggedAt > existing.loggedAt) {
+            byName[key] = { weight: r.weight, reps: r.reps || '—', unit: r.unit || 'kg', loggedAt: data.loggedAt };
+          }
+        });
+      });
+      setPrevLiftsByName(byName);
+    });
+    return () => unsub();
+  }, [currentUser]);
+
   // ─── Set initial active exercise when workout starts ────────────────────────
   useEffect(() => {
     if (!workoutStarted || !selectedDay) { setActiveExerciseId(null); return; }
@@ -226,6 +263,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
       resetTimer();
     }
   }, [view]);
+
 
   const saveProgress = async (type: 'exercises' | 'days' | 'weeks', newSet: Set<string>) => {
     if (!currentUser || !course) return;
@@ -301,6 +339,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     if (!wasCompleted && selectedDay && workoutStarted) {
       const nextUncompleted = selectedDay.exercises.find(ex => !next.has(ex.id));
       setActiveExerciseId(nextUncompleted?.id ?? null);
+
+      // Auto-finish: last exercise just completed — trigger session completion
+      const allDone = selectedDay.exercises.length > 0 && selectedDay.exercises.every(ex => next.has(ex.id));
+      if (allDone && !completedDays.has(selectedDay.id)) {
+        toggleDayFinished(selectedDay.id);
+      }
     }
   };
 
@@ -346,6 +390,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
 
         // ── Auto-save inline weight/reps to workout_logs ──────────────────
         if (Object.keys(logData.results).length > 0) {
+          const enrichedResults = Object.fromEntries(
+            Object.entries(logData.results).map(([exId, result]) => [
+              exId,
+              { ...(result as { weight: string; reps: string }), name: selectedDay?.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: getUnit(exId) },
+            ])
+          );
           const logKey = `${course.id}_${selectedWeek?.weekNumber ?? 0}_${selectedDay?.id}`;
           const logRef = doc(db, 'users', currentUser.id, 'workout_logs', logKey);
           await setDoc(logRef, {
@@ -358,7 +408,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             loggedAt: now.getTime(),
             loggedDate: now.toISOString().split('T')[0],
             loggedDayName: dayNames[now.getDay()],
-            results: logData.results,
+            results: enrichedResults,
             durationSeconds: captured,
             rpe: logData.rpe,
             completed: true,
@@ -415,6 +465,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         const now = new Date();
         const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
         const logKey = `${course.id}_${selectedWeek?.weekNumber ?? 0}_${selectedDay.id}`;
+        const enrichedResults = Object.fromEntries(
+          Object.entries(logData.results).map(([exId, result]) => [
+            exId,
+            { ...(result as { weight: string; reps: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: weightUnit },
+          ])
+        );
         const logRef = doc(db, 'users', currentUser.id, 'workout_logs', logKey);
         await setDoc(logRef, {
           courseId: course.id,
@@ -427,7 +483,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           loggedDate: now.toISOString().split('T')[0],
           loggedDayName: dayNames[now.getDay()],
           rpe: logData.rpe,
-          results: logData.results,
+          results: enrichedResults,
           durationSeconds: timerElapsed,
           completed: false,
         }, { merge: true });
@@ -452,7 +508,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const isSuperSet = item.format === 'SUPER_SET';
     const isEmom = item.format === 'EMOM' || item.format === 'AMRAP' || item.format === 'HIIT';
     const isCardio = item.format === 'CARDIO' || item.format === 'FOR_TIME';
-    const prevLift = prevLifts[item.id];
+    const prevLift = prevLifts[item.id] ?? prevLiftsByName[normalizeExerciseName(item.name)];
     const hasVideo = !!item.videoUrl;
     const hasImage = !!item.imageUrl;
 
@@ -571,24 +627,33 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                 <span className="material-symbols-outlined text-xs text-neutral-400">history</span>
                 <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">Last:</span>
                 <span className="text-[9px] font-black uppercase tracking-widest text-accent">
-                  {typeof prevLift === 'object' ? `${(prevLift as any).weight || '—'} kg × ${(prevLift as any).reps || '—'} reps` : prevLift}
+                  {typeof prevLift === 'object' ? `${(prevLift as any).weight || '—'} ${(prevLift as any).unit || 'kg'} × ${(prevLift as any).reps || '—'} reps` : prevLift}
                 </span>
               </div>
             )}
 
             {/* Inline weight + reps inputs */}
             <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <span className="text-[9px] text-neutral-400 font-medium">Weight:</span>
                 <input
                   type="text"
                   inputMode="decimal"
-                  placeholder="kg"
+                  placeholder="0"
                   value={logData.results[item.id]?.weight || ''}
                   onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [item.id]: { ...logData.results[item.id], weight: e.target.value } } })}
                   className="w-12 bg-transparent border-b border-neutral-200 focus:border-black outline-none text-[9px] font-black text-black text-center transition-colors"
                 />
-                <span className="text-[9px] text-neutral-400 font-medium">kg</span>
+                <div className="flex items-center gap-0.5 bg-neutral-100 rounded-md p-0.5">
+                  {(['kg', 'lbs'] as const).map(u => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setUnit(item.id, u)}
+                      className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wide transition-all ${getUnit(item.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400 hover:text-black'}`}
+                    >{u}</button>
+                  ))}
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-[9px] text-neutral-400 font-medium">Reps:</span>
@@ -1089,7 +1154,16 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                         </div>
                         <div className="md:col-span-5 flex gap-3">
                           <div className="flex-1">
-                            <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1 block">Weight (kg)</label>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest">{`Weight (${getUnit(ex.id)})`}</label>
+                              <div className="flex items-center gap-0.5 bg-neutral-100 rounded p-0.5">
+                                {(['kg', 'lbs'] as const).map(u => (
+                                  <button key={u} type="button" onClick={() => setUnit(ex.id, u)}
+                                    className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wide transition-all ${getUnit(ex.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400 hover:text-black'}`}
+                                  >{u}</button>
+                                ))}
+                              </div>
+                            </div>
                             <input
                               type="text" inputMode="decimal" placeholder="e.g. 80"
                               className="w-full bg-white border border-neutral-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-accent transition-all"

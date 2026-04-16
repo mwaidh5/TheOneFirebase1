@@ -214,7 +214,7 @@ const App: React.FC = () => {
             <Route path="/signup" element={<Signup onSignup={setCurrentUser} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             
-            <Route path="/profile" element={isLoggedIn ? <Profile currentUser={currentUser!} /> : <Navigate to="/login" />} />
+            <Route path="/profile" element={isLoggedIn ? <Profile currentUser={currentUser!} courses={courses} /> : <Navigate to="/login" />} />
             <Route path="/profile/courses" element={isLoggedIn ? <MyCourses currentUser={currentUser} courses={courses} /> : <Navigate to="/login" />} />
             <Route path="/profile/messages" element={isLoggedIn ? <Chat currentUser={currentUser!} /> : <Navigate to="/login" />} />
             <Route path="/profile/nutrition" element={isLoggedIn ? <MealPlan /> : <Navigate to="/login" />} />

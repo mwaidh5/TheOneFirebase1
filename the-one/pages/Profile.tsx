@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { COURSES, COACHES } from '../constants';
+import { COACHES } from '../constants';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
-import { User } from '../types';
+import { User, Course } from '../types';
 import { doc, onSnapshot, setDoc, collection, query, orderBy } from 'firebase/firestore';
 import { db, storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface ProfileProps {
   currentUser: User;
+  courses: Course[];
 }
 
 interface UserProfile extends User {
@@ -33,7 +34,7 @@ interface WorkoutLog {
   dayNumber?: number;
   loggedAt?: number;
   loggedDayName?: string;
-  results?: Record<string, { weight?: string; reps?: string } | string>;
+  results?: Record<string, { weight?: string; reps?: string; name?: string; unit?: string } | string>;
   durationSeconds?: number;
   rpe?: number;
   completed?: boolean;
@@ -67,11 +68,14 @@ function fmtShort(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
+const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
   const [userData, setUserData] = useState<UserProfile>(currentUser as UserProfile);
   const [isUploading, setIsUploading] = useState(false);
   const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [liftHistoryOpen, setLiftHistoryOpen] = useState(false);
+  const [liftVisibleCount, setLiftVisibleCount] = useState(5);
+  const [courseProgress, setCourseProgress] = useState<Record<string, string[]>>({});
   const [activityView, setActivityView] = useState<'weekly' | 'monthly'>('weekly');
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
@@ -90,6 +94,17 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
     const logsRef = collection(db, 'users', currentUser.id, 'workout_logs');
     const unsub = onSnapshot(query(logsRef, orderBy('loggedAt', 'desc')), (snap) => {
       setAllLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkoutLog)));
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const progressRef = collection(db, 'users', currentUser.id, 'progress');
+    const unsub = onSnapshot(progressRef, (snap) => {
+      const map: Record<string, string[]> = {};
+      snap.docs.forEach(d => { map[d.id] = (d.data().completedDays as string[]) || []; });
+      setCourseProgress(map);
     });
     return () => unsub();
   }, [currentUser]);
@@ -157,6 +172,41 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
 
     return { monthlyData: weeks, monthLabel: `${MONTH_NAMES[month]} ${year}` };
   }, [allLogs, monthOffset]);
+
+  // ── Lift history (all logged weight entries across all sessions) ─────────────
+  const liftHistory = useMemo(() => {
+    const entries: Array<{
+      date: Date;
+      exerciseId: string;
+      name: string;
+      weight: string;
+      unit: string;
+      reps: string;
+      courseTitle: string;
+      dayTitle: string;
+      logId: string;
+    }> = [];
+    allLogs.forEach(log => {
+      if (!log.results || !log.loggedAt) return;
+      const date = new Date(log.loggedAt);
+      Object.entries(log.results).forEach(([exId, result]) => {
+        const r = typeof result === 'object' ? result as { weight?: string; reps?: string; name?: string; unit?: string } : null;
+        if (!r?.weight) return;
+        entries.push({
+          date,
+          exerciseId: exId,
+          name: r.name || 'Exercise',
+          weight: r.weight,
+          unit: r.unit || 'kg',
+          reps: r.reps || '—',
+          courseTitle: log.courseTitle || 'Session',
+          dayTitle: log.dayTitle || '',
+          logId: log.id,
+        });
+      });
+    });
+    return entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [allLogs]);
 
   const chartData = activityView === 'weekly' ? weeklyData : monthlyData;
   const navLabel = activityView === 'weekly' ? weekLabel : monthLabel;
@@ -419,23 +469,21 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
                       </div>
 
                       {resultEntries.length > 0 && (
-                        <div className="border-t border-neutral-50 px-5 py-3 bg-neutral-50/50">
-                          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-neutral-300 mb-2">Logged Results</p>
-                          <div className="flex flex-wrap gap-2">
-                            {resultEntries.map(([exId, result]) => {
-                              const r = typeof result === 'object' ? result : null;
-                              const display = r
-                                ? [r.weight ? `${r.weight} kg` : null, r.reps ? `${r.reps} reps` : null].filter(Boolean).join(' × ')
-                                : typeof result === 'string' ? result : null;
-                              if (!display) return null;
-                              return (
-                                <span key={exId} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-100 rounded-xl shadow-sm">
-                                  <span className="material-symbols-outlined text-[10px] text-accent">fitness_center</span>
-                                  <span className="text-[9px] font-black uppercase tracking-widest text-black">{display}</span>
-                                </span>
-                              );
-                            })}
-                          </div>
+                        <div className="border-t border-neutral-50 px-5 py-3 bg-neutral-50/50 flex items-center gap-2 flex-wrap">
+                          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-neutral-300 shrink-0">Movements</span>
+                          {resultEntries.slice(0, 4).map(([exId, result]) => {
+                            const name = (typeof result === 'object' && result !== null)
+                              ? (result as { name?: string }).name
+                              : null;
+                            return name ? (
+                              <span key={exId} className="text-[8px] font-black uppercase tracking-wide text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-lg">
+                                {name}
+                              </span>
+                            ) : null;
+                          })}
+                          {resultEntries.length > 4 && (
+                            <span className="text-[8px] font-black uppercase tracking-wide text-neutral-400">+{resultEntries.length - 4} more</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -454,52 +502,151 @@ const Profile: React.FC<ProfileProps> = ({ currentUser }) => {
             )}
           </div>
 
+          {/* ── Lift History ── */}
+          <div>
+            <button
+              onClick={() => { setLiftHistoryOpen((o: boolean) => !o); setLiftVisibleCount(5); }}
+              className="w-full flex items-center justify-between group mb-0"
+            >
+              <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">Lift History</h2>
+              <div className="flex items-center gap-3">
+                {liftHistory.length > 0 && (
+                  <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{liftHistory.length} entries</span>
+                )}
+                <div className="w-9 h-9 rounded-xl bg-neutral-100 group-hover:bg-neutral-200 flex items-center justify-center transition-all">
+                  <span className={`material-symbols-outlined text-base text-neutral-500 transition-transform duration-300 ${liftHistoryOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                </div>
+              </div>
+            </button>
+
+            {liftHistoryOpen && (
+              <div className="mt-6">
+                {liftHistory.length === 0 ? (
+                  <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
+                    <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">fitness_center</span>
+                    <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">No lifts logged yet.<br />Enter weights during a workout to track your progress here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {liftHistory.slice(0, liftVisibleCount).map((entry: typeof liftHistory[0], idx: number) => {
+                      const dateStr = entry.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                      return (
+                        <div key={`${entry.logId}_${entry.exerciseId}_${idx}`} className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4 flex items-center gap-4 hover:shadow-md transition-all">
+                          <div className="w-10 h-10 bg-neutral-900 text-white rounded-xl flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-sm">fitness_center</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black uppercase text-black leading-tight truncate">{entry.name}</p>
+                            <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{entry.courseTitle}{entry.dayTitle ? ` · ${entry.dayTitle}` : ''} · {dateStr}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xl font-black text-black tabular-nums leading-none">
+                              {entry.weight} <span className="text-xs font-bold text-neutral-400">{entry.unit}</span>
+                            </p>
+                            <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mt-0.5">{entry.reps} reps</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="flex gap-3">
+                      {liftHistory.length > liftVisibleCount && (
+                        <button
+                          onClick={() => setLiftVisibleCount((c: number) => c + 10)}
+                          className="flex-1 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition-all border border-neutral-100"
+                        >
+                          Show More · {liftHistory.length - liftVisibleCount} remaining
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { setLiftHistoryOpen(false); setLiftVisibleCount(5); }}
+                        className="px-6 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition-all border border-neutral-100 flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">expand_less</span>
+                        Collapse
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* ── Active Programs ── */}
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">Active Programs</h2>
               <Link to="/courses" className="text-[10px] font-black text-accent uppercase tracking-[0.3em] hover:underline">Browse All</Link>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {COURSES.map(course => (
-              <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500">
-                <div className="relative h-56 overflow-hidden">
-                  <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-6 left-6 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg">
-                      <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar} alt="Coach" className="w-full h-full object-cover" />
-                    </div>
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Coach {course.instructor.split(' ')[0]}</span>
+            {(() => {
+              const enrolledCourses = courses.filter(c =>
+                (userData.enrolledCourseIds || []).includes(c.id)
+              );
+              if (enrolledCourses.length === 0) {
+                return (
+                  <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
+                    <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">menu_book</span>
+                    <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">No active programs yet.<br />Enroll in a course to get started.</p>
+                    <Link to="/courses" className="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all">Browse Courses</Link>
                   </div>
+                );
+              }
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  {enrolledCourses.map((course: Course) => {
+                    const totalDays = (course.weeks || []).reduce((sum: number, w) => sum + w.days.length, 0);
+                    const completedDayCount = (courseProgress[course.id] || []).length;
+                    const progress = totalDays > 0 ? Math.min(100, Math.round((completedDayCount / totalDays) * 100)) : 0;
+                    const coachAvatar = COACHES.find((c: { name: string; avatar?: string }) => c.name.includes(course.instructor.split(' ')[0]))?.avatar;
+                    return (
+                      <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500">
+                        {course.image ? (
+                          <div className="relative h-56 overflow-hidden">
+                            <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                            <div className="absolute bottom-6 left-6 flex items-center gap-3">
+                              {coachAvatar && (
+                                <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg">
+                                  <img src={coachAvatar} alt="Coach" className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <span className="text-[10px] font-black text-white uppercase tracking-widest">Coach {course.instructor.split(' ')[0]}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="h-24 bg-neutral-900 flex items-center px-10">
+                            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Coach {course.instructor.split(' ')[0]}</span>
+                          </div>
+                        )}
+                        <div className="p-10 space-y-8">
+                          <div>
+                            <h3 className="text-2xl font-black text-black uppercase tracking-tight mb-2 font-display">{course.title}</h3>
+                            <div className="flex justify-between items-end mb-2">
+                              <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Progress</span>
+                              <span className="text-sm font-black text-black">{progress}%</span>
+                            </div>
+                            <div className="w-full bg-neutral-50 rounded-full h-2 border border-neutral-100 overflow-hidden">
+                              <div className="bg-black h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
+                            </div>
+                          </div>
+                          <div className="flex gap-4">
+                            <Link to={`/workout/${course.id}`} className="flex-[2] text-center bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-xl">
+                              Resume
+                            </Link>
+                            <button
+                              onClick={() => handleMessageCoach(course.instructor)}
+                              className="flex-1 bg-neutral-50 text-black py-4 rounded-2xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center"
+                            >
+                              <span className="material-symbols-outlined text-[20px] filled">chat</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="p-10 space-y-8">
-                  <div>
-                    <h3 className="text-2xl font-black text-black uppercase tracking-tight mb-2 font-display">{course.title}</h3>
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Progress</span>
-                      <span className="text-sm font-black text-black">65%</span>
-                    </div>
-                    <div className="w-full bg-neutral-50 rounded-full h-2 border border-neutral-100 overflow-hidden">
-                      <div className="bg-black h-full rounded-full w-[65%] transition-all duration-1000" />
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <Link to={`/workout/${course.id}`} className="flex-[2] text-center bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-xl">
-                      Resume
-                    </Link>
-                    <button
-                      onClick={() => handleMessageCoach(course.instructor)}
-                      className="flex-1 bg-neutral-50 text-black py-4 rounded-2xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center"
-                    >
-                      <span className="material-symbols-outlined text-[20px] filled">chat</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })()}
           </div>
 
         </div>

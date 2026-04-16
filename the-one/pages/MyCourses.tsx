@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Course, User, UserRole, Coach, CustomCourseRequest } from '../types';
 import { COACHES } from '../constants';
@@ -15,7 +15,7 @@ interface MyCoursesProps {
 const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
   const navigate = useNavigate();
   const [customRequests, setCustomRequests] = useState<CustomCourseRequest[]>([]);
-  const [logsByCourseId, setLogsByCourseId] = useState<Record<string, Set<number>>>({});
+  const [courseProgress, setCourseProgress] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (!currentUser) {
@@ -34,20 +34,13 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
 
   useEffect(() => {
     if (!currentUser?.id) return;
-    const logsRef = collection(db, 'users', currentUser.id, 'workout_logs');
-    getDocs(query(logsRef, orderBy('loggedAt', 'desc'))).then(snap => {
-      const map: Record<string, Set<number>> = {};
-      snap.docs.forEach(d => {
-        const data = d.data();
-        const cid: string = data.courseId;
-        const wn: number = data.weekNum;
-        if (cid && wn) {
-          if (!map[cid]) map[cid] = new Set();
-          map[cid].add(wn);
-        }
-      });
-      setLogsByCourseId(map);
-    }).catch(() => {});
+    const progressRef = collection(db, 'users', currentUser.id, 'progress');
+    const unsub = onSnapshot(progressRef, (snap) => {
+      const map: Record<string, string[]> = {};
+      snap.docs.forEach(d => { map[d.id] = (d.data().completedDays as string[]) || []; });
+      setCourseProgress(map);
+    });
+    return () => unsub();
   }, [currentUser]);
 
   // Filter courses based on user's enrollment
@@ -144,9 +137,9 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       {ownedCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
           {ownedCourses.map(course => {
-            const totalWeeks = course.weeks?.length || 1;
-            const completedWeeks = logsByCourseId[course.id]?.size || 0;
-            const pct = Math.min(Math.round((completedWeeks / totalWeeks) * 100), 100);
+            const totalDays = (course.weeks || []).reduce((sum: number, w: { days: unknown[] }) => sum + w.days.length, 0);
+            const completedDays = (courseProgress[course.id] || []).length;
+            const pct = totalDays > 0 ? Math.min(Math.round((completedDays / totalDays) * 100), 100) : 0;
             return (
             <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500 flex flex-col relative">
               <div className="relative h-56 md:h-64 overflow-hidden shrink-0">
@@ -169,7 +162,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                   <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-tight font-display leading-tight line-clamp-2">{course.title}</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">{completedWeeks}/{totalWeeks} weeks done</span>
+                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">{completedDays}/{totalDays} days done</span>
                       <span className="text-xs md:text-sm font-black text-black">{pct}%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-1.5 overflow-hidden">
