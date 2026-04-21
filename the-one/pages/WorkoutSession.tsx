@@ -614,6 +614,19 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               ))}
             </div>
 
+            {/* EMOM sub-exercises */}
+            {item.format === 'EMOM' && item.emomItems && item.emomItems.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[7px] font-black uppercase tracking-[0.2em] text-orange-400">Per Round</p>
+                {item.emomItems.map((emomItem, idx) => (
+                  <div key={emomItem.id} className="flex items-center justify-between bg-orange-50/40 rounded-xl px-3 py-2 border border-orange-100">
+                    <span className="text-[11px] font-bold text-black">{idx + 1}. {emomItem.name}</span>
+                    <span className="text-[9px] font-black text-orange-500 shrink-0 ml-2">{emomItem.time}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Coach cue */}
             {item.description && (
               <p className="text-[11px] font-medium text-neutral-400 leading-relaxed italic border-l-2 border-neutral-200 pl-3">

@@ -69,6 +69,21 @@ const SortableExercise = ({ ex, exIdx, updateExercise, setIsPickerOpen, weeks, a
                             <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.restInterval || ""} onChange={e => updateExercise(exIdx, "restInterval", e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                          </div>
                       )}
+                      {ex.format === "EMOM" && (
+                         <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 space-y-2">
+                            <p className="text-[8px] font-black uppercase text-orange-400">Exercises Per Round</p>
+                            {(ex.emomItems || []).map((item: any, itemIdx: number) => (
+                               <div key={item.id} className="flex gap-2 items-center">
+                                  <input type="text" value={item.name} onChange={e => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, "emomItems", items); }} placeholder="Exercise name" className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                                  <input type="text" value={item.time} onChange={e => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], time: e.target.value }; updateExercise(exIdx, "emomItems", items); }} placeholder="30s" className="w-16 bg-white border border-orange-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
+                                  <button onClick={() => updateExercise(exIdx, "emomItems", (ex.emomItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-orange-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
+                               </div>
+                            ))}
+                            <button onClick={() => updateExercise(exIdx, "emomItems", [...(ex.emomItems || []), { id: String(Date.now()), name: "", time: "" }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors">
+                               <span className="material-symbols-outlined text-sm">add_circle</span> Add Exercise
+                            </button>
+                         </div>
+                      )}
                    </div>
                 )}
 

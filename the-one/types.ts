@@ -76,12 +76,18 @@ export interface AthleteSubmission {
   submittedAt: number;
 }
 
+export interface EmomItem {
+  id: string;
+  name: string;
+  time: string; // e.g. "30s", "1:00"
+}
+
 export interface Exercise {
   id: string;
   name: string;
   format: ExerciseFormat;
   description?: string;
-  
+
   // Standard / Max Effort
   sets?: number;
   reps?: string;
@@ -99,12 +105,13 @@ export interface Exercise {
   restInterval?: string; // "10s"
   durationMinutes?: number; // Total EMOM/AMRAP duration
   rounds?: number; // For Circuits/HIIT
+  emomItems?: EmomItem[]; // Sub-exercises for EMOM (each with name + time)
 
   // Linking for Supersets
   supersetId?: string; // ID to link exercises together
   orderInSuperset?: number;
 
-  dropSteps?: string; 
+  dropSteps?: string;
   videoUrl?: string;
   imageUrl?: string;
   collaboratorId?: string;
