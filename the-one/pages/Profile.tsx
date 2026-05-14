@@ -17,7 +17,6 @@ interface UserProfile extends User {
   weight?: string;
   bodyFat?: string;
   trainingGoal?: string;
-  avatar?: string;
   fitnessLevel?: string;
   workoutsCompleted?: number;
   minutesLogged?: number;

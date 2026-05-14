@@ -57,6 +57,22 @@ const SortableExercise = ({ ex, exIdx, updateExercise, setIsPickerOpen, weeks, a
                    </div>
                 )}
 
+                {ex.format === "FOR_TIME" && (
+                   <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-2">
+                      <p className="text-[8px] font-black uppercase text-blue-400">Movements To Complete</p>
+                      {(ex.forTimeItems || []).map((item: any, itemIdx: number) => (
+                         <div key={item.id} className="flex gap-2 items-center">
+                            <input type="text" value={item.name} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, "forTimeItems", items); }} placeholder="Exercise name" className="flex-1 bg-white border border-blue-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                            <input type="text" value={item.reps || ""} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, "forTimeItems", items); }} placeholder="21 reps" className="w-20 bg-white border border-blue-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
+                            <button onClick={() => updateExercise(exIdx, "forTimeItems", (ex.forTimeItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-blue-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
+                         </div>
+                      ))}
+                      <button onClick={() => updateExercise(exIdx, "forTimeItems", [...(ex.forTimeItems || []), { id: String(Date.now()), name: "", reps: "" }])} className="text-[8px] font-black uppercase text-blue-400 flex items-center gap-1 hover:text-blue-600 transition-colors">
+                         <span className="material-symbols-outlined text-sm">add_circle</span> Add Movement
+                      </button>
+                   </div>
+                )}
+
                 {(ex.format === "EMOM" || ex.format === "AMRAP" || ex.format === "HIIT") && (
                    <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">

@@ -207,8 +207,7 @@ const AdminActivityFeed: React.FC = () => {
             return (
               <div
                 key={log.id}
-                className="group bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row sm:items-center gap-4 animate-in slide-in-from-bottom-2 duration-300 cursor-pointer"
-                style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
+                className="group bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row sm:items-center gap-4 cursor-pointer"
                 onClick={() => setSelectedLog(log)}
               >
                 {/* Type Icon */}

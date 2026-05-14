@@ -103,7 +103,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
       try {
           const submissionsData: AthleteSubmission[] = Object.entries(submissions).map(([k, v]) => ({
               testId: k,
-              data: v,
+              data: v as string,
               submittedAt: Date.now()
           }));
           
@@ -128,7 +128,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
     try {
         const submissionsData: AthleteSubmission[] = Object.entries(submissions).map(([k, v]) => ({
             testId: k,
-            data: v,
+            data: v as string,
             submittedAt: Date.now()
         }));
         

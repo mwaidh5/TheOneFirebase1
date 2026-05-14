@@ -19,7 +19,7 @@ export function useNotifications(currentUser: User | null | undefined) {
 
   useEffect(() => {
     if (!currentUser || initialised.current) return;
-    if (VAPID_KEY === 'YOUR_VAPID_KEY') {
+    if (!VAPID_KEY || VAPID_KEY.startsWith('YOUR_')) {
       console.warn('[FCM] VAPID key not set. Paste it in firebase.ts to enable push notifications.');
       return;
     }

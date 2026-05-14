@@ -143,7 +143,7 @@ const AdminDashboard: React.FC = () => {
            </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white rounded-[3rem] border border-neutral-100 shadow-2xl flex flex-col h-full overflow-hidden">
+        <div className="lg:col-span-4 bg-white rounded-[3rem] border border-neutral-100 shadow-2xl flex flex-col overflow-hidden max-h-[700px]">
           <div className="p-8 border-b border-neutral-50 flex items-center justify-between bg-neutral-50/30">
             <h3 className="text-lg font-black font-display uppercase tracking-tight">System Logs</h3>
             <Link to="/admin/activity" className="text-accent text-[9px] font-black uppercase tracking-widest hover:underline flex items-center gap-1">

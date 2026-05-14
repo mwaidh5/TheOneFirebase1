@@ -82,6 +82,12 @@ export interface EmomItem {
   time: string; // e.g. "30s", "1:00"
 }
 
+export interface ForTimeItem {
+  id: string;
+  name: string;
+  reps?: string; // e.g. "21", "500m"
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -106,6 +112,7 @@ export interface Exercise {
   durationMinutes?: number; // Total EMOM/AMRAP duration
   rounds?: number; // For Circuits/HIIT
   emomItems?: EmomItem[]; // Sub-exercises for EMOM (each with name + time)
+  forTimeItems?: ForTimeItem[]; // Sub-exercises for FOR_TIME (each with name + reps)
 
   // Linking for Supersets
   supersetId?: string; // ID to link exercises together
