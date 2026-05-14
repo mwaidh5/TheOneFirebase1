@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleGenAI, Type } from '@google/genai';
 import { setDoc, doc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db, aiModel } from '../../firebase';
 
 interface SiteSettings {
   logo: string;
@@ -56,46 +55,21 @@ const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSi
     setIsProcessing(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: `Current Site Settings: ${JSON.stringify(siteSettings)}. 
-        User Request: "${userCommand}". 
-        Instructions: You are the AI Site Architect. You have the power to edit global site settings and "fix bugs" in logic. 
-        If the user wants a branding change, return a JSON object with the NEW site settings. 
-        If the user wants to "fix a bug", describe the structural fix and return a confirmation message. 
-        ALWAYS respond with a JSON object in this format: 
-        { 
-          "action": "UPDATE_SETTINGS" | "FIX_BUG" | "ERROR", 
-          "message": "Friendly confirmation message", 
-          "newSettings": { ...optional updated settings... },
-          "logicPatch": "Description of the structural fix applied" 
-        }`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              action: { type: Type.STRING },
-              message: { type: Type.STRING },
-              newSettings: {
-                type: Type.OBJECT,
-                properties: {
-                  heroHeadline: { type: Type.STRING },
-                  heroSubline: { type: Type.STRING },
-                  logo: { type: Type.STRING },
-                  heroImage: { type: Type.STRING },
-                  missionImage: { type: Type.STRING }
-                }
-              },
-              logicPatch: { type: Type.STRING }
-            },
-            required: ['action', 'message']
-          }
-        }
-      });
+      const promptText = `Current Site Settings: ${JSON.stringify(siteSettings)}.
+User Request: "${userCommand}".
+Instructions: You are the AI Site Architect. You have the power to edit global site settings and "fix bugs" in logic.
+If the user wants a branding change, return a JSON object with the NEW site settings.
+If the user wants to "fix a bug", describe the structural fix and return a confirmation message.
+ALWAYS respond with a JSON object in this exact format (no extra text):
+{
+  "action": "UPDATE_SETTINGS" | "FIX_BUG" | "ERROR",
+  "message": "Friendly confirmation message",
+  "newSettings": { ...optional updated settings object... },
+  "logicPatch": "Description of the structural fix applied"
+}`;
 
-      const result = JSON.parse(response.text || '{}');
+      const aiResult = await aiModel.generateContent(promptText);
+      const result = JSON.parse(aiResult.response.text() || '{}');
       
       if (result.action === 'UPDATE_SETTINGS' && result.newSettings) {
         const updated = { ...siteSettings, ...result.newSettings };

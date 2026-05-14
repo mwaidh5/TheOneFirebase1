@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useMemo } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import { getGenerativeModel, getImagenModel } from 'firebase/ai';
 import { setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage, auth } from '../../firebase';
+import { db, storage, auth, aiService } from '../../firebase';
 import { MediaAsset } from '../../types';
 
 interface MediaLibraryProps {
@@ -119,103 +119,84 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
     setIsAiLoading(true);
 
     try {
-      // Use the provided API Key
-      const ai = new GoogleGenAI("AIzaSyDFOT0_gdL6r3obZ3D9yBpjttRg-R_j7yc");
-      
-      let contents: any;
-      let model = 'gemini-2.0-flash';
-
       if (aiTab === 'generate') {
-        // Try to use Imagen model for generation if possible, or fallback to text description
-        // Note: The SDK usage for Imagen might differ. Assuming standard generateContent for now.
-        // If 'imagen-3.0-generate-001' is available via this SDK:
-        model = 'imagen-3.0-generate-001'; 
-        contents = { parts: [{ text: aiPrompt }] };
+        const imagenModel = getImagenModel(aiService, { model: 'imagen-3.0-generate-001' });
+        const result = await imagenModel.generateImages(aiPrompt);
+        const generatedImage = result.images[0];
+        if (!generatedImage) throw new Error('No image was returned by the model.');
+
+        const base64Image = generatedImage.bytesBase64Encoded;
+        const mimeType = generatedImage.mimeType || 'image/png';
+
+        const byteCharacters = atob(base64Image);
+        const byteArray = new Uint8Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteArray[i] = byteCharacters.charCodeAt(i);
+        }
+        const blob = new Blob([byteArray], { type: mimeType });
+        const fileName = `ai-gen-${Date.now()}.png`;
+        const file = new File([blob], fileName, { type: mimeType });
+
+        const assetId = Math.random().toString(36).substring(2, 15);
+        const storagePath = `media/ai/${fileName}`;
+        const storageRef = ref(storage, storagePath);
+
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+
+        const newAsset: MediaAsset = {
+          id: assetId,
+          type: 'image',
+          data: downloadURL,
+          name: `AI: ${aiPrompt.substring(0, 20)}...`,
+          category: 'WORKOUT',
+          createdAt: Date.now(),
+          isPublic: true,
+          storagePath,
+        };
+
+        await setDoc(doc(db, 'media', assetId), newAsset);
+        alert("AI Asset Generated and Saved to Gallery!");
+        setAiPrompt('');
+
       } else if (selectedImageForAi) {
         let base64Data = '';
         if (selectedImageForAi.startsWith('http')) {
-             const response = await fetch(selectedImageForAi);
-             const blob = await response.blob();
-             base64Data = await convertToBase64(blob);
-             base64Data = base64Data.split(',')[1];
+          const fetchResponse = await fetch(selectedImageForAi);
+          const blob = await fetchResponse.blob();
+          base64Data = await convertToBase64(blob);
+          base64Data = base64Data.split(',')[1];
         } else {
-             base64Data = selectedImageForAi.split(',')[1];
+          base64Data = selectedImageForAi.split(',')[1];
         }
 
-        contents = {
-          parts: [
-            { inlineData: { data: base64Data, mimeType: 'image/png' } },
-            { text: aiPrompt }
-          ]
-        };
+        const geminiModel = getGenerativeModel(aiService, { model: 'gemini-2.0-flash' });
+        const result = await geminiModel.generateContent({
+          contents: [{
+            role: 'user',
+            parts: [
+              { inlineData: { data: base64Data, mimeType: 'image/png' } },
+              { text: aiPrompt },
+            ],
+          }],
+        });
+
+        const candidate = result.response?.candidates?.[0];
+        const firstPart = candidate?.content?.parts?.[0];
+
+        if (firstPart && 'text' in firstPart) {
+          alert(`AI Response: ${firstPart.text}`);
+        } else {
+          alert("AI processed the request but returned no displayable output.");
+        }
+
       } else {
         throw new Error('Please select an image to edit.');
       }
 
-      const response = await ai.models.generateContent({
-        model: model,
-        contents,
-        config: { responseMimeType: 'application/json' } 
-      });
-
-      // Handle Response
-      // Note: Actual Imagen response structure might be in 'candidates[0].content.parts[0].inlineData'
-      const candidate = response.response?.candidates?.[0];
-      const parts = candidate?.content?.parts;
-      const firstPart = parts?.[0];
-
-      if (firstPart && 'inlineData' in firstPart && firstPart.inlineData) {
-          // It's an image!
-          const base64Image = firstPart.inlineData.data;
-          const mimeType = firstPart.inlineData.mimeType || 'image/png';
-          
-          // Convert Base64 to Blob
-          const byteCharacters = atob(base64Image);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: mimeType });
-          
-          // Create File object
-          const fileName = `ai-gen-${Date.now()}.png`;
-          const file = new File([blob], fileName, { type: mimeType });
-
-          // Upload to Firebase
-          const assetId = Math.random().toString(36).substring(2, 15);
-          const storagePath = `media/ai/${fileName}`;
-          const storageRef = ref(storage, storagePath);
-          
-          await uploadBytes(storageRef, file);
-          const downloadURL = await getDownloadURL(storageRef);
-
-          const newAsset: MediaAsset = { 
-            id: assetId, 
-            type: 'image', 
-            data: downloadURL, 
-            name: `AI: ${aiPrompt.substring(0, 20)}...`,
-            category: 'WORKOUT',
-            createdAt: Date.now(),
-            isPublic: true,
-            storagePath: storagePath
-          };
-          
-          await setDoc(doc(db, 'media', assetId), newAsset);
-          alert("AI Asset Generated and Saved to Gallery!");
-          setAiPrompt('');
-
-      } else if (firstPart && 'text' in firstPart) {
-          // It's text
-          alert(`AI Text Response: ${firstPart.text}`);
-      } else {
-          console.log("Full Response:", response);
-          alert("AI processed the request but no displayable output was found. Check console.");
-      }
-      
     } catch (error: any) {
-       console.error('AI Task Failed:', error);
-       alert(`AI Generation failed: ${error.message || 'Unknown Error'}. \n\nNote: Image generation requires the 'imagen-3.0-generate-001' model to be accessible with your API key.`);
+      console.error('AI Task Failed:', error);
+      alert(`AI task failed: ${error.message || 'Unknown error'}.`);
     } finally {
       setIsAiLoading(false);
     }

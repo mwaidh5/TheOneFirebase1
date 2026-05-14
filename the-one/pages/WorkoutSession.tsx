@@ -140,6 +140,230 @@ function normalizeExerciseName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// ─── EMOM Timer helpers ────────────────────────────────────────────────────────
+function parseEmomSeconds(timeStr: string): number {
+  if (!timeStr) return 30;
+  const s = timeStr.trim().toLowerCase();
+  if (s.endsWith('s')) return Math.max(1, parseInt(s) || 30);
+  if (s.includes(':')) {
+    const [m, sec] = s.split(':').map(Number);
+    return (m || 0) * 60 + (sec || 0);
+  }
+  const n = parseInt(s);
+  return Math.max(1, isNaN(n) ? 30 : n);
+}
+
+function playEmomSound(type: 'countdown' | 'switch' | 'done') {
+  try {
+    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const note = (freq: number, t: number, dur: number, vol: number) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + dur);
+      o.start(ctx.currentTime + t);
+      o.stop(ctx.currentTime + t + dur + 0.05);
+    };
+    if (type === 'countdown') note(660, 0, 0.1, 0.5);
+    else if (type === 'switch') { note(880, 0, 0.12, 0.7); note(1100, 0.15, 0.12, 0.6); }
+    else { note(880, 0, 0.15, 0.8); note(1100, 0.2, 0.15, 0.8); note(1320, 0.4, 0.25, 0.8); }
+  } catch {}
+}
+
+// ─── EMOM Timer Block ──────────────────────────────────────────────────────────
+function EmomTimerBlock({ item }: { item: Exercise }) {
+  const emomItems = item.emomItems || [];
+  const totalRounds = item.rounds || 1;
+
+  const [transitionSecs, setTransitionSecs] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const [exIdx, setExIdx] = useState(0);
+  const [round, setRound] = useState(1);
+  const [phase, setPhase] = useState<'work' | 'transition'>('work');
+  const initialSecs = emomItems.length > 0 ? parseEmomSeconds(emomItems[0].time) : 30;
+  const [timeLeft, setTimeLeft] = useState(initialSecs);
+  const [totalTime, setTotalTime] = useState(initialSecs);
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const exIdxRef = useRef(exIdx);
+  const roundRef = useRef(round);
+  const phaseRef = useRef<'work' | 'transition'>(phase);
+  const transitionSecsRef = useRef(transitionSecs);
+
+  useEffect(() => { exIdxRef.current = exIdx; }, [exIdx]);
+  useEffect(() => { roundRef.current = round; }, [round]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { transitionSecsRef.current = transitionSecs; }, [transitionSecs]);
+
+  const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!isRunning || isDone) return;
+
+    intervalRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev > 1 && prev <= 3) playEmomSound('countdown');
+        if (prev > 1) return prev - 1;
+
+        // Time's up
+        const idx = exIdxRef.current;
+        const r = roundRef.current;
+        const ph = phaseRef.current;
+        const trans = transitionSecsRef.current;
+
+        if (ph === 'work') {
+          playEmomSound('switch');
+          if (trans > 0) {
+            setPhase('transition');
+            return trans;
+          }
+        }
+
+        // Advance
+        const isLastEx = idx === emomItems.length - 1;
+        if (isLastEx && r >= totalRounds) {
+          playEmomSound('done');
+          setIsDone(true);
+          setIsRunning(false);
+          return 0;
+        }
+        if (isLastEx) {
+          const next0 = parseEmomSeconds(emomItems[0].time);
+          setRound(rv => rv + 1);
+          setExIdx(0);
+          setPhase('work');
+          setTotalTime(next0);
+          return next0;
+        }
+        const nextIdx = idx + 1;
+        const nextSecs = parseEmomSeconds(emomItems[nextIdx].time);
+        setExIdx(nextIdx);
+        setPhase('work');
+        setTotalTime(nextSecs);
+        return nextSecs;
+      });
+    }, 1000);
+
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning, isDone]);
+
+  const reset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    const secs = emomItems.length > 0 ? parseEmomSeconds(emomItems[0].time) : 30;
+    setIsRunning(false); setIsDone(false);
+    setExIdx(0); setRound(1); setPhase('work');
+    setTimeLeft(secs); setTotalTime(secs);
+  };
+
+  if (emomItems.length === 0) return null;
+
+  const currentExItem = emomItems[exIdx];
+  const nextExItem = emomItems[exIdx + 1 < emomItems.length ? exIdx + 1 : 0];
+  const progress = totalTime > 0 ? timeLeft / totalTime : 0;
+  const R = 68;
+  const circ = 2 * Math.PI * R;
+  const ringColor = isDone ? '#22c55e' : phase === 'transition' ? '#60a5fa' : timeLeft <= 3 ? '#ef4444' : '#f97316';
+
+  return (
+    <div className="mt-2 rounded-2xl overflow-hidden border border-orange-900/60 bg-gradient-to-b from-[#1a0a00] to-black text-white">
+
+      {/* Top bar: round + exercise dots + reset */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-orange-900/30">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[8px] font-black uppercase tracking-widest text-orange-600">Round</span>
+          <span className="text-base font-black text-white leading-none">{round}</span>
+          <span className="text-orange-800 text-sm">/</span>
+          <span className="text-sm font-black text-orange-500 leading-none">{totalRounds}</span>
+        </div>
+        <div className="flex gap-1.5 items-center">
+          {emomItems.map((_, i) => (
+            <div key={i} className={`rounded-full transition-all duration-300 ${
+              i === exIdx ? 'w-4 h-2.5 bg-orange-400' : i < exIdx ? 'w-2.5 h-2.5 bg-green-500' : 'w-2.5 h-2.5 bg-orange-900/70'
+            }`} />
+          ))}
+        </div>
+        <button onClick={reset} className="w-7 h-7 rounded-full flex items-center justify-center text-orange-700 hover:text-orange-400 transition-colors active:scale-90">
+          <span className="material-symbols-outlined text-base leading-none">restart_alt</span>
+        </button>
+      </div>
+
+      {/* Clock area */}
+      <div className="flex flex-col items-center px-4 py-5">
+        <p className="text-[9px] font-black uppercase tracking-[0.25em] mb-4 text-orange-500">
+          {isDone ? '✓ Workout Complete' : phase === 'transition' ? '↔ Switch Now' : currentExItem?.name}
+        </p>
+
+        {/* SVG countdown ring */}
+        <div className="relative flex items-center justify-center" style={{ width: 176, height: 176 }}>
+          <svg className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }} viewBox="0 0 160 160" width="176" height="176">
+            <circle cx="80" cy="80" r={R} fill="none" stroke="#2a0e00" strokeWidth="10" />
+            <circle
+              cx="80" cy="80" r={R} fill="none"
+              stroke={ringColor} strokeWidth="10" strokeLinecap="round"
+              strokeDasharray={`${circ * progress} ${circ}`}
+              style={{ transition: 'stroke-dasharray 0.9s linear, stroke 0.3s' }}
+            />
+          </svg>
+          <div className="flex flex-col items-center z-10 select-none">
+            <span className={`font-black tabular-nums leading-none tracking-tight ${timeLeft <= 3 && !isDone ? 'text-red-400' : 'text-white'}`} style={{ fontSize: 48 }}>
+              {fmtTime(timeLeft)}
+            </span>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] mt-1.5" style={{ color: ringColor }}>
+              {isDone ? 'done' : phase === 'transition' ? 'switching' : 'work'}
+            </span>
+          </div>
+        </div>
+
+        {/* Next up */}
+        {!isDone && emomItems.length > 1 && (
+          <div className="mt-4 flex items-center gap-2 bg-orange-950/60 rounded-xl px-3 py-2 border border-orange-900/40">
+            <span className="text-[8px] font-black uppercase tracking-widest text-orange-700">Next:</span>
+            <span className="text-[11px] font-bold text-orange-300">{nextExItem?.name}</span>
+            <span className="text-[8px] text-orange-600 ml-1">{nextExItem?.time}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Start / Pause button */}
+      <div className="px-4 pb-2">
+        <button
+          onClick={() => { if (isDone) { reset(); } else { setIsRunning(r => !r); } }}
+          className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] ${
+            isDone ? 'bg-orange-600 hover:bg-orange-500 text-white'
+            : isRunning ? 'bg-white/10 text-white border border-white/20 hover:bg-white/15'
+            : 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-900/60'
+          }`}
+        >
+          {isDone ? '↺ Restart' : isRunning ? '⏸  Pause' : '▶  Start'}
+        </button>
+      </div>
+
+      {/* Switch buffer options */}
+      <div className="flex items-center gap-2 justify-center px-4 pb-4 pt-1">
+        <span className="text-[8px] font-black uppercase tracking-widest text-orange-800">Switch buffer:</span>
+        <div className="flex gap-1">
+          {[0, 5, 10, 15, 30].map(opt => (
+            <button
+              key={opt}
+              onClick={() => setTransitionSecs(opt)}
+              className={`px-2 py-1.5 rounded-lg text-[9px] font-black transition-all active:scale-90 min-w-[34px] ${
+                transitionSecs === opt ? 'bg-orange-500 text-white' : 'bg-orange-950/80 text-orange-600 border border-orange-900/50 hover:border-orange-700'
+              }`}
+            >{opt === 0 ? 'Off' : `+${opt}s`}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUser }) => {
   const { id } = useParams();
   const location = useLocation();
@@ -468,7 +692,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         const enrichedResults = Object.fromEntries(
           Object.entries(logData.results).map(([exId, result]) => [
             exId,
-            { ...(result as { weight: string; reps: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: weightUnit },
+            { ...(result as { weight: string; reps: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: getUnit(exId) },
           ])
         );
         const logRef = doc(db, 'users', currentUser.id, 'workout_logs', logKey);
@@ -614,17 +838,9 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               ))}
             </div>
 
-            {/* EMOM sub-exercises */}
+            {/* EMOM timer */}
             {item.format === 'EMOM' && item.emomItems && item.emomItems.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-[7px] font-black uppercase tracking-[0.2em] text-orange-400">Per Round</p>
-                {item.emomItems.map((emomItem, idx) => (
-                  <div key={emomItem.id} className="flex items-center justify-between bg-orange-50/40 rounded-xl px-3 py-2 border border-orange-100">
-                    <span className="text-[11px] font-bold text-black">{idx + 1}. {emomItem.name}</span>
-                    <span className="text-[9px] font-black text-orange-500 shrink-0 ml-2">{emomItem.time}</span>
-                  </div>
-                ))}
-              </div>
+              <EmomTimerBlock item={item} />
             )}
 
             {/* Coach cue */}
@@ -663,7 +879,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                       key={u}
                       type="button"
                       onClick={() => setUnit(item.id, u)}
-                      className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wide transition-all ${getUnit(item.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400 hover:text-black'}`}
+                      className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide transition-all min-w-[32px] min-h-[28px] ${getUnit(item.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400'}`}
                     >{u}</button>
                   ))}
                 </div>
@@ -1153,11 +1369,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                         <div className="md:col-span-4">
                           <p className="text-[9px] font-black text-neutral-300 uppercase tracking-widest mb-0.5">{ex.format}</p>
                           <p className="text-base font-black text-black uppercase leading-none">{ex.name}</p>
-                          {prevLifts[ex.id] && (
+                          {(prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)]) && (
                             <p className="text-[8px] font-black text-accent uppercase tracking-widest mt-0.5">
-                              Last: {typeof prevLifts[ex.id] === 'object'
-                                ? `${prevLifts[ex.id]?.weight || '—'} kg × ${prevLifts[ex.id]?.reps || '—'} reps`
-                                : prevLifts[ex.id]}
+                              {(() => {
+                                const pl = prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)];
+                                return `Last: ${pl?.weight || '—'} ${pl?.unit || 'kg'} × ${pl?.reps || '—'} reps`;
+                              })()}
                             </p>
                           )}
                         </div>
@@ -1172,7 +1389,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                               <div className="flex items-center gap-0.5 bg-neutral-100 rounded p-0.5">
                                 {(['kg', 'lbs'] as const).map(u => (
                                   <button key={u} type="button" onClick={() => setUnit(ex.id, u)}
-                                    className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wide transition-all ${getUnit(ex.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400 hover:text-black'}`}
+                                    className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide transition-all min-w-[32px] min-h-[28px] ${getUnit(ex.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400'}`}
                                   >{u}</button>
                                 ))}
                               </div>

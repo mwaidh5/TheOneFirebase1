@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { WeekProgram } from '../types';
 import { jsonrepair } from 'jsonrepair';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 
 interface AICourseGeneratorProps {
   onGenerated: (weeks: WeekProgram[]) => void;
@@ -50,60 +52,6 @@ function mergeWeeks(current: WeekProgram[], patches: WeekProgram[]): WeekProgram
   return result.sort((a, b) => a.weekNumber - b.weekNumber);
 }
 
-function buildPrompt(text: string, context: 'course' | 'custom', currentWeeks?: WeekProgram[]): string {
-  const contextNote = context === 'custom'
-    ? 'This is a bespoke program for a specific athlete. Be precise with coaching notes.'
-    : 'This is a public course for multiple athletes. Keep descriptions general but motivating.';
-
-  const hasExisting = !!(currentWeeks && currentWeeks.length > 0 && currentWeeks[0]?.days?.[0]?.exercises?.length);
-
-  const currentProgramSection = hasExisting
-    ? `\nCURRENT PROGRAM STATE (JSON):\n${JSON.stringify(currentWeeks, null, 2)}\n`
-    : '';
-
-  const modeInstructions = hasExisting
-    ? `MODE SELECTION:
-- Use "mode": "merge" when the request targets specific weeks or days (e.g. "add a day to week 4", "change week 2 day 3", "add a rest day to week 1"). Return ONLY the modified weeks — all other weeks are automatically preserved.
-- Use "mode": "replace" only when the user wants a completely new program or full overhaul.
-- For "merge": return the COMPLETE week data (all days) for any week that changed, not just the modified day.`
-    : `MODE SELECTION:
-- Always use "mode": "replace" since there is no existing program yet.`;
-
-  return `You are an elite strength & conditioning coach. ${contextNote}
-
-Convert the following workout instruction into a structured JSON response.${currentProgramSection}
-
-RESPONSE FORMAT — return a single JSON object:
-{
-  "mode": "replace" | "merge",
-  "weeks": WeekProgram[]
-}
-
-${modeInstructions}
-
-RULES:
-- Return ONLY valid JSON, no markdown, no explanations.
-- Every exercise must have a unique "id" (format: "ex_" + random 6 digits).
-- Every day must have a unique "id" (format: "d_" + random 6 digits).
-- Every week must have a unique "id" (format: "w_" + random 6 digits).
-- "format" must be one of: REGULAR, EMOM, SUPER_SET, CIRCUIT, DROP_SET, AMRAP, FOR_TIME, HIIT, CARDIO, MAX_EFFORT
-- Use REGULAR for standard sets/reps. Use AMRAP when reps say "AMRAP". Use MAX_EFFORT for 1RM/3RM.
-- "reps" is always a string (e.g. "10", "AMRAP", "5-8").
-- "rest" is always a string (e.g. "90s", "3 min", "2:00").
-- "sets" is always a number.
-- Add a brief "description" coaching note per exercise (1 sentence max). No double quotes inside strings — use single quotes. No newlines inside strings.
-- Rest/Recovery days: empty exercises array, title "Rest Day".
-
-SCHEMA:
-interface Exercise { id: string; name: string; format: string; sets?: number; reps?: string; rest?: string; description?: string; durationMinutes?: number; rounds?: number; distance?: string; time?: string; }
-interface DayProgram { id: string; dayNumber: number; title: string; exercises: Exercise[]; }
-interface WeekProgram { id: string; weekNumber: number; days: DayProgram[]; }
-
-INSTRUCTION:
-${text}
-
-Return the JSON object:`;
-}
 
 const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
   onGenerated,
@@ -126,31 +74,36 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
     setPreview(null);
 
     try {
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set in your .env file.');
+      const functions = getFunctions(getApp(), 'me-central1');
+      const generateCourse = httpsCallable<
+        { text: string; context: 'course' | 'custom'; currentWeeks?: WeekProgram[] },
+        { text: string }
+      >(functions, 'generateCourseWithClaude', { timeout: 540000 });
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 8192,
-          messages: [{ role: 'user', content: buildPrompt(prompt, context, currentWeeks) }],
-        }),
-      });
+      const input: { text: string; context: 'course' | 'custom'; currentWeeks?: WeekProgram[] } = {
+        text: prompt,
+        context: context as 'course' | 'custom',
+        currentWeeks,
+      };
 
-      if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error(`Claude API error ${response.status}: ${errBody}`);
+      let accumulated = '';
+      let finalText = '';
+
+      try {
+        const streamResult = await generateCourse.stream(input);
+        for await (const chunk of streamResult.stream) {
+          const c = chunk as { delta?: string };
+          if (c.delta) accumulated += c.delta;
+        }
+        const final = await streamResult.data;
+        finalText = final.text || accumulated;
+      } catch (streamErr) {
+        console.warn('Streaming failed, falling back to non-streaming:', streamErr);
+        const callResult = await generateCourse(input);
+        finalText = callResult.data.text;
       }
 
-      const data = await response.json();
-      let rawText: string = data.content[0].text.trim();
+      let rawText: string = finalText.trim();
 
       // Strip markdown fences if present
       if (rawText.startsWith('```json')) {

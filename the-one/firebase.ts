@@ -28,8 +28,8 @@ export const storage = getStorage(app);
 // ─── Firebase AI Logic (Gemini) ───────────────────────────────────────────────
 // Initialized after Firebase AI Logic is enabled in the Firebase Console.
 // See: Firebase Console → AI Logic → Get Started
-const ai = getAI(app, { backend: new GoogleAIBackend() });
-export const aiModel = getGenerativeModel(ai, {
+export const aiService = getAI(app, { backend: new GoogleAIBackend() });
+export const aiModel = getGenerativeModel(aiService, {
   model: "gemini-2.5-pro",
   generationConfig: {
     responseMimeType: "application/json",
