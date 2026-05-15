@@ -6,6 +6,7 @@ import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { logEvent } from '../hooks/useLogEvent';
+import { useT } from '../i18n/I18nContext';
 
 interface SignupProps {
   onSignup: (user: User) => void;
@@ -13,6 +14,7 @@ interface SignupProps {
 
 const Signup: React.FC<SignupProps> = ({ onSignup }) => {
   const navigate = useNavigate();
+  const { t } = useT();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -37,22 +39,20 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: user.email || '',
-        role: UserRole.CLIENT, // Default to Client
+        role: UserRole.CLIENT,
         avatar: `https://i.pravatar.cc/150?u=${user.uid}`,
         memberSince: new Date().getFullYear().toString(),
         level: 'Athlete'
       };
 
-      // Save to Firestore
       await setDoc(doc(db, 'users', user.uid), {
         ...newUser,
         phone: formData.phone,
-        role: newUser.role.toString() // Store as string for consistency
+        role: newUser.role.toString()
       });
 
       onSignup(newUser);
 
-      // Log new signup to system_logs
       logEvent({
         type: 'USER_SIGNUP',
         title: 'New Athlete Registered',
@@ -83,17 +83,17 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white shadow-2xl">
             <span className="material-symbols-outlined text-3xl">person_add</span>
           </div>
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Join The One</h1>
-          <p className="text-neutral-500 font-medium">Create your athlete profile and start your journey.</p>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('auth.signup_heading')}</h1>
+          <p className="text-neutral-500 font-medium">{t('auth.signup_sub_long')}</p>
         </div>
 
         <form className="bg-white p-10 md:p-12 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-8" onSubmit={handleSignup}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">First Name</label>
-              <input 
-                type="text" 
-                required 
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.first_name')}</label>
+              <input
+                type="text"
+                required
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                 placeholder="Alex"
@@ -101,10 +101,10 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
               />
             </div>
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Last Name</label>
-              <input 
-                type="text" 
-                required 
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.last_name')}</label>
+              <input
+                type="text"
+                required
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                 placeholder="Johnson"
@@ -115,10 +115,10 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
 
           <div className="space-y-6">
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Email Address</label>
-              <input 
-                type="email" 
-                required 
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.email')}</label>
+              <input
+                type="email"
+                required
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 placeholder="name@example.com"
@@ -127,10 +127,10 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
             </div>
 
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Phone Number</label>
-              <input 
-                type="tel" 
-                required 
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.phone')}</label>
+              <input
+                type="tel"
+                required
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 placeholder="+1 (555) 000-0000"
@@ -139,10 +139,10 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
             </div>
 
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Create Password</label>
-              <input 
-                type="password" 
-                required 
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.create_password')}</label>
+              <input
+                type="password"
+                required
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 placeholder="••••••••"
@@ -158,8 +158,8 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
           )}
 
           <div className="pt-2">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
@@ -168,21 +168,21 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
               ) : (
                 <>
                   <span className="material-symbols-outlined text-lg">how_to_reg</span>
-                  Create Athlete Account
+                  {t('auth.create_account')}
                 </>
               )}
             </button>
           </div>
 
           <div className="text-[10px] font-bold text-neutral-300 uppercase leading-relaxed text-center px-4">
-            By signing up, you agree to our <span className="text-black underline cursor-pointer">Terms of Service</span> and <span className="text-black underline cursor-pointer">Privacy Policy</span>.
+            {t('auth.terms_full')}
           </div>
         </form>
 
         <p className="text-center text-sm font-medium text-neutral-400">
-          Already a member? 
+          {t('auth.already_member')}
           <button onClick={() => navigate('/login')} className="font-black text-black hover:underline uppercase tracking-widest text-xs ml-1">
-            Log in here
+            {t('auth.login_here')}
           </button>
         </p>
       </div>

@@ -62,6 +62,7 @@ import SupportSubscriptions from './pages/support/Subscriptions';
 import SupportCourseCatalog from './pages/support/CourseCatalog';
 import SupportDiagnosticLogic from './pages/support/DiagnosticLogic';
 import { User, UserRole, MediaAsset, Course, ExerciseTemplate, WorkoutTemplate, MealPlan as MealPlanType } from './types';
+import { I18nProvider } from './i18n/I18nContext';
 
 const App: React.FC = () => {
   // PERSIST CURRENT USER (Auth is still local for session)
@@ -175,6 +176,7 @@ const App: React.FC = () => {
   useNotifications(currentUser);
 
   return (
+    <I18nProvider>
     <Router>
       <div className="flex flex-col min-h-screen">
         {originalAdmin && (
@@ -282,6 +284,7 @@ const App: React.FC = () => {
         <Footer logo={siteSettings.logo} />
       </div>
     </Router>
+    </I18nProvider>
   );
 };
 

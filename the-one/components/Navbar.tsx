@@ -4,6 +4,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useT } from '../i18n/I18nContext';
+import LanguageToggle from './LanguageToggle';
 
 interface NavbarProps {
   isLoggedIn: boolean;
@@ -15,6 +17,7 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useT();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -39,12 +42,12 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
     }
 
     const q = query(collection(db, 'conversations'), where('participants', 'array-contains', currentUser.id));
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
         let count = 0;
         snapshot.docs.forEach(doc => {
             const data = doc.data();
-            
+
             // Check direct unread messages
             if (data.unreadCounts && data.unreadCounts[currentUser.id] > 0) {
                 count += data.unreadCounts[currentUser.id];
@@ -59,7 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
         });
         setUnreadCount(count);
     });
-    
+
     return () => unsubscribe();
   }, [currentUser]);
 
@@ -87,31 +90,35 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
         </Link>
 
         {/* Hamburger Menu Button */}
-        <button
-          className="lg:hidden"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          <span className="material-symbols-outlined">
-            {isMobileMenuOpen ? 'close' : 'menu'}
-          </span>
-        </button>
+        <div className="lg:hidden flex items-center gap-2">
+          <LanguageToggle variant="compact" />
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <span className="material-symbols-outlined">
+              {isMobileMenuOpen ? 'close' : 'menu'}
+            </span>
+          </button>
+        </div>
 
         {/* Desktop Menu */}
         <div className="hidden lg:flex items-center gap-10">
           <nav className="flex items-center gap-8 text-sm font-medium">
-            <Link to="/" className={`${isActive('/') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>Homepage</Link>
-            <Link to="/courses" className={`${isActive('/courses') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>Courses</Link>
-            <Link to="/coaches" className={`${isActive('/coaches') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>Coaches</Link>
-            <Link to="/contact" className={`${isActive('/contact') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>Contact</Link>
+            <Link to="/" className={`${isActive('/') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.home')}</Link>
+            <Link to="/courses" className={`${isActive('/courses') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.courses')}</Link>
+            <Link to="/coaches" className={`${isActive('/coaches') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.coaches')}</Link>
+            <Link to="/contact" className={`${isActive('/contact') ? 'text-black font-bold border-b-2 border-black pb-1' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.contact')}</Link>
           </nav>
 
           <div className="h-6 w-px bg-gray-200"></div>
+
+          <LanguageToggle variant="pill" />
 
           {isLoggedIn && currentUser ? (
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
               <div className="text-right hidden md:block">
                 <p className="text-sm font-bold leading-none">{currentUser.firstName} {currentUser.lastName}</p>
-                <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
+                <p className="text-xs text-gray-500 mt-1">{currentUser.role}</p>
               </div>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -126,33 +133,33 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
               {isDropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-4 py-3 border-b border-gray-50 mb-1">
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Signed in as</p>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('common.welcome')}</p>
                     <p className="text-sm font-bold text-black truncate">{currentUser.email}</p>
                   </div>
                   {currentUser.role === UserRole.ADMIN && (
                     <Link to="/admin" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
-                      <span className="material-symbols-outlined text-[20px] filled">dashboard</span> Admin Dashboard
+                      <span className="material-symbols-outlined text-[20px] filled">dashboard</span> {t('nav.admin')}
                     </Link>
                   )}
                   {currentUser.role === UserRole.COACH && (
                     <Link to="/coach" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
-                      <span className="material-symbols-outlined text-[20px] filled">fitness_center</span> Coach Dashboard
+                      <span className="material-symbols-outlined text-[20px] filled">fitness_center</span> {t('nav.coach')}
                     </Link>
                   )}
                   {currentUser.role === UserRole.SUPPORT && (
                     <Link to="/support" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
-                      <span className="material-symbols-outlined text-[20px] filled">support_agent</span> Support Dashboard
+                      <span className="material-symbols-outlined text-[20px] filled">support_agent</span> {t('nav.support')}
                     </Link>
                   )}
                   <Link to="/profile" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">person</span> Profile
+                    <span className="material-symbols-outlined text-[20px]">person</span> {t('nav.profile')}
                   </Link>
                   <Link to="/profile/courses" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">school</span> My Courses
+                    <span className="material-symbols-outlined text-[20px]">school</span> {t('nav.my_courses')}
                   </Link>
                   <Link to="/profile/messages" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors w-full justify-between">
                     <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-[20px]">chat_bubble</span> Messages
+                        <span className="material-symbols-outlined text-[20px]">chat_bubble</span> {t('nav.messages')}
                     </div>
                     {unreadCount > 0 && (
                         <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
@@ -161,19 +168,19 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                     )}
                   </Link>
                   <Link to="/profile/settings" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-neutral-50 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">settings</span> Settings
+                    <span className="material-symbols-outlined text-[20px]">settings</span> {t('nav.settings')}
                   </Link>
                   <div className="h-px bg-gray-50 my-1"></div>
                   <button onClick={handleLogoutClick} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">logout</span> Logout
+                    <span className="material-symbols-outlined text-[20px]">logout</span> {t('nav.logout')}
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <div className="flex items-center gap-6 text-sm font-bold">
-              <Link to="/login" className="text-black hover:text-gray-600 transition-colors">Login</Link>
-              <Link to="/signup" className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm">Signup</Link>
+              <Link to="/login" className="text-black hover:text-gray-600 transition-colors">{t('nav.login')}</Link>
+              <Link to="/signup" className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm">{t('nav.signup')}</Link>
             </div>
           )}
         </div>
@@ -184,10 +191,10 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
         <div className="lg:hidden bg-white border-t border-gray-100 absolute w-full left-0 top-20 shadow-xl z-50">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <nav className="flex flex-col gap-4 text-sm font-medium">
-                <Link to="/" onClick={handleMobileLinkClick} className={`${isActive('/') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Homepage</Link>
-                <Link to="/courses" onClick={handleMobileLinkClick} className={`${isActive('/courses') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Courses</Link>
-                <Link to="/coaches" onClick={handleMobileLinkClick} className={`${isActive('/coaches') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Coaches</Link>
-                <Link to="/contact" onClick={handleMobileLinkClick} className={`${isActive('/contact') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>Contact</Link>
+                <Link to="/" onClick={handleMobileLinkClick} className={`${isActive('/') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.home')}</Link>
+                <Link to="/courses" onClick={handleMobileLinkClick} className={`${isActive('/courses') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.courses')}</Link>
+                <Link to="/coaches" onClick={handleMobileLinkClick} className={`${isActive('/coaches') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.coaches')}</Link>
+                <Link to="/contact" onClick={handleMobileLinkClick} className={`${isActive('/contact') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.contact')}</Link>
             </nav>
             <div className="h-px bg-gray-200 my-4"></div>
             {isLoggedIn && currentUser ? (
@@ -201,33 +208,33 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                   </div>
                   <div>
                     <p className="text-sm font-bold leading-none">{currentUser.firstName} {currentUser.lastName}</p>
-                    <p className="text-xs text-gray-500 mt-1">Role: {currentUser.role}</p>
+                    <p className="text-xs text-gray-500 mt-1">{currentUser.role}</p>
                   </div>
                 </div>
                 {currentUser.role === UserRole.ADMIN && (
                     <Link to="/admin" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
-                      <span className="material-symbols-outlined text-[20px] filled">dashboard</span> Admin Dashboard
+                      <span className="material-symbols-outlined text-[20px] filled">dashboard</span> {t('nav.admin')}
                     </Link>
                   )}
                   {currentUser.role === UserRole.COACH && (
                     <Link to="/coach" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
-                      <span className="material-symbols-outlined text-[20px] filled">fitness_center</span> Coach Dashboard
+                      <span className="material-symbols-outlined text-[20px] filled">fitness_center</span> {t('nav.coach')}
                     </Link>
                   )}
                   {currentUser.role === UserRole.SUPPORT && (
                     <Link to="/support" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
-                      <span className="material-symbols-outlined text-[20px] filled">support_agent</span> Support Dashboard
+                      <span className="material-symbols-outlined text-[20px] filled">support_agent</span> {t('nav.support')}
                     </Link>
                   )}
                   <Link to="/profile" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">person</span> Profile
+                    <span className="material-symbols-outlined text-[20px]">person</span> {t('nav.profile')}
                   </Link>
                   <Link to="/profile/courses" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">school</span> My Courses
+                    <span className="material-symbols-outlined text-[20px]">school</span> {t('nav.my_courses')}
                   </Link>
                   <Link to="/profile/messages" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors justify-between w-full">
                     <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-[20px]">chat_bubble</span> Messages
+                        <span className="material-symbols-outlined text-[20px]">chat_bubble</span> {t('nav.messages')}
                     </div>
                     {unreadCount > 0 && (
                         <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
@@ -236,17 +243,17 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                     )}
                   </Link>
                   <Link to="/profile/settings" onClick={handleMobileLinkClick} className="flex items-center gap-3 text-sm font-medium text-gray-600 hover:text-black transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">settings</span> Settings
+                    <span className="material-symbols-outlined text-[20px]">settings</span> {t('nav.settings')}
                   </Link>
                   <div className="h-px bg-gray-50 my-1"></div>
                   <button onClick={() => { handleMobileLinkClick(); handleLogoutClick(); }} className="w-full flex items-center gap-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">logout</span> Logout
+                    <span className="material-symbols-outlined text-[20px]">logout</span> {t('nav.logout')}
                   </button>
               </div>
             ) : (
                 <div className="flex flex-col gap-4 text-sm font-bold">
-                    <Link to="/login" onClick={handleMobileLinkClick} className="text-black hover:text-gray-600 transition-colors">Login</Link>
-                    <Link to="/signup" onClick={handleMobileLinkClick} className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm text-center">Signup</Link>
+                    <Link to="/login" onClick={handleMobileLinkClick} className="text-black hover:text-gray-600 transition-colors">{t('nav.login')}</Link>
+                    <Link to="/signup" onClick={handleMobileLinkClick} className="bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm text-center">{t('nav.signup')}</Link>
                 </div>
             )}
           </div>

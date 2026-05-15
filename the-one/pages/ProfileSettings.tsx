@@ -5,12 +5,14 @@ import { getAuth, updateProfile, updateEmail } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User } from '../types';
+import { useT } from '../i18n/I18nContext';
 
 interface ProfileSettingsProps {
   currentUser: User;
 }
 
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialUser }) => {
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing'>('profile');
   const [isMfaSetupOpen, setIsMfaSetupOpen] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(() => localStorage.getItem(`mfa_enabled_${initialUser.id}`) === 'true');
@@ -230,22 +232,22 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
   };
 
   if (loading) {
-      return <div className="p-20 text-center">Loading profile...</div>;
+      return <div className="p-20 text-center">{t('settings.loading_profile')}</div>;
   }
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500">
       <div className="space-y-2 mb-12">
-        <h1 className="text-4xl font-black font-display uppercase tracking-tight text-black leading-none">Account Logic</h1>
-        <p className="text-neutral-400 font-medium">Manage your athlete identity and platform security protocols.</p>
+        <h1 className="text-4xl font-black font-display uppercase tracking-tight text-black leading-none">{t('settings.heading')}</h1>
+        <p className="text-neutral-400 font-medium">{t('settings.subheading')}</p>
         {isImpersonating && (
             <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-3 text-orange-700">
                     <span className="material-symbols-outlined">visibility</span>
-                    <span className="text-xs font-bold uppercase tracking-widest">Admin Impersonation Mode Active</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">{t('settings.impersonating_active')}</span>
                 </div>
                 <button onClick={endImpersonation} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-orange-700 transition-colors shadow-md">
-                    End Session
+                    {t('settings.end_session')}
                 </button>
             </div>
         )}
@@ -255,9 +257,9 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
         {/* Sidebar Nav */}
         <div className="lg:col-span-3 space-y-2">
            {[
-             { id: 'profile', label: 'Personal Info', icon: 'person' },
-             { id: 'security', label: 'Security & MFA', icon: 'shield_lock' },
-             { id: 'billing', label: 'Billing History', icon: 'payments' }
+             { id: 'profile', label: t('settings.tab_personal'), icon: 'person' },
+             { id: 'security', label: t('settings.tab_security'), icon: 'shield_lock' },
+             { id: 'billing', label: t('settings.tab_billing'), icon: 'payments' }
            ].map(tab => (
              <button 
                key={tab.id}
@@ -275,13 +277,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
           {activeTab === 'profile' && (
             <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 duration-500">
                <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
-                  <h2 className="text-2xl font-black font-display uppercase text-black">Identity Details</h2>
+                  <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.identity_details')}</h2>
                   <span className="material-symbols-outlined text-neutral-200">badge</span>
                </div>
                <form onSubmit={handleProfileUpdate} className="space-y-8">
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">First Name</label>
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('auth.first_name')}</label>
                         <input 
                             type="text" 
                             value={formData.firstName}
@@ -290,7 +292,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Last Name</label>
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('auth.last_name')}</label>
                         <input 
                             type="text" 
                             value={formData.lastName}
@@ -299,7 +301,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         />
                       </div>
                       <div className="md:col-span-2 space-y-2">
-                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Email</label>
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('auth.email')}</label>
                         <input 
                             type="email" 
                             value={formData.email}
@@ -310,10 +312,10 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                    </div>
 
                    <div className="border-t border-neutral-50 pt-8">
-                       <h3 className="text-lg font-black font-display uppercase text-black mb-6">Biometrics & Stats</h3>
+                       <h3 className="text-lg font-black font-display uppercase text-black mb-6">{t('settings.biometrics_stats')}</h3>
                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Weight (lbs)</label>
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('settings.weight_lbs')}</label>
                                <input 
                                    type="number" 
                                    value={formData.weight}
@@ -323,7 +325,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                                />
                            </div>
                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Height (cm)</label>
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('settings.height_cm')}</label>
                                <input 
                                    type="number" 
                                    value={formData.height}
@@ -333,7 +335,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                                />
                            </div>
                            <div className="space-y-2">
-                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Age</label>
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('settings.age')}</label>
                                <input 
                                    type="number" 
                                    value={formData.age}
@@ -343,21 +345,21 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                                />
                            </div>
                            <div className="md:col-span-3 space-y-2">
-                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Self-Reported Fitness Level</label>
-                               <select 
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('settings.fitness_level')}</label>
+                               <select
                                    value={formData.fitnessLevel}
                                    onChange={(e) => setFormData({...formData, fitnessLevel: e.target.value})}
                                    className="w-full p-4 bg-neutral-50 rounded-2xl border border-neutral-100 outline-none focus:border-black font-bold uppercase text-xs"
                                 >
-                                   <option value="">-- Select Level --</option>
-                                   <option value="Beginner">Beginner (0-1 Years)</option>
-                                   <option value="Intermediate">Intermediate (1-3 Years)</option>
-                                   <option value="Advanced">Advanced (3+ Years)</option>
-                                   <option value="Elite">Elite / Competitive</option>
+                                   <option value="">{t('settings.select_level')}</option>
+                                   <option value="Beginner">{t('settings.level_beginner')}</option>
+                                   <option value="Intermediate">{t('settings.level_intermediate')}</option>
+                                   <option value="Advanced">{t('settings.level_advanced')}</option>
+                                   <option value="Elite">{t('settings.level_elite')}</option>
                                </select>
                            </div>
                            <div className="md:col-span-1 space-y-2">
-                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Body Fat %</label>
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('settings.body_fat_pct')}</label>
                                <input 
                                    type="number" 
                                    value={formData.bodyFat}
@@ -367,18 +369,18 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                                />
                            </div>
                            <div className="md:col-span-2 space-y-2">
-                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Core Training Goal</label>
-                               <select 
+                               <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('settings.core_goal')}</label>
+                               <select
                                    value={formData.trainingGoal}
                                    onChange={(e) => setFormData({...formData, trainingGoal: e.target.value})}
                                    className="w-full p-4 bg-neutral-50 rounded-2xl border border-neutral-100 outline-none focus:border-black font-bold uppercase text-xs"
                                 >
-                                   <option value="">-- Select Goal --</option>
-                                   <option value="Hypertrophy">Hypertrophy (Muscle Gain)</option>
-                                   <option value="Strength">Raw Power & Strength</option>
-                                   <option value="Endurance">Cardiovascular Endurance</option>
-                                   <option value="Weight Loss">Weight Loss & Toning</option>
-                                   <option value="Athletic Performance">Athletic Performance / Agility</option>
+                                   <option value="">{t('settings.select_goal')}</option>
+                                   <option value="Hypertrophy">{t('settings.goal_hypertrophy')}</option>
+                                   <option value="Strength">{t('settings.goal_strength')}</option>
+                                   <option value="Endurance">{t('settings.goal_endurance')}</option>
+                                   <option value="Weight Loss">{t('settings.goal_weight_loss')}</option>
+                                   <option value="Athletic Performance">{t('settings.goal_performance')}</option>
                                </select>
                            </div>
                        </div>
@@ -389,7 +391,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                     disabled={saving || isImpersonating}
                     className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-neutral-800 transition-all shadow-lg disabled:opacity-50"
                    >
-                     {isImpersonating ? 'Disabled in Impersonation' : (saving ? 'Saving...' : 'Commit Identity Changes')}
+                     {isImpersonating ? t('settings.disabled_impersonation') : (saving ? t('common.saving') : t('settings.commit_changes'))}
                    </button>
                </form>
             </div>
@@ -400,11 +402,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10">
                   <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
                      <div className="space-y-1">
-                        <h2 className="text-2xl font-black font-display uppercase text-black">Multi-Factor Authentication</h2>
-                        <p className="text-xs text-neutral-400 font-medium">Protect your privileged access with an extra layer of logic.</p>
+                        <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.mfa_title')}</h2>
+                        <p className="text-xs text-neutral-400 font-medium">{t('settings.mfa_subtitle')}</p>
                      </div>
                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${mfaEnabled ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-neutral-50 text-neutral-400 border border-neutral-100'}`}>
-                        {mfaEnabled ? 'System Shield Active' : 'Unprotected'}
+                        {mfaEnabled ? t('settings.mfa_active') : t('settings.mfa_unprotected')}
                      </span>
                   </div>
 
@@ -413,8 +415,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         <span className="material-symbols-outlined text-4xl filled">google_plus_reshare</span>
                      </div>
                      <div className="flex-grow space-y-2 text-center md:text-left">
-                        <h3 className="text-lg font-black uppercase text-black">Google Authenticator</h3>
-                        <p className="text-sm text-neutral-500 font-medium max-w-md">Use a mobile app to generate one-time verification codes when logging in from a new machine.</p>
+                        <h3 className="text-lg font-black uppercase text-black">{t('settings.google_auth')}</h3>
+                        <p className="text-sm text-neutral-500 font-medium max-w-md">{t('settings.google_auth_desc')}</p>
                      </div>
                      {!mfaEnabled ? (
                         <button 
@@ -422,7 +424,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                           disabled={isImpersonating}
                           className="px-8 py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
                         >
-                          Setup Protocol
+                          {t('settings.setup_protocol')}
                         </button>
                      ) : (
                         <button 
@@ -430,7 +432,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                           disabled={isImpersonating}
                           className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all disabled:opacity-50"
                         >
-                          Deactivate
+                          {t('settings.deactivate')}
                         </button>
                      )}
                   </div>
@@ -439,12 +441,12 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-8">
                   <div className="flex justify-between items-end border-b border-neutral-50 pb-6">
                       <div className="space-y-1">
-                          <h3 className="text-xl font-black font-display uppercase text-black">Device Management</h3>
-                          <p className="text-xs text-neutral-500 font-medium">You can only be logged in on a maximum of <strong className="text-black">2 devices</strong> simultaneously.</p>
+                          <h3 className="text-xl font-black font-display uppercase text-black">{t('settings.device_mgmt')}</h3>
+                          <p className="text-xs text-neutral-500 font-medium">{t('settings.device_limit_text', { n: 2 })}</p>
                       </div>
                       <div className="text-right">
                           <span className={`text-sm font-black ${devices.length >= 2 ? 'text-red-500' : 'text-green-500'}`}>{devices.length} / 2</span>
-                          <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mt-1">Slots Used</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mt-1">{t('settings.slots_used')}</p>
                       </div>
                   </div>
 
@@ -461,11 +463,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                                   <div className="flex items-center gap-2">
                                      <p className="font-black text-black uppercase text-sm">{device.userAgent}</p>
                                      {device.isCurrent && (
-                                         <span className="px-2 py-0.5 bg-accent text-white text-[7px] font-black uppercase tracking-widest rounded shadow-sm">Current Session</span>
+                                         <span className="px-2 py-0.5 bg-accent text-white text-[7px] font-black uppercase tracking-widest rounded shadow-sm">{t('settings.current_session')}</span>
                                      )}
                                   </div>
                                   <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mt-1">
-                                      {device.location} • {device.isCurrent ? 'Active Now' : `Last active: ${device.lastActive}`}
+                                      {device.location} • {device.isCurrent ? t('settings.active_now') : t('settings.last_active', { date: device.lastActive })}
                                   </p>
                                </div>
                             </div>
@@ -480,14 +482,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                          </div>
                      ))}
                      {devices.length === 0 && (
-                         <p className="text-center text-neutral-400 text-xs italic py-4">No registered devices found.</p>
+                         <p className="text-center text-neutral-400 text-xs italic py-4">{t('settings.no_devices')}</p>
                      )}
                   </div>
                   
                   {/* Developer testing tool */}
                   {devices.length < 2 && !isImpersonating && (
                       <button onClick={addTestDevice} className="w-full py-4 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400 hover:text-black hover:border-black transition-colors">
-                          + Simulate Another Login (Test)
+                          {t('settings.simulate_login')}
                       </button>
                   )}
                </div>
@@ -496,14 +498,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
 
           {activeTab === 'billing' && (
             <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 duration-500">
-               <h2 className="text-2xl font-black font-display uppercase text-black">Platform Ledger</h2>
+               <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.platform_ledger')}</h2>
                <div className="overflow-x-auto">
                  <table className="w-full text-left">
                    <thead className="border-b border-neutral-50">
                      <tr>
-                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Enrollment</th>
-                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Cycle ID</th>
-                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-right">Receipt</th>
+                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('settings.enrollment')}</th>
+                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('settings.cycle_id')}</th>
+                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-right">{t('settings.receipt')}</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-neutral-50">
@@ -533,8 +535,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
            <div className="bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 shrink-0">
                  <div className="text-left space-y-1">
-                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">Security Protocol Setup</p>
-                    <h3 className="text-3xl font-black font-display uppercase text-black leading-none">Authenticator Link</h3>
+                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{t('settings.security_setup')}</p>
+                    <h3 className="text-3xl font-black font-display uppercase text-black leading-none">{t('settings.auth_link')}</h3>
                  </div>
                  <button onClick={() => setIsMfaSetupOpen(false)} className="w-12 h-12 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm group">
                     <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
@@ -553,34 +555,34 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                           </div>
                        </div>
                        <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm rounded-[3rem]">
-                          <span className="text-white font-black uppercase text-[10px] tracking-widest bg-black px-4 py-2 rounded-full">Scan Protocol</span>
+                          <span className="text-white font-black uppercase text-[10px] tracking-widest bg-black px-4 py-2 rounded-full">{t('settings.scan_protocol')}</span>
                        </div>
                     </div>
                     <div className="space-y-1">
-                       <p className="text-sm font-black uppercase tracking-tight text-black">Scan with Google Authenticator</p>
-                       <p className="text-xs text-neutral-400 font-medium">Or enter code manually: <span className="font-mono text-accent font-bold">IRON-PULSE-ADMIN-X92</span></p>
+                       <p className="text-sm font-black uppercase tracking-tight text-black">{t('settings.scan_with_google')}</p>
+                       <p className="text-xs text-neutral-400 font-medium">{t('settings.enter_manually')} <span className="font-mono text-accent font-bold">IRON-PULSE-ADMIN-X92</span></p>
                     </div>
                  </div>
 
                  <div className="max-w-xs mx-auto space-y-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest">Confirm Logic Sync</label>
-                       <input 
-                         type="text" 
+                       <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest">{t('settings.confirm_sync')}</label>
+                       <input
+                         type="text"
                          value={otpValue}
                          onChange={(e) => setOtpValue(e.target.value)}
-                         placeholder="Enter 6-digit code" 
+                         placeholder={t('settings.enter_6digit')}
                          maxLength={6}
-                         className="w-full text-center text-3xl font-black tracking-[0.5em] p-6 bg-neutral-50 rounded-3xl border border-neutral-100 focus:border-accent outline-none" 
+                         className="w-full text-center text-3xl font-black tracking-[0.5em] p-6 bg-neutral-50 rounded-3xl border border-neutral-100 focus:border-accent outline-none"
                        />
                     </div>
-                    <button 
+                    <button
                       onClick={handleActivateMfa}
                       className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-accent transition-all shadow-xl"
                     >
-                      Authorize Protocol
+                      {t('settings.authorize')}
                     </button>
-                    <p className="text-[9px] font-bold text-neutral-300 uppercase italic">Hint: Use "123456" for simulation approval.</p>
+                    <p className="text-[9px] font-bold text-neutral-300 uppercase italic">{t('settings.demo_hint')}</p>
                  </div>
               </div>
            </div>

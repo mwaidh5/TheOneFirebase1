@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User, CustomDiscipline } from '../types';
+import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 interface CustomCourseProps {
   currentUser: User | null;
@@ -11,6 +13,7 @@ interface CustomCourseProps {
 
 const CustomCourse: React.FC<CustomCourseProps> = ({ currentUser }) => {
   const navigate = useNavigate();
+  const { t } = useT();
   const [sports, setSports] = useState<CustomDiscipline[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,27 +45,28 @@ const CustomCourse: React.FC<CustomCourseProps> = ({ currentUser }) => {
   };
 
   const getDesc = (id: string) => {
-      const map: any = {
-          'crossfit': "High-intensity functional movements for complete athletic performance.",
-          'muaythai': "Strike with power and precision. Conditioning for fighters.",
-          'bodybuilding': "Hypertrophy focused programming for aesthetic excellence.",
-          'strength': "Raw power development for sports performance.",
-          'powerlifting': "Master the big three. Strength specific periodization.",
-          'general': "Sustainable health and wellness for everyday life.",
-          'weightlifting': "Technical mastery of the Snatch and Clean & Jerk.",
-          'hyrox': "Endurance and strength for the hybrid athlete.",
-          'running': "Marathon, 5k, or general endurance programming."
+      const map: Record<string, TranslationKey> = {
+          'crossfit': 'custom.desc_crossfit',
+          'muaythai': 'custom.desc_muaythai',
+          'bodybuilding': 'custom.desc_bodybuilding',
+          'strength': 'custom.desc_strength',
+          'powerlifting': 'custom.desc_powerlifting',
+          'general': 'custom.desc_general',
+          'weightlifting': 'custom.desc_weightlifting',
+          'hyrox': 'custom.desc_hyrox',
+          'running': 'custom.desc_running',
       };
-      return map[id] || "Bespoke programming tailored to your specific goals.";
+      const key = map[id] || 'custom.desc_default';
+      return t(key);
   };
 
   return (
     <div className="flex-grow bg-white flex flex-col items-center justify-center p-6 text-left animate-in fade-in duration-700">
       <div className="w-full max-w-6xl space-y-12 py-12">
         <div className="space-y-6 text-center max-w-2xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-black font-display uppercase tracking-tight text-black leading-none">Custom Programming</h1>
+          <h1 className="text-4xl md:text-6xl font-black font-display uppercase tracking-tight text-black leading-none">{t('custom.heading')}</h1>
           <p className="text-neutral-500 font-medium text-lg leading-relaxed">
-            Select your discipline. Our expert coaches will build a bespoke training cycle tailored specifically to your goals after enrollment.
+            {t('custom.desc')}
           </p>
         </div>
 
@@ -72,7 +76,7 @@ const CustomCourse: React.FC<CustomCourseProps> = ({ currentUser }) => {
              </div>
         ) : sports.length === 0 ? (
              <div className="text-center py-20 bg-neutral-50 rounded-[3rem]">
-                 <p className="text-neutral-400 font-black uppercase tracking-widest text-xs">No programs available right now.</p>
+                 <p className="text-neutral-400 font-black uppercase tracking-widest text-xs">{t('custom.none_available')}</p>
              </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,7 +102,7 @@ const CustomCourse: React.FC<CustomCourseProps> = ({ currentUser }) => {
                 </div>
                 
                 <div className="pt-8 mt-auto flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-accent group-hover:text-white transition-colors">
-                    <span>Select Program</span>
+                    <span>{t('custom.select_program')}</span>
                     <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </div>
                 </button>

@@ -5,6 +5,7 @@ import { User, UserRole } from '../types';
 import { db, storage } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useT } from '../i18n/I18nContext';
 
 interface Message {
   id: string;
@@ -31,6 +32,7 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ currentUser }) => {
+  const { t } = useT();
   const location = useLocation();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
@@ -391,16 +393,16 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
       {/* Sidebar */}
       <div className={`${showThreadList ? 'flex' : 'hidden md:flex'} w-full md:w-80 lg:w-96 border-r border-neutral-100 flex-col shrink-0 bg-neutral-50/30 absolute inset-0 z-20 md:relative`}>
         <div className="p-6 md:p-8 border-b border-neutral-100 bg-white flex justify-between items-center">
-          <h2 className="text-xl font-black font-display uppercase text-black">Inbox</h2>
+          <h2 className="text-xl font-black font-display uppercase text-black">{t('chat.inbox')}</h2>
           {(currentUser.role === UserRole.CLIENT || currentUser.role === UserRole.COACH) && (
               <button onClick={startSupportChat} className="text-[10px] font-black uppercase text-accent hover:underline">
-                  Contact Support
+                  {t('chat.contact_support')}
               </button>
           )}
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar py-4 px-3 space-y-4">
           {conversations.length === 0 && (
-              <div className="text-center p-8 text-neutral-400 text-xs">No conversations yet</div>
+              <div className="text-center p-8 text-neutral-400 text-xs">{t('chat.no_conversations')}</div>
           )}
           {conversations.map(conv => {
             const isActive = activeThreadId === conv.id;
@@ -431,10 +433,10 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                           <span className="w-2 h-2 rounded-full bg-accent ml-2"></span>
                       )}
                   </div>
-                  <p className="text-[10px] truncate opacity-60">{conv.lastMessage || 'Start of conversation'}</p>
+                  <p className="text-[10px] truncate opacity-60">{conv.lastMessage || t('chat.start_conversation')}</p>
                 </div>
                 {conv.type === 'support' && (
-                    <span className="material-symbols-outlined text-[14px] text-accent" title="Support Ticket">support_agent</span>
+                    <span className="material-symbols-outlined text-[14px] text-accent" title={t('chat.support_ticket')}>support_agent</span>
                 )}
               </button>
             );
@@ -486,7 +488,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value.slice(0, MAX_MSG_LENGTH))}
-                  placeholder="Message..."
+                  placeholder={t('chat.message_placeholder')}
                   className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-medium"
                 />
                 {inputText.length > MAX_MSG_LENGTH * 0.8 && (
@@ -501,7 +503,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-12 opacity-20 hidden md:flex">
             <span className="material-symbols-outlined text-[100px] mb-4">chat_bubble</span>
-            <p className="font-black uppercase tracking-widest text-sm">Select conversation</p>
+            <p className="font-black uppercase tracking-widest text-sm">{t('chat.select_conv')}</p>
           </div>
         )}
       </div>

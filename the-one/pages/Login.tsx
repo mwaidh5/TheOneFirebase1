@@ -6,6 +6,7 @@ import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { logEvent } from '../hooks/useLogEvent';
+import { useT } from '../i18n/I18nContext';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -26,6 +27,7 @@ function setLoginAttemptData(data: { count: number; until: number }) {
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const navigate = useNavigate();
+  const { t } = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -202,7 +204,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       auth.signOut();
       setShowDeviceLimitModal(false);
       setPendingFirebaseUser(null);
-      setError('Login cancelled due to device limits.');
+      setError(t('auth.login_cancelled_devices'));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -216,7 +218,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const rtData = getLoginAttemptData();
     if (rtData.until > Date.now()) {
       const secs = Math.ceil((rtData.until - Date.now()) / 1000);
-      setError(`Too many failed attempts. Try again in ${secs}s.`);
+      setError(t('auth.too_many', { secs }));
       return;
     }
 
@@ -241,15 +243,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           if (left <= 0) { setLockoutRemaining(0); clearInterval(lockoutTimerRef.current!); }
           else setLockoutRemaining(left);
         }, 1000);
-        setError(`Too many failed attempts. Locked out for ${secs}s.`);
+        setError(t('auth.locked_out', { secs }));
       } else {
         setLoginAttemptData({ count: newCount, until: 0 });
         if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-          setError(`Wrong password or email. ${MAX_ATTEMPTS - newCount} attempt${MAX_ATTEMPTS - newCount !== 1 ? 's' : ''} remaining.`);
+          setError(t('auth.wrong_credentials', { n: MAX_ATTEMPTS - newCount }));
         } else if (err.code === 'auth/too-many-requests') {
-          setError('Too many failed attempts. Please try again later.');
+          setError(t('auth.too_many', { secs: 60 }));
         } else {
-          setError('Failed to sign in. Please try again.');
+          setError(t('auth.generic_error'));
         }
       }
       setLoading(false);
@@ -266,11 +268,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     } catch (err: any) {
       console.error("Google login error:", err);
       if (err.code === 'auth/unauthorized-domain') {
-        setError('This domain is not authorized. Please whitelist it in Firebase Console (Authentication > Settings > Authorized Domains).');
+        setError(t('auth.google_unauthorized'));
       } else if (err.code === 'auth/popup-closed-by-user') {
-        setError('Sign-in cancelled.');
+        setError(t('auth.google_cancelled'));
       } else {
-        setError('Google sign-in failed. Please try again.');
+        setError(t('auth.google_failed'));
       }
       setLoading(false);
     }
@@ -283,8 +285,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white shadow-2xl">
             <span className="material-symbols-outlined text-3xl">lock</span>
           </div>
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Sign in to The One</h1>
-          <p className="text-neutral-500 font-medium">Welcome back. Continue your training journey.</p>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('auth.login_heading')}</h1>
+          <p className="text-neutral-500 font-medium">{t('auth.login_sub')}</p>
         </div>
 
         <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-6">
@@ -294,12 +296,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             className="w-full py-4 bg-white border border-neutral-200 text-black rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             <img src="/google.svg" alt="Google" className="w-5 h-5" />
-            Sign in with Google
+            {t('auth.sign_in_google')}
           </button>
 
           <div className="flex items-center">
             <hr className="w-full border-neutral-200" />
-            <span className="px-4 text-xs font-bold text-neutral-400 uppercase">or</span>
+            <span className="px-4 text-xs font-bold text-neutral-400 uppercase">{t('auth.or')}</span>
             <hr className="w-full border-neutral-200" />
           </div>
 
@@ -316,7 +318,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
             />
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Email Address</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.email')}</label>
               <input 
                 type="email" 
                 required 
@@ -329,9 +331,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             
             <div className="space-y-2 text-left">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Password</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">{t('auth.password')}</label>
                 <button type="button" onClick={() => navigate('/forgot-password')} className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-black">
-                  Forgot?
+                  {t('auth.forgot_short')}
                 </button>
               </div>
               <div className="relative">
@@ -365,7 +367,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="flex items-center gap-3 p-4 bg-red-50 rounded-2xl border border-red-100">
                 <span className="material-symbols-outlined text-red-500 text-lg">timer</span>
                 <p className="text-xs font-black text-red-500 uppercase tracking-widest">
-                  Locked out — try again in {lockoutRemaining}s
+                  {t('auth.locked_msg', { secs: lockoutRemaining })}
                 </p>
               </div>
             )}
@@ -380,7 +382,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               ) : (
                 <>
                   <span className="material-symbols-outlined text-lg">login</span>
-                  Sign In
+                  {t('auth.sign_in')}
                 </>
               )}
             </button>
@@ -388,9 +390,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <p className="text-center text-sm font-medium text-neutral-400">
-          Don't have an account? 
+          {t('auth.no_account')}
           <button onClick={() => navigate('/signup')} className="font-black text-black hover:underline uppercase tracking-widest text-xs ml-1">
-            Sign up free
+            {t('auth.signup_free')}
           </button>
         </p>
       </div>
@@ -404,13 +406,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <span className="material-symbols-outlined text-2xl">important_devices</span>
                  </div>
                  <div>
-                     <h3 className="text-xl font-black font-display uppercase text-black">Device Limit Reached</h3>
-                     <p className="text-xs font-medium text-neutral-500 mt-1">You are already logged into 2 devices. To continue logging in here, you must revoke access from one of your existing devices.</p>
+                     <h3 className="text-xl font-black font-display uppercase text-black">{t('auth.device_limit_title')}</h3>
+                     <p className="text-xs font-medium text-neutral-500 mt-1">{t('auth.device_limit_sub')}</p>
                  </div>
               </div>
-              
+
               <div className="p-8 space-y-4">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Active Devices</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('auth.active_devices')}</p>
                  <div className="space-y-3">
                      {existingDevices.map((device) => (
                          <div key={device.id} className="flex items-center justify-between p-4 rounded-2xl border border-neutral-200 bg-white">
@@ -420,14 +422,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 </span>
                                 <div>
                                     <p className="text-sm font-black uppercase text-black">{device.userAgent}</p>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-0.5">{device.location} • Last: {device.lastActive}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-0.5">{device.location} • {t('auth.last')} {device.lastActive}</p>
                                 </div>
                              </div>
                              <button 
                                 onClick={() => handleRevokeDeviceAndLogin(device.id)}
                                 className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors"
                              >
-                                Revoke
+                                {t('auth.revoke')}
                              </button>
                          </div>
                      ))}
@@ -439,7 +441,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     onClick={handleCancelDeviceLimit}
                     className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-black transition-colors"
                   >
-                    Cancel Login
+                    {t('auth.cancel_login')}
                   </button>
               </div>
            </div>

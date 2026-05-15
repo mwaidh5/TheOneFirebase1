@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import { Course, User, UserRole, Coach, CustomCourseRequest } from '../types';
 import { COACHES } from '../constants';
 import LazyImage from '../components/LazyImage';
+import { useT } from '../i18n/I18nContext';
 
 interface MyCoursesProps {
   currentUser?: User | null;
@@ -14,8 +15,9 @@ interface MyCoursesProps {
 
 const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
   const navigate = useNavigate();
+  const { t } = useT();
   const [customRequests, setCustomRequests] = useState<CustomCourseRequest[]>([]);
-  const [courseProgress, setCourseProgress] = useState<Record<string, string[]>>({});
+  const [courseProgress, setCourseProgress] = useState<Record<string, { days: string[]; weeks: string[] }>>({});
 
   useEffect(() => {
     if (!currentUser) {
@@ -36,8 +38,14 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
     if (!currentUser?.id) return;
     const progressRef = collection(db, 'users', currentUser.id, 'progress');
     const unsub = onSnapshot(progressRef, (snap) => {
-      const map: Record<string, string[]> = {};
-      snap.docs.forEach(d => { map[d.id] = (d.data().completedDays as string[]) || []; });
+      const map: Record<string, { days: string[]; weeks: string[] }> = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        map[d.id] = {
+          days: (data.completedDays as string[]) || [],
+          weeks: (data.completedWeeks as string[]) || [],
+        };
+      });
       setCourseProgress(map);
     });
     return () => unsub();
@@ -62,13 +70,13 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
     <div className="max-w-7xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500 min-h-[80vh]">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
         <div className="space-y-2">
-          <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">Athlete Headquarters</span>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-black font-display uppercase">My Enrolled Tracks</h1>
-          <p className="text-neutral-400 font-medium max-w-xl">Continue your progression across your personalized training and educational cycles.</p>
+          <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{t('mycourses.header_label')}</span>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-black font-display uppercase">{t('mycourses.title')}</h1>
+          <p className="text-neutral-400 font-medium max-w-xl">{t('mycourses.subtitle')}</p>
         </div>
         <Link to="/courses" className="w-fit px-8 py-4 bg-neutral-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2">
           <span className="material-symbols-outlined text-lg">explore</span>
-          Browse All Programs
+          {t('mycourses.browse_all')}
         </Link>
       </div>
 
@@ -80,12 +88,12 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                  <span className="material-symbols-outlined text-3xl animate-pulse">priority_high</span>
               </div>
               <div className="space-y-1 text-left">
-                 <h3 className="text-lg font-black text-black uppercase tracking-tight">Diagnostic Intake Required</h3>
-                 <p className="text-xs text-neutral-500 font-medium leading-relaxed">Please complete the required questions so our coaches can start building your program.</p>
+                 <h3 className="text-lg font-black text-black uppercase tracking-tight">{t('mycourses.diag_required_title')}</h3>
+                 <p className="text-xs text-neutral-500 font-medium leading-relaxed">{t('mycourses.diag_required_sub')}</p>
               </div>
            </div>
            <Link to="/profile/courses" className="whitespace-nowrap px-8 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
-              View Requests
+              {t('mycourses.view_requests')}
            </Link>
         </div>
       )}
@@ -93,38 +101,38 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       {/* Pending Custom Requests Section */}
       {pendingRequests.length > 0 && (
           <div className="mb-16">
-              <h2 className="text-2xl font-black text-black uppercase tracking-tight mb-8">Pending Customizations</h2>
+              <h2 className="text-2xl font-black text-black uppercase tracking-tight mb-8">{t('mycourses.pending_custom')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
                   {pendingRequests.map(req => (
                       <div key={req.id} className="bg-neutral-50 rounded-[2.5rem] overflow-hidden border border-neutral-100 p-8 flex flex-col justify-between h-full relative group shadow-sm hover:shadow-xl transition-all">
                           <div className="space-y-4">
                               <div className="flex justify-between items-start">
-                                  <span className="bg-purple-600 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">Bespoke</span>
+                                  <span className="bg-purple-600 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">{t('mycourses.bespoke')}</span>
                                   {req.status === 'DIAGNOSTIC' ? (
                                       <span className="text-red-500 text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
-                                          <span className="material-symbols-outlined text-xs">warning</span> Action Required
+                                          <span className="material-symbols-outlined text-xs">warning</span> {t('mycourses.action_required')}
                                       </span>
                                   ) : (
                                       <span className="text-orange-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                                          <span className="material-symbols-outlined text-xs">construction</span> In Production
+                                          <span className="material-symbols-outlined text-xs">construction</span> {t('mycourses.in_production')}
                                       </span>
                                   )}
                               </div>
                               <div className="text-left">
                                   <h3 className="text-xl font-black text-black uppercase tracking-tight">{req.goal}</h3>
-                                  <p className="text-xs text-neutral-400 font-medium mt-1">Sport: {req.sport.toUpperCase()}</p>
+                                  <p className="text-xs text-neutral-400 font-medium mt-1">{t('mycourses.sport')} {req.sport.toUpperCase()}</p>
                               </div>
                           </div>
-                          
+
                           <div className="mt-8 pt-6 border-t border-neutral-200/50">
                               {req.status === 'DIAGNOSTIC' ? (
                                   <Link to={`/athlete/diagnostic/${req.id}`} className="w-full bg-black text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all text-center shadow-lg block">
-                                      Resume Intake
+                                      {t('mycourses.resume_intake')}
                                   </Link>
                               ) : (
                                   <div className="w-full bg-neutral-200 text-neutral-500 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
                                       <span className="material-symbols-outlined text-sm animate-spin">autorenew</span>
-                                      Coach Building...
+                                      {t('mycourses.coach_building')}
                                   </div>
                               )}
                           </div>
@@ -137,8 +145,16 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       {ownedCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
           {ownedCourses.map(course => {
-            const totalDays = (course.weeks || []).reduce((sum: number, w: { days: unknown[] }) => sum + w.days.length, 0);
-            const completedDays = (courseProgress[course.id] || []).length;
+            const progress = courseProgress[course.id] || { days: [], weeks: [] };
+            const completedDayIds = new Set(progress.days);
+            const completedWeekIds = new Set(progress.weeks);
+            const weeks = course.weeks || [];
+            const totalDays = weeks.reduce((sum, w) => sum + w.days.length, 0);
+            // Count a day as done if the day itself is marked OR its whole week is marked finished.
+            const completedDays = weeks.reduce((sum, w) => {
+              if (completedWeekIds.has(w.id)) return sum + w.days.length;
+              return sum + w.days.filter(d => completedDayIds.has(d.id)).length;
+            }, 0);
             const pct = totalDays > 0 ? Math.min(Math.round((completedDays / totalDays) * 100), 100) : 0;
             return (
             <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500 flex flex-col relative">
@@ -147,13 +163,13 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
                   <span className="bg-white/90 backdrop-blur-md text-black text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">{course.category}</span>
-                  <span className="bg-green-500 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg">Enrolled</span>
+                  <span className="bg-green-500 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg">{t('courses.enrolled')}</span>
                 </div>
                 <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 flex items-center gap-3">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white overflow-hidden shadow-lg shrink-0">
                     <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar || 'https://picsum.photos/100'} alt="Coach" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest truncate">Lead: {course.instructor}</span>
+                  <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest truncate">{t('mycourses.lead')} {course.instructor}</span>
                 </div>
               </div>
 
@@ -162,7 +178,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                   <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-tight font-display leading-tight line-clamp-2">{course.title}</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">{completedDays}/{totalDays} days done</span>
+                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">{t('mycourses.days_done', { done: completedDays, total: totalDays })}</span>
                       <span className="text-xs md:text-sm font-black text-black">{pct}%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-1.5 overflow-hidden">
@@ -173,7 +189,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
 
                 <div className="mt-auto pt-4 md:pt-6 flex gap-3">
                    <Link to={`/workout/${course.id}`} className="flex-1 bg-black text-white py-3.5 md:py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all text-center shadow-lg">
-                      Resume Training
+                      {t('mycourses.resume')}
                    </Link>
                    <button 
                      onClick={() => handleMessageCoach(course.instructor)}
@@ -193,11 +209,11 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
             <span className="material-symbols-outlined text-4xl">school</span>
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl md:text-2xl font-black uppercase text-neutral-400 tracking-tight">No active enrollments</h2>
-            <p className="text-neutral-400 font-medium max-w-sm px-6">Browse our training tracks to start your path to elite performance.</p>
+            <h2 className="text-xl md:text-2xl font-black uppercase text-neutral-400 tracking-tight">{t('mycourses.no_enrollments')}</h2>
+            <p className="text-neutral-400 font-medium max-w-sm px-6">{t('mycourses.empty_explain')}</p>
           </div>
           <Link to="/courses" className="px-10 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-neutral-800 transition-all">
-            Explore Programs
+            {t('mycourses.empty_cta')}
           </Link>
         </div>
       )}

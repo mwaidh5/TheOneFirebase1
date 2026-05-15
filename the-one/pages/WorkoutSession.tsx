@@ -5,6 +5,7 @@ import { doc, onSnapshot, setDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, User } from '../types';
 import { logEvent } from '../hooks/useLogEvent';
+import { useT } from '../i18n/I18nContext';
 
 interface WorkoutSessionProps {
   courses?: Course[];
@@ -175,6 +176,11 @@ function playEmomSound(type: 'countdown' | 'switch' | 'done') {
   } catch {}
 }
 
+// True when the EMOM sub-item is a rest interval (name says "rest"). Used to skip the
+// switch buffer before the rest so resting isn't padded with extra transition seconds.
+const isRestEmomItem = (item?: { name?: string }) =>
+  !!item?.name && /\brest\b/i.test(item.name);
+
 // ─── EMOM Timer Block ──────────────────────────────────────────────────────────
 function EmomTimerBlock({ item }: { item: Exercise }) {
   const emomItems = item.emomItems || [];
@@ -218,17 +224,26 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
         const ph = phaseRef.current;
         const trans = transitionSecsRef.current;
 
+        const isLastEx = idx === emomItems.length - 1;
+        const isFinal = isLastEx && r >= totalRounds;
+        const upcomingItem = isFinal
+          ? null
+          : isLastEx
+            ? emomItems[0]
+            : emomItems[idx + 1];
+
         if (ph === 'work') {
           playEmomSound('switch');
-          if (trans > 0) {
+          // Skip the switch buffer if the next item is a rest interval — the rest itself
+          // already provides recovery time, no extra padding needed.
+          if (trans > 0 && upcomingItem && !isRestEmomItem(upcomingItem)) {
             setPhase('transition');
             return trans;
           }
         }
 
         // Advance
-        const isLastEx = idx === emomItems.length - 1;
-        if (isLastEx && r >= totalRounds) {
+        if (isFinal) {
           playEmomSound('done');
           setIsDone(true);
           setIsRunning(false);
@@ -266,44 +281,55 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
 
   const currentExItem = emomItems[exIdx];
   const nextExItem = emomItems[exIdx + 1 < emomItems.length ? exIdx + 1 : 0];
+  const isCurrentRest = isRestEmomItem(currentExItem);
   const progress = totalTime > 0 ? timeLeft / totalTime : 0;
   const R = 68;
   const circ = 2 * Math.PI * R;
-  const ringColor = isDone ? '#22c55e' : phase === 'transition' ? '#60a5fa' : timeLeft <= 3 ? '#ef4444' : '#f97316';
+  // Ring color: green when done, neutral gray during switch buffer, red on countdown,
+  // neutral on rest, accent blue during active work.
+  const ringColor = isDone
+    ? '#22c55e'
+    : phase === 'transition'
+      ? '#737373'
+      : timeLeft <= 3
+        ? '#ef4444'
+        : isCurrentRest
+          ? '#a3a3a3'
+          : '#137fec';
 
   return (
-    <div className="mt-2 rounded-2xl overflow-hidden border border-orange-900/60 bg-gradient-to-b from-[#1a0a00] to-black text-white">
+    <div className="mt-2 rounded-2xl overflow-hidden border border-neutral-800 bg-gradient-to-b from-neutral-950 to-black text-white">
 
       {/* Top bar: round + exercise dots + reset */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-orange-900/30">
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-neutral-800">
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] font-black uppercase tracking-widest text-orange-600">Round</span>
+          <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">Round</span>
           <span className="text-base font-black text-white leading-none">{round}</span>
-          <span className="text-orange-800 text-sm">/</span>
-          <span className="text-sm font-black text-orange-500 leading-none">{totalRounds}</span>
+          <span className="text-neutral-600 text-sm">/</span>
+          <span className="text-sm font-black text-accent leading-none">{totalRounds}</span>
         </div>
         <div className="flex gap-1.5 items-center">
           {emomItems.map((_, i) => (
             <div key={i} className={`rounded-full transition-all duration-300 ${
-              i === exIdx ? 'w-4 h-2.5 bg-orange-400' : i < exIdx ? 'w-2.5 h-2.5 bg-green-500' : 'w-2.5 h-2.5 bg-orange-900/70'
+              i === exIdx ? 'w-4 h-2.5 bg-accent' : i < exIdx ? 'w-2.5 h-2.5 bg-green-500' : 'w-2.5 h-2.5 bg-neutral-700'
             }`} />
           ))}
         </div>
-        <button onClick={reset} className="w-7 h-7 rounded-full flex items-center justify-center text-orange-700 hover:text-orange-400 transition-colors active:scale-90">
+        <button onClick={reset} className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:text-accent transition-colors active:scale-90">
           <span className="material-symbols-outlined text-base leading-none">restart_alt</span>
         </button>
       </div>
 
       {/* Clock area */}
       <div className="flex flex-col items-center px-4 py-5">
-        <p className="text-[9px] font-black uppercase tracking-[0.25em] mb-4 text-orange-500">
+        <p className={`text-[9px] font-black uppercase tracking-[0.25em] mb-4 ${isCurrentRest ? 'text-neutral-400' : 'text-accent'}`}>
           {isDone ? '✓ Workout Complete' : phase === 'transition' ? '↔ Switch Now' : currentExItem?.name}
         </p>
 
         {/* SVG countdown ring */}
         <div className="relative flex items-center justify-center" style={{ width: 176, height: 176 }}>
           <svg className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }} viewBox="0 0 160 160" width="176" height="176">
-            <circle cx="80" cy="80" r={R} fill="none" stroke="#2a0e00" strokeWidth="10" />
+            <circle cx="80" cy="80" r={R} fill="none" stroke="#1f1f1f" strokeWidth="10" />
             <circle
               cx="80" cy="80" r={R} fill="none"
               stroke={ringColor} strokeWidth="10" strokeLinecap="round"
@@ -316,17 +342,17 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
               {fmtTime(timeLeft)}
             </span>
             <span className="text-[8px] font-black uppercase tracking-[0.3em] mt-1.5" style={{ color: ringColor }}>
-              {isDone ? 'done' : phase === 'transition' ? 'switching' : 'work'}
+              {isDone ? 'done' : phase === 'transition' ? 'switching' : isCurrentRest ? 'rest' : 'work'}
             </span>
           </div>
         </div>
 
         {/* Next up */}
         {!isDone && emomItems.length > 1 && (
-          <div className="mt-4 flex items-center gap-2 bg-orange-950/60 rounded-xl px-3 py-2 border border-orange-900/40">
-            <span className="text-[8px] font-black uppercase tracking-widest text-orange-700">Next:</span>
-            <span className="text-[11px] font-bold text-orange-300">{nextExItem?.name}</span>
-            <span className="text-[8px] text-orange-600 ml-1">{nextExItem?.time}</span>
+          <div className="mt-4 flex items-center gap-2 bg-neutral-900 rounded-xl px-3 py-2 border border-neutral-800">
+            <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">Next:</span>
+            <span className="text-[11px] font-bold text-white">{nextExItem?.name}</span>
+            <span className="text-[8px] text-neutral-500 ml-1">{nextExItem?.time}</span>
           </div>
         )}
       </div>
@@ -336,9 +362,9 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
         <button
           onClick={() => { if (isDone) { reset(); } else { setIsRunning(r => !r); } }}
           className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] ${
-            isDone ? 'bg-orange-600 hover:bg-orange-500 text-white'
+            isDone ? 'bg-green-600 hover:bg-green-500 text-white'
             : isRunning ? 'bg-white/10 text-white border border-white/20 hover:bg-white/15'
-            : 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-900/60'
+            : 'bg-accent hover:bg-blue-500 text-white shadow-lg shadow-accent/30'
           }`}
         >
           {isDone ? '↺ Restart' : isRunning ? '⏸  Pause' : '▶  Start'}
@@ -347,14 +373,14 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
 
       {/* Switch buffer options */}
       <div className="flex items-center gap-2 justify-center px-4 pb-4 pt-1">
-        <span className="text-[8px] font-black uppercase tracking-widest text-orange-800">Switch buffer:</span>
+        <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">Switch buffer:</span>
         <div className="flex gap-1">
           {[0, 5, 10, 15, 30].map(opt => (
             <button
               key={opt}
               onClick={() => setTransitionSecs(opt)}
               className={`px-2 py-1.5 rounded-lg text-[9px] font-black transition-all active:scale-90 min-w-[34px] ${
-                transitionSecs === opt ? 'bg-orange-500 text-white' : 'bg-orange-950/80 text-orange-600 border border-orange-900/50 hover:border-orange-700'
+                transitionSecs === opt ? 'bg-accent text-white' : 'bg-neutral-900 text-neutral-400 border border-neutral-800 hover:border-neutral-600'
               }`}
             >{opt === 0 ? 'Off' : `+${opt}s`}</button>
           ))}
@@ -364,10 +390,179 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
   );
 }
 
+// ─── FOR_TIME Stopwatch Block ──────────────────────────────────────────────────
+function ForTimeTimerBlock({ item }: { item: Exercise }) {
+  const forTimeItems = item.forTimeItems || [];
+  const capSecs = item.time ? parseEmomSeconds(item.time) : 0;
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [completedMoves, setCompletedMoves] = useState<Set<string>>(new Set());
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!isRunning || isDone) return;
+    intervalRef.current = setInterval(() => {
+      setElapsed(e => {
+        const next = e + 1;
+        if (capSecs > 0 && next >= capSecs && e < capSecs) playEmomSound('done');
+        return next;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning, isDone, capSecs]);
+
+  const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  const reset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsRunning(false); setIsDone(false); setElapsed(0); setCompletedMoves(new Set());
+  };
+
+  const finish = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsRunning(false);
+    setIsDone(true);
+    playEmomSound('done');
+  };
+
+  const toggleMove = (id: string) => {
+    setCompletedMoves(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allMovesDone = forTimeItems.length > 0 && completedMoves.size === forTimeItems.length;
+  const overCap = capSecs > 0 && elapsed >= capSecs;
+  const ringColor = isDone ? '#22c55e' : overCap ? '#ef4444' : '#137fec';
+  const R = 68;
+  const circ = 2 * Math.PI * R;
+  const progress = capSecs > 0 ? Math.min(elapsed / capSecs, 1) : Math.min((elapsed % 60) / 60, 1);
+
+  return (
+    <div className="mt-2 rounded-2xl overflow-hidden border border-neutral-800 bg-gradient-to-b from-neutral-950 to-black text-white">
+
+      {/* Top bar: status + cap + reset */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-neutral-800">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">For Time</span>
+          {forTimeItems.length > 0 && (
+            <>
+              <span className="text-base font-black text-white leading-none">{completedMoves.size}</span>
+              <span className="text-neutral-600 text-sm">/</span>
+              <span className="text-sm font-black text-accent leading-none">{forTimeItems.length}</span>
+            </>
+          )}
+        </div>
+        {capSecs > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">Cap</span>
+            <span className="text-[11px] font-black text-white tabular-nums">{fmtTime(capSecs)}</span>
+          </div>
+        )}
+        <button onClick={reset} className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:text-accent transition-colors active:scale-90">
+          <span className="material-symbols-outlined text-base leading-none">restart_alt</span>
+        </button>
+      </div>
+
+      {/* Clock area */}
+      <div className="flex flex-col items-center px-4 py-5">
+        <p className={`text-[9px] font-black uppercase tracking-[0.25em] mb-4 ${overCap && !isDone ? 'text-red-400' : 'text-accent'}`}>
+          {isDone ? '✓ Finished' : overCap ? 'Past Cap — Push!' : isRunning ? 'Race The Clock' : 'Ready'}
+        </p>
+
+        {/* SVG count-up ring */}
+        <div className="relative flex items-center justify-center" style={{ width: 176, height: 176 }}>
+          <svg className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }} viewBox="0 0 160 160" width="176" height="176">
+            <circle cx="80" cy="80" r={R} fill="none" stroke="#1f1f1f" strokeWidth="10" />
+            <circle
+              cx="80" cy="80" r={R} fill="none"
+              stroke={ringColor} strokeWidth="10" strokeLinecap="round"
+              strokeDasharray={`${circ * progress} ${circ}`}
+              style={{ transition: 'stroke-dasharray 0.9s linear, stroke 0.3s' }}
+            />
+          </svg>
+          <div className="flex flex-col items-center z-10 select-none">
+            <span className={`font-black tabular-nums leading-none tracking-tight ${overCap && !isDone ? 'text-red-400' : 'text-white'}`} style={{ fontSize: 48 }}>
+              {fmtTime(elapsed)}
+            </span>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] mt-1.5" style={{ color: ringColor }}>
+              {isDone ? 'final' : 'elapsed'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Movements checklist */}
+      {forTimeItems.length > 0 && (
+        <div className="px-4 pb-3 space-y-1">
+          {forTimeItems.map((ft, i) => {
+            const done = completedMoves.has(ft.id);
+            return (
+              <button
+                key={ft.id}
+                onClick={() => toggleMove(ft.id)}
+                className={`w-full flex items-center gap-2 rounded-xl px-3 py-2 border transition-all active:scale-[0.98] ${
+                  done ? 'bg-green-500/10 border-green-500/40' : 'bg-neutral-900 border-neutral-800 hover:border-neutral-700'
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${
+                  done ? 'bg-green-500 text-white' : 'bg-neutral-800 text-neutral-400'
+                }`}>
+                  {done ? '✓' : i + 1}
+                </span>
+                <span className={`flex-1 text-left text-[11px] font-bold ${done ? 'text-green-300 line-through' : 'text-white'}`}>
+                  {ft.name || '—'}
+                </span>
+                {ft.reps && (
+                  <span className="text-[10px] font-black text-accent tracking-wide">{ft.reps}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Start / Pause + Finish */}
+      <div className="px-4 pb-4 pt-1 flex gap-2">
+        <button
+          onClick={() => { if (isDone) { reset(); } else { setIsRunning(r => !r); } }}
+          className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] ${
+            isDone ? 'bg-green-600 hover:bg-green-500 text-white'
+            : isRunning ? 'bg-white/10 text-white border border-white/20 hover:bg-white/15'
+            : 'bg-accent hover:bg-blue-500 text-white shadow-lg shadow-accent/30'
+          }`}
+        >
+          {isDone ? '↺ Restart' : isRunning ? '⏸  Pause' : '▶  Start'}
+        </button>
+        {!isDone && (isRunning || elapsed > 0) && (
+          <button
+            onClick={finish}
+            className={`px-4 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.97] ${
+              allMovesDone
+                ? 'bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-900/30'
+                : 'bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-600'
+            }`}
+          >
+            Finish
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUser }) => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useT();
 
   const course = useMemo(() => courses.find(c => c.id === id), [id, courses]);
 
@@ -517,8 +712,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="font-bold text-neutral-400 uppercase tracking-widest text-xs">Loading Course Data...</p>
-          <Link to="/profile/courses" className="text-xs font-black uppercase underline">Return to Dashboard</Link>
+          <p className="font-bold text-neutral-400 uppercase tracking-widest text-xs">{t('workout.loading_course')}</p>
+          <Link to="/profile/courses" className="text-xs font-black uppercase underline">{t('workout.return_dashboard')}</Link>
         </div>
       </div>
     );
@@ -679,6 +874,43 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     saveProgress('weeks', next);
   };
 
+  // Auto-save inline weight / reps / time as the user types — debounced.
+  // Without this, anything entered AFTER pressing "complete exercise" was lost
+  // because the only persistence points were the modal submit and day-finish.
+  useEffect(() => {
+    if (!currentUser || !course || !selectedDay) return;
+    if (Object.keys(logData.results).length === 0) return;
+
+    const handle = setTimeout(() => {
+      const now = new Date();
+      const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const enrichedResults = Object.fromEntries(
+        Object.entries(logData.results).map(([exId, result]) => [
+          exId,
+          { ...(result as { weight?: string; reps?: string; time?: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: getUnit(exId) },
+        ])
+      );
+      const logKey = `${course.id}_${selectedWeek?.weekNumber ?? 0}_${selectedDay.id}`;
+      const logRef = doc(db, 'users', currentUser.id, 'workout_logs', logKey);
+      // Merge — don't include `completed`, so a prior `completed: true` is preserved.
+      setDoc(logRef, {
+        courseId: course.id,
+        courseTitle: course.title,
+        weekNum: selectedWeek?.weekNumber ?? 0,
+        dayId: selectedDay.id,
+        dayTitle: selectedDay.title,
+        dayNumber: selectedDay.dayNumber,
+        loggedAt: now.getTime(),
+        loggedDate: now.toISOString().split('T')[0],
+        loggedDayName: dayNames[now.getDay()],
+        results: enrichedResults,
+      }, { merge: true }).catch(err => console.error('auto-save log', err));
+    }, 700);
+
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logData.results, exerciseUnits, currentUser, course, selectedDay, selectedWeek]);
+
   const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -739,21 +971,21 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const hasImage = !!item.imageUrl;
 
     let statsToRender = [
-      { label: 'SETS', val: item.sets || '1' },
-      { label: 'REPS', val: item.reps || '-' },
-      { label: 'REST', val: item.rest || 'N/A' }
+      { label: t('workout.sets'), val: item.sets || '1' },
+      { label: t('workout.reps_short'), val: item.reps || '-' },
+      { label: t('workout.rest'), val: item.rest || 'N/A' }
     ];
     if (isCardio) {
       statsToRender = [
-        { label: 'DISTANCE', val: item.distance || '-' },
-        { label: 'TIME CAP', val: item.time || '-' },
-        { label: 'PACE/CALS', val: item.speed || (item.calories ? String(item.calories) : '-') }
+        { label: t('workout.distance'), val: item.distance || '-' },
+        { label: t('workout.time_cap'), val: item.time || '-' },
+        { label: t('workout.pace_cals'), val: item.speed || (item.calories ? String(item.calories) : '-') }
       ];
     } else if (isEmom) {
       statsToRender = [
-        { label: 'ROUNDS', val: String(item.rounds || '-') },
-        { label: 'TOTAL TIME', val: item.durationMinutes ? `${item.durationMinutes}m` : '-' },
-        { label: 'WORK/REST', val: item.workInterval ? `${item.workInterval}/${item.restInterval}` : '-' }
+        { label: t('workout.rounds'), val: String(item.rounds || '-') },
+        { label: t('workout.total_time'), val: item.durationMinutes ? `${item.durationMinutes}m` : '-' },
+        { label: t('workout.work_rest'), val: item.workInterval ? `${item.workInterval}/${item.restInterval}` : '-' }
       ];
     }
 
@@ -782,7 +1014,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         {isActive && !isDone && (
           <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-amber-400 text-black px-2.5 py-1 rounded-full shadow-lg">
             <span className="w-2 h-2 bg-black rounded-full animate-pulse"></span>
-            <span className="text-[8px] font-black uppercase tracking-[0.2em]">NOW</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.2em]">{t('workout.now_badge')}</span>
           </div>
         )}
 
@@ -845,20 +1077,9 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               <EmomTimerBlock item={item} />
             )}
 
-            {/* FOR_TIME — Movements to complete */}
-            {isForTime && item.forTimeItems && item.forTimeItems.length > 0 && (
-              <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3 space-y-1.5">
-                <p className="text-[8px] font-black uppercase tracking-widest text-blue-500">Movements For Time</p>
-                <ol className="space-y-1">
-                  {item.forTimeItems.map((ft, i) => (
-                    <li key={ft.id} className="flex items-center gap-2 text-[11px] font-bold text-neutral-700">
-                      <span className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-black shrink-0">{i + 1}</span>
-                      <span className="flex-1">{ft.name || '—'}</span>
-                      {ft.reps && <span className="text-[10px] font-black text-blue-600 tracking-wide">{ft.reps}</span>}
-                    </li>
-                  ))}
-                </ol>
-              </div>
+            {/* FOR_TIME stopwatch + movements */}
+            {isForTime && (
+              <ForTimeTimerBlock item={item} />
             )}
 
             {/* Coach cue */}
@@ -868,25 +1089,37 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               </p>
             )}
 
-            {/* Previous lift chip */}
+            {/* Previous lift chip — data portion is locked LTR so numbers/units stay readable in RTL */}
             {prevLift && (
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-xs text-neutral-400">history</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">Last:</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-accent">
-                  {typeof prevLift === 'object'
-                    ? (isForTime && (prevLift as any).time)
-                      ? `${(prevLift as any).time} — beat it!`
-                      : `${(prevLift as any).weight || '—'} ${(prevLift as any).unit || 'kg'} × ${(prevLift as any).reps || '—'} reps`
-                    : prevLift}
-                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{t('workout.last')}</span>
+                {typeof prevLift === 'object' ? (
+                  isForTime && (prevLift as any).time ? (
+                    <>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-accent" dir="ltr">
+                        {(prevLift as any).time}
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-accent">— {t('workout.beat_it')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-accent" dir="ltr">
+                        {(prevLift as any).weight || '—'} {(prevLift as any).unit || 'kg'} × {(prevLift as any).reps || '—'}
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-accent">{t('workout.reps_label')}</span>
+                    </>
+                  )
+                ) : (
+                  <span className="text-[9px] font-black uppercase tracking-widest text-accent">{prevLift}</span>
+                )}
               </div>
             )}
 
             {/* Inline inputs — Time for FOR_TIME, Weight+Reps otherwise */}
             {isForTime ? (
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-[9px] text-neutral-400 font-medium">Your Time:</span>
+                <span className="text-[9px] text-neutral-400 font-medium">{t('workout.your_time')}:</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -896,12 +1129,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   style={{ fontSize: '16px' }}
                   className="w-20 bg-transparent border-b border-blue-200 focus:border-blue-600 outline-none text-[11px] font-black text-black text-center transition-colors tabular-nums"
                 />
-                <span className="text-[9px] text-neutral-400 font-medium">to finish</span>
+                <span className="text-[9px] text-neutral-400 font-medium">{t('workout.to_finish')}</span>
               </div>
             ) : (
               <div className="flex items-center gap-3 mt-1 flex-wrap">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] text-neutral-400 font-medium">Weight:</span>
+                  <span className="text-[9px] text-neutral-400 font-medium">{t('workout.weight')}:</span>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -923,7 +1156,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-[9px] text-neutral-400 font-medium">Reps:</span>
+                  <span className="text-[9px] text-neutral-400 font-medium">{t('workout.reps')}:</span>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -933,7 +1166,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     style={{ fontSize: '16px' }}
                     className="w-10 bg-transparent border-b border-neutral-200 focus:border-black outline-none text-[9px] font-black text-black text-center transition-colors"
                   />
-                  <span className="text-[9px] text-neutral-400 font-medium">reps</span>
+                  <span className="text-[9px] text-neutral-400 font-medium">{t('workout.reps_label')}</span>
                 </div>
               </div>
             )}
@@ -987,7 +1220,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               : 'bg-purple-100 text-purple-700 border-purple-200'
             }`}>
               <span className="material-symbols-outlined text-xs">link</span>
-              Superset · {groupExs.length} Exercises
+              {t('workout.superset')} · {groupExs.length} {t('workout.exercises_short')}
               {isThisGroupActive && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse ml-1"></span>}
             </div>
           </div>
@@ -1050,13 +1283,13 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
             <div className="space-y-4 max-w-2xl">
               <nav className="flex items-center gap-2 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">
-                <Link to="/profile/courses" className="hover:text-black transition-colors">Courses</Link>
+                <Link to="/profile/courses" className="hover:text-black transition-colors">{t('workout.courses_crumb')}</Link>
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
                 <button onClick={() => setView('weeks')} className="hover:text-black transition-colors truncate">{course.title}</button>
                 {view !== 'weeks' && view !== 'meal' && selectedWeek && (
                   <>
                     <span className="material-symbols-outlined text-sm">chevron_right</span>
-                    <button onClick={() => setView('days')} className="hover:text-black transition-colors">Wk {selectedWeek.weekNumber}</button>
+                    <button onClick={() => setView('days')} className="hover:text-black transition-colors">{t('courses.week')} {selectedWeek.weekNumber}</button>
                   </>
                 )}
                 {view === 'exercises' && selectedDay && (
@@ -1068,27 +1301,26 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                 {view === 'meal' && (
                   <>
                     <span className="material-symbols-outlined text-sm">chevron_right</span>
-                    <span className="text-black">Nutrition</span>
+                    <span className="text-black">{t('nav.nutrition')}</span>
                   </>
                 )}
               </nav>
               <div className="flex items-center gap-4">
                 <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight text-black uppercase leading-tight">
-                  {view === 'weeks' ? 'Training Hub'
-                    : view === 'meal' ? 'Nutrition Plan'
-                    : view === 'days' ? `Week ${selectedWeek?.weekNumber} Overview`
+                  {view === 'weeks' ? t('workout.training_hub')
+                    : view === 'meal' ? t('workout.nutrition_plan')
+                    : view === 'days' ? t('workout.week_overview', { n: selectedWeek?.weekNumber ?? '' })
                     : selectedDay?.title}
                 </h1>
                 {view === 'exercises' && selectedDay && isDayMarkedDone(selectedDay) && (
-                  <span className="bg-green-500 text-white px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1 shrink-0 h-fit">
-                    <span className="material-symbols-outlined text-xs filled">check</span> Done
+                  <span className="bg-green-500 text-white px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1 shrink-0 h-fit">                    <span className="material-symbols-outlined text-xs filled">check</span> {t('common.done')}
                   </span>
                 )}
               </div>
               <p className="text-neutral-500 text-base md:text-lg leading-relaxed font-medium">
-                {view === 'weeks' ? "Select a phase to continue your progression."
-                  : view === 'meal' ? "Fuel your performance."
-                  : "Track your intensity and log every successful set."}
+                {view === 'weeks' ? t('workout.select_phase')
+                  : view === 'meal' ? t('workout.fuel')
+                  : t('workout.track_intensity')}
               </p>
             </div>
             {course.hasMealPlan && view === 'weeks' && (
@@ -1100,8 +1332,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   <span className="material-symbols-outlined">restaurant</span>
                 </div>
                 <div className="text-left">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">Nutrition</p>
-                  <p className="text-sm font-black text-black uppercase">View Meal Plan</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{t('nav.nutrition')}</p>
+                  <p className="text-sm font-black text-black uppercase">{t('workout.view_meal_plan')}</p>
                 </div>
               </button>
             )}
@@ -1133,15 +1365,15 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     )}
                   </div>
                   <div className="space-y-1 text-left">
-                    <h3 className="text-xl font-black uppercase text-black font-display tracking-tight">Week {week.weekNumber}</h3>
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{week.days.length} Training Sessions</p>
+                    <h3 className="text-xl font-black uppercase text-black font-display tracking-tight">{t('courses.week')} {week.weekNumber}</h3>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{week.days.length} {t('workout.training_sessions')}</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleWeekFinished(week.id); }}
                     className={`mt-auto px-5 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isFinished ? 'bg-green-100 text-green-700' : 'bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white'}`}
                   >
                     <span className="material-symbols-outlined text-sm">{isFinished ? 'check_circle' : 'circle'}</span>
-                    {isFinished ? 'Week Finished' : 'Mark as Finished'}
+                    {isFinished ? t('workout.week_finished') : t('workout.mark_finished')}
                   </button>
                   <span className={`material-symbols-outlined text-[120px] absolute -bottom-8 -right-8 select-none opacity-30 group-hover:rotate-12 transition-transform ${isFinished ? 'text-green-500/10' : 'text-neutral-50'}`}>event_available</span>
                 </div>
@@ -1194,7 +1426,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               <button onClick={() => setView('weeks')} className="w-10 h-10 rounded-lg bg-neutral-50 border border-neutral-100 flex items-center justify-center text-neutral-400 hover:text-black hover:bg-white transition-all">
                 <span className="material-symbols-outlined">arrow_back</span>
               </button>
-              <h2 className="text-xl font-black uppercase text-black font-display tracking-tight">Select Training Day</h2>
+              <h2 className="text-xl font-black uppercase text-black font-display tracking-tight">{t('workout.select_day')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {selectedWeek.days.map((day) => {
@@ -1212,9 +1444,9 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                       <div className="text-left">
                         <div className="flex items-center gap-2">
                           <h4 className="text-base font-black uppercase text-black leading-none">{day.title}</h4>
-                          {isDayDone && <span className="bg-green-500 text-white px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest">Done</span>}
+                          {isDayDone && <span className="bg-green-500 text-white px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest">{t('common.done')}</span>}
                         </div>
-                        <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-1">{day.exercises.length} Movements</p>
+                        <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-1">{t('workout.movements_count', { n: day.exercises.length })}</p>
                       </div>
                     </div>
                     {isDayDone
@@ -1237,7 +1469,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             <div className="lg:col-span-8 space-y-5 order-2 lg:order-1">
               <div className="flex items-center justify-between">
                 <button onClick={() => setView('days')} className="flex items-center gap-2 text-[10px] font-black text-neutral-400 uppercase tracking-widest hover:text-black">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span> Back to Week
+                  <span className="material-symbols-outlined text-sm">arrow_back</span> {t('workout.back_to_week')}
                 </button>
               </div>
               {renderExerciseBlocks(selectedDay.exercises)}
@@ -1249,8 +1481,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-green-500 filled text-2xl">check_circle</span>
                       <div>
-                        <p className="text-sm font-black uppercase text-green-800">Session Complete!</p>
-                        <p className="text-[9px] font-bold text-green-600 uppercase tracking-widest">All movements finished.</p>
+                        <p className="text-sm font-black uppercase text-green-800">{t('workout.session_complete')}</p>
+                        <p className="text-[9px] font-bold text-green-600 uppercase tracking-widest">{t('workout.session_complete_sub')}</p>
                       </div>
                     </div>
                     <button
@@ -1258,7 +1490,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                       className="shrink-0 px-3 py-2 bg-white border border-green-200 text-green-700 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all flex items-center gap-1"
                     >
                       <span className="material-symbols-outlined text-xs">undo</span>
-                      Undo
+                      {t('common.undo')}
                     </button>
                   </div>
                 ) : (
@@ -1267,7 +1499,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     className="w-full py-5 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-neutral-800 transition-all shadow-2xl"
                   >
                     <span className="material-symbols-outlined text-lg">task_alt</span>
-                    Finish Session
+                    {t('workout.finish_session')}
                   </button>
                 )}
 
@@ -1285,7 +1517,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${isPaused ? 'bg-amber-400' : 'bg-green-400 animate-pulse'}`}></span>
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50">{isPaused ? 'Paused' : 'Session Live'}</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50">{isPaused ? t('workout.paused') : t('workout.session_live')}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -1293,43 +1525,43 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                             className="text-[8px] font-black uppercase tracking-widest text-white/50 hover:text-white/90 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
                           >
                             <span className="material-symbols-outlined text-xs">{isPaused ? 'play_arrow' : 'pause'}</span>
-                            {isPaused ? 'Resume' : 'Pause'}
+                            {isPaused ? t('common.resume') : t('common.pause')}
                           </button>
                           <button
                             onClick={() => { resetTimer(); setIsPaused(false); }}
                             className="text-[8px] font-black uppercase tracking-widest text-white/30 hover:text-white/70 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-white/10"
                           >
                             <span className="material-symbols-outlined text-xs">restart_alt</span>
-                            Reset
+                            {t('common.reset')}
                           </button>
                         </div>
                       </div>
                       <div className="font-black text-5xl tracking-tight text-white tabular-nums">
                         {timerDisplay}
                       </div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{isPaused ? 'Timer Paused' : 'Time Elapsed'}</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{isPaused ? t('workout.timer_paused') : t('workout.time_elapsed')}</p>
                     </>
                   ) : finalTime !== null ? (
                     <>
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-green-400 text-base filled">check_circle</span>
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Session Complete</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">{t('workout.session_done')}</p>
                       </div>
                       <div className="font-black text-5xl tracking-tight text-white tabular-nums">
                         {fmtTime(finalTime)}
                       </div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Final Session Time</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-white/40">{t('workout.final_time')}</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50">Ready to Train?</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50">{t('workout.ready')}</p>
                       <div className="font-black text-4xl tracking-tight text-white/20 tabular-nums">00:00:00</div>
                       <button
                         onClick={handleStartWorkout}
                         className="w-full py-3.5 bg-accent hover:bg-blue-500 text-white rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent/30 mt-2"
                       >
                         <span className="material-symbols-outlined text-lg">play_arrow</span>
-                        Start Workout
+                        {t('workout.start')}
                       </button>
                     </>
                   )}
@@ -1340,10 +1572,10 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               {/* ── Session Summary ─────────────────────────────── */}
               <div className={`p-6 rounded-3xl text-white shadow-2xl relative overflow-hidden transition-colors duration-500 ${isDayMarkedDone(selectedDay) ? 'bg-green-600' : 'bg-black'}`}>
                 <div className="relative z-10 space-y-4">
-                  <h3 className="text-base font-black uppercase font-display leading-tight">Session Summary</h3>
+                  <h3 className="text-base font-black uppercase font-display leading-tight">{t('workout.session_summary')}</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                      <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Movements Done</span>
+                      <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t('workout.movements_done')}</span>
                       <span className="text-lg font-black text-white">
                         {selectedDay.exercises.filter(ex => completedExercises.has(ex.id)).length} / {selectedDay.exercises.length}
                       </span>
@@ -1359,7 +1591,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   {/* Up Next — only when workout started */}
                   {workoutStarted && activeExerciseId && (
                     <div className="bg-white/10 rounded-xl p-3 border border-white/10">
-                      <p className="text-[7px] font-black uppercase tracking-widest text-white/40 mb-1">Up Next</p>
+                      <p className="text-[7px] font-black uppercase tracking-widest text-white/40 mb-1">{t('workout.up_next')}</p>
                       <p className="text-sm font-black uppercase text-amber-300 leading-tight">
                         {selectedDay.exercises.find(ex => ex.id === activeExerciseId)?.name ?? '—'}
                       </p>
@@ -1380,13 +1612,13 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden relative flex flex-col max-h-[95vh]">
             <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 shrink-0">
               <div className="text-left space-y-1">
-                <p className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Log Your Effort</p>
+                <p className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">{t('workout.log_effort')}</p>
                 <h3 className="text-xl md:text-2xl font-black font-display uppercase text-black leading-none">{selectedDay.title}</h3>
               </div>
               <div className="flex items-center gap-4">
                 {workoutStarted && (
                   <div className="text-right">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400">Session Time</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400">{t('workout.session_time')}</p>
                     <p className="text-xl font-black tabular-nums text-black">{timerDisplay}</p>
                   </div>
                 )}
@@ -1402,35 +1634,43 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 no-scrollbar text-left">
               <form onSubmit={handleLogSubmit} className="space-y-8">
                 <div className="space-y-6">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400 border-l-2 border-black pl-3">Movement Intelligence</h4>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400 border-l-2 border-black pl-3">{t('workout.movement_intel')}</h4>
                   <div className="grid gap-3">
                     {selectedDay.exercises.map((ex) => (
                       <div key={ex.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
                         <div className="md:col-span-4">
                           <p className="text-[9px] font-black text-neutral-300 uppercase tracking-widest mb-0.5">{ex.format}</p>
                           <p className="text-base font-black text-black uppercase leading-none">{ex.name}</p>
-                          {(prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)]) && (
-                            <p className="text-[8px] font-black text-accent uppercase tracking-widest mt-0.5">
-                              {(() => {
-                                const pl = prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)];
-                                if (ex.format === 'FOR_TIME' && pl?.time) return `Last: ${pl.time} — beat it!`;
-                                return `Last: ${pl?.weight || '—'} ${pl?.unit || 'kg'} × ${pl?.reps || '—'} reps`;
-                              })()}
-                            </p>
-                          )}
+                          {(prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)]) && (() => {
+                            const pl = prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)];
+                            if (ex.format === 'FOR_TIME' && pl?.time) {
+                              return (
+                                <p className="text-[8px] font-black text-accent uppercase tracking-widest mt-0.5">
+                                  {t('workout.last')} <span dir="ltr">{pl.time}</span> — {t('workout.beat_it')}
+                                </p>
+                              );
+                            }
+                            return (
+                              <p className="text-[8px] font-black text-accent uppercase tracking-widest mt-0.5">
+                                {t('workout.last')}{' '}
+                                <span dir="ltr">{pl?.weight || '—'} {pl?.unit || 'kg'} × {pl?.reps || '—'}</span>{' '}
+                                {t('workout.reps_label')}
+                              </p>
+                            );
+                          })()}
                         </div>
                         <div className="md:col-span-3">
-                          <p className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Prescribed</p>
+                          <p className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">{t('workout.prescribed')}</p>
                           {ex.format === 'FOR_TIME' && ex.forTimeItems && ex.forTimeItems.length > 0 ? (
-                            <p className="text-xs font-bold text-neutral-500 uppercase">{ex.forTimeItems.length} movements{ex.time ? ` · cap ${ex.time}` : ''}</p>
+                            <p className="text-xs font-bold text-neutral-500 uppercase">{t('workout.movements_count', { n: ex.forTimeItems.length })}{ex.time ? ` · ${t('workout.time_cap')} ${ex.time}` : ''}</p>
                           ) : (
-                            <p className="text-xs font-bold text-neutral-500 uppercase">{ex.sets} Sets × {ex.reps}</p>
+                            <p className="text-xs font-bold text-neutral-500 uppercase">{ex.sets} {t('workout.sets')} × {ex.reps}</p>
                           )}
                         </div>
                         <div className="md:col-span-5 flex gap-3">
                           {ex.format === 'FOR_TIME' ? (
                             <div className="flex-1">
-                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1 block">Your Time</label>
+                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1 block">{t('workout.your_time')}</label>
                               <input
                                 type="text" inputMode="numeric" placeholder="MM:SS"
                                 style={{ fontSize: '16px' }}
@@ -1443,7 +1683,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                             <>
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-1">
-                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest">{`Weight (${getUnit(ex.id)})`}</label>
+                              <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest">{`${t('workout.weight')} (${getUnit(ex.id)})`}</label>
                               <div className="flex items-center gap-0.5 bg-neutral-100 rounded p-0.5">
                                 {(['kg', 'lbs'] as const).map(u => (
                                   <button key={u} type="button" onClick={() => setUnit(ex.id, u)}
@@ -1461,7 +1701,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                             />
                           </div>
                           <div className="flex-1">
-                            <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1 block">Reps Done</label>
+                            <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1 block">{t('workout.reps_done')}</label>
                             <input
                               type="text" inputMode="numeric" placeholder="e.g. 8"
                               style={{ fontSize: '16px' }}
@@ -1481,7 +1721,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                 {/* RPE slider — full width, no coach notes */}
                 <div className="pt-6 border-t border-neutral-100 space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Session Intensity</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-neutral-400">{t('workout.session_intensity')}</label>
                     <span className="px-3 py-1 bg-black text-white rounded-full text-xs font-black">RPE {logData.rpe} / 10</span>
                   </div>
                   <input
@@ -1491,8 +1731,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     onChange={(e) => setLogData({ ...logData, rpe: parseInt(e.target.value) })}
                   />
                   <div className="flex justify-between text-[9px] font-black uppercase text-neutral-300">
-                    <span>1 – Easy Recovery</span>
-                    <span>10 – Max Effort</span>
+                    <span>{t('workout.rpe_easy')}</span>
+                    <span>{t('workout.rpe_max')}</span>
                   </div>
                 </div>
 
@@ -1503,8 +1743,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm hover:bg-neutral-800 transition-all shadow-2xl flex items-center justify-center gap-3 disabled:opacity-50"
                   >
                     {isSubmitting
-                      ? <><div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> Saving...</>
-                      : <><span className="material-symbols-outlined text-base">task_alt</span> Finish Session &amp; Save Log</>
+                      ? <><div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> {t('common.saving')}</>
+                      : <><span className="material-symbols-outlined text-base">task_alt</span> {t('workout.finish_save_log')}</>
                     }
                   </button>
                 </div>

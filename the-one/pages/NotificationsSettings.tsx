@@ -1,21 +1,25 @@
 
 import React from 'react';
+import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 const NotificationsSettings: React.FC = () => {
+  const { t } = useT();
+  const items: Array<{ titleKey: TranslationKey; descKey: TranslationKey }> = [
+    { titleKey: 'notif.training_title', descKey: 'notif.training_desc' },
+    { titleKey: 'notif.community_title', descKey: 'notif.community_desc' },
+    { titleKey: 'notif.product_title', descKey: 'notif.product_desc' },
+    { titleKey: 'notif.marketing_title', descKey: 'notif.marketing_desc' },
+  ];
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
-      <h1 className="text-4xl font-black font-display uppercase tracking-tight text-black mb-12">Notifications</h1>
+      <h1 className="text-4xl font-black font-display uppercase tracking-tight text-black mb-12">{t('notif.heading')}</h1>
       <div className="space-y-6">
-        {[
-          { title: 'Training Reminders', desc: 'Get notified when it\'s time for your scheduled WOD.' },
-          { title: 'Community Updates', desc: 'Stay in the loop with forum replies and mentions.' },
-          { title: 'Product Updates', desc: 'New courses, features, and platform improvements.' },
-          { title: 'Marketing', desc: 'Special offers and early access to events.' },
-        ].map(item => (
-          <div key={item.title} className="flex items-center justify-between p-8 bg-neutral-50 rounded-3xl border border-neutral-100">
+        {items.map(item => (
+          <div key={item.titleKey} className="flex items-center justify-between p-8 bg-neutral-50 rounded-3xl border border-neutral-100">
             <div className="space-y-1">
-              <p className="font-bold text-black uppercase text-sm tracking-tight">{item.title}</p>
-              <p className="text-sm text-neutral-500">{item.desc}</p>
+              <p className="font-bold text-black uppercase text-sm tracking-tight">{t(item.titleKey)}</p>
+              <p className="text-sm text-neutral-500">{t(item.descKey)}</p>
             </div>
             <div className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" defaultChecked />

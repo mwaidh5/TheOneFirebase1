@@ -5,6 +5,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import { User, CustomCourseRequest, AthleteSubmission, DiagnosticTest } from '../types';
+import { useT } from '../i18n/I18nContext';
 
 interface AthleteDiagnosticsProps {
   currentUser: User | null;
@@ -13,6 +14,7 @@ interface AthleteDiagnosticsProps {
 const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useT();
   
   const [request, setRequest] = useState<CustomCourseRequest | null>(null);
   const [submissions, setSubmissions] = useState<Record<string, string>>({});
@@ -143,7 +145,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
         
     } catch (error) {
         console.error("Error submitting diagnostics", error);
-        alert("Failed to submit. Please try again.");
+        alert(t('diag.failed_submit'));
         setIsSubmitting(false);
     }
   };
@@ -156,24 +158,23 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
             <span className="material-symbols-outlined text-4xl filled">hourglass_top</span>
           </div>
           <div className="space-y-4">
-            <h1 className="text-5xl font-black font-display uppercase tracking-tight text-black">Workout in the making</h1>
+            <h1 className="text-5xl font-black font-display uppercase tracking-tight text-black">{t('diag.workout_in_making')}</h1>
             <p className="text-xl text-neutral-500 font-medium leading-relaxed">
-              Your answers and videos are with the team. 
-              It usually takes <span className="text-accent font-bold">2 to 4 days</span> to finish your custom workout.
+              {t('diag.usually_takes')} <span className="text-accent font-bold">{t('diag.days_range')}</span> {t('diag.to_finish')}
             </p>
           </div>
           <div className="p-8 bg-neutral-50 rounded-[3rem] border border-neutral-100 flex items-center gap-6 text-left">
              <span className="material-symbols-outlined text-4xl text-accent">notifications_active</span>
              <div>
-                <p className="text-sm font-black uppercase text-black">What happens now?</p>
-                <p className="text-xs text-neutral-400 font-medium">We will notify you here and via email as soon as your workout is ready to start.</p>
+                <p className="text-sm font-black uppercase text-black">{t('diag.what_happens')}</p>
+                <p className="text-xs text-neutral-400 font-medium">{t('diag.notify_message')}</p>
              </div>
           </div>
-          <button 
+          <button
             onClick={() => navigate('/profile/courses')}
             className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-all shadow-xl"
           >
-            Go to My Courses
+            {t('diag.go_to_my_courses')}
           </button>
         </div>
       </div>
@@ -191,14 +192,14 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
               className="flex items-center gap-2 text-[10px] font-black text-neutral-400 uppercase tracking-widest hover:text-black transition-colors"
             >
               <span className="material-symbols-outlined text-base">arrow_back</span>
-              Back to My Courses
+              {t('diag.back_to_courses')}
             </button>
           </div>
           <nav className="flex items-center gap-3 text-[10px] font-black text-accent uppercase tracking-[0.3em]">
             <span className="w-2 h-2 rounded-full bg-accent animate-ping"></span>
-            Custom Workout Questions
+            {t('diag.custom_questions')}
           </nav>
-          <h1 className="text-3xl font-black font-display uppercase text-black leading-none">Athlete Assessment</h1>
+          <h1 className="text-3xl font-black font-display uppercase text-black leading-none">{t('diag.assessment')}</h1>
         </div>
       </div>
 
@@ -207,7 +208,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-6">
           <div className="flex-1 space-y-1.5">
             <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-              <span className="text-neutral-400">Progress</span>
+              <span className="text-neutral-400">{t('diag.progress')}</span>
               <span className="text-accent">{Math.round(progress)}%</span>
             </div>
             <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
@@ -225,7 +226,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
           <div className="space-y-6">
              <div className="p-8 bg-accent/5 border border-accent/10 rounded-[2.5rem]">
                 <p className="text-sm font-medium text-accent leading-relaxed italic">
-                  "Please answer everything below. Coach Mercer uses these to build a workout that fits you perfectly."
+                  {t('diag.intro')}
                 </p>
              </div>
 
@@ -234,7 +235,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                    <div className="p-10 grid grid-cols-1 md:grid-cols-12 gap-10">
                       <div className="md:col-span-7 space-y-6">
                          <div className="space-y-2">
-                            <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Step {idx + 1}</span>
+                            <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('diag.step_n', { n: idx + 1 })}</span>
                             <h3 className="text-2xl font-black font-display uppercase tracking-tight text-black">{test.title}</h3>
                             <p className="text-sm text-neutral-500 font-medium leading-relaxed italic border-l-4 border-accent pl-6">
                                "{test.instruction}"
@@ -249,7 +250,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                </div>
                                <div className="absolute top-6 left-6 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
                                   <p className="text-white text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
-                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> Coach Demo
+                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> {t('diag.coach_demo')}
                                   </p>
                                </div>
                             </div>
@@ -259,19 +260,19 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                       <div className="md:col-span-5 flex flex-col justify-center">
                          {test.inputType === 'TEXT' ? (
                             <div className="space-y-4">
-                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Your Answer</label>
+                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">{t('diag.your_answer')}</label>
                                <textarea 
                                   required={test.required}
                                   value={submissions[test.id] || ''}
                                   onChange={(e) => handleTextChange(test.id, e.target.value)}
                                   rows={6}
-                                  placeholder="Type here..."
+                                  placeholder={t('diag.type_here')}
                                   className="w-full p-6 bg-neutral-50 border border-neutral-100 rounded-3xl text-sm font-medium focus:border-black focus:bg-white outline-none transition-all resize-none shadow-inner"
                                />
                             </div>
                          ) : (
                             <div className="space-y-4">
-                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Upload File</label>
+                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">{t('diag.upload_file')}</label>
                                <div 
                                   onClick={() => fileInputRefs.current[test.id]?.click()}
                                   className={`aspect-square rounded-[3rem] border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:bg-neutral-50 ${submissions[test.id] ? 'border-accent bg-accent/5 shadow-xl shadow-accent/10' : 'border-neutral-200 bg-neutral-50 hover:border-black'}`}
@@ -289,8 +290,8 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                            <span className="material-symbols-outlined text-3xl filled">check</span>
                                         </div>
                                         <div className="text-center">
-                                           <p className="text-[10px] font-black uppercase text-accent tracking-[0.2em]">File Uploaded</p>
-                                           <button type="button" className="text-[8px] font-black text-neutral-300 uppercase underline mt-1">Change File</button>
+                                           <p className="text-[10px] font-black uppercase text-accent tracking-[0.2em]">{t('diag.file_uploaded')}</p>
+                                           <button type="button" className="text-[8px] font-black text-neutral-300 uppercase underline mt-1">{t('diag.change_file')}</button>
                                         </div>
                                      </>
                                   ) : (
@@ -299,8 +300,8 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                            <span className="material-symbols-outlined text-2xl">{test.inputType === 'VIDEO' ? 'videocam' : 'photo_camera'}</span>
                                         </div>
                                         <div className="text-center px-6">
-                                           <p className="text-[10px] font-black uppercase tracking-widest text-black">Click to Upload</p>
-                                           <p className="text-[9px] font-medium text-neutral-400 mt-1 max-w-[140px] mx-auto leading-tight">Please upload a {test.inputType.toLowerCase()} for the coach.</p>
+                                           <p className="text-[10px] font-black uppercase tracking-widest text-black">{t('diag.click_upload')}</p>
+                                           <p className="text-[9px] font-medium text-neutral-400 mt-1 max-w-[140px] mx-auto leading-tight">{t('diag.upload_hint', { type: test.inputType.toLowerCase() })}</p>
                                         </div>
                                      </>
                                   )}
@@ -320,7 +321,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                 disabled={isSubmitting}
                 className="flex-1 py-8 bg-neutral-100 text-neutral-500 rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-200 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
              >
-                Save Draft
+                {t('diag.save_draft')}
              </button>
              <button 
                 type="submit"
@@ -332,14 +333,14 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                 ) : (
                    <>
                       <span className="material-symbols-outlined text-xl group-hover:translate-y-[-2px] transition-transform">send</span>
-                      Submit All Answers
+                      {t('diag.submit_all')}
                    </>
                 )}
              </button>
           </div>
           {!isAllFilled && (
                 <p className="text-center text-[10px] font-black uppercase text-neutral-300 tracking-widest mt-0 animate-pulse">
-                   Finish all {allTests.length} questions to submit
+                   {t('diag.finish_count', { n: allTests.length })}
                 </p>
              )}
         </form>

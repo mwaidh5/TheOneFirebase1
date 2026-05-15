@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 // Using mock data for now to represent the new structure where a meal has options
 const MOCK_MEAL_PLAN = {
@@ -54,6 +56,7 @@ const MOCK_MEAL_PLAN = {
 };
 
 const MealPlan: React.FC = () => {
+  const { t } = useT();
   // Store the selected option for each item (mealId_itemId -> optionId)
   const [selections, setSelections] = useState<Record<string, string>>({});
 
@@ -64,25 +67,40 @@ const MealPlan: React.FC = () => {
     }));
   };
 
+  const dayKeys: TranslationKey[] = ['meal.day_mon', 'meal.day_tue', 'meal.day_wed', 'meal.day_thu', 'meal.day_fri', 'meal.day_sat', 'meal.day_sun'];
+
+  const targets: Array<{ labelKey: TranslationKey; val: string; subKey: TranslationKey }> = [
+    { labelKey: 'meal.calories', val: '2,800', subKey: 'meal.kcal' },
+    { labelKey: 'meal.protein', val: '220', subKey: 'meal.grams' },
+    { labelKey: 'meal.carbs', val: '300', subKey: 'meal.grams' },
+    { labelKey: 'meal.fat', val: '85', subKey: 'meal.grams' },
+  ];
+
+  const macros: Array<{ labelKey: TranslationKey; val: string; pct: number; color: string }> = [
+    { labelKey: 'meal.protein', val: '176g / 220g', pct: 80, color: 'bg-black' },
+    { labelKey: 'meal.carbohydrates', val: '150g / 300g', pct: 50, color: 'bg-black/60' },
+    { labelKey: 'meal.fat', val: '45g / 85g', pct: 53, color: 'bg-black/30' },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-neutral-500 text-sm font-medium mb-1">
             <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
-            <span>Meal Plan</span>
+            <span>{t('meal.meal_plan')}</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black font-display tracking-tight text-black uppercase">My Nutrition</h1>
-          <p className="text-neutral-500 text-lg max-w-xl">Your daily macro goals and meal plan tailored to your performance.</p>
+          <h1 className="text-4xl md:text-5xl font-black font-display tracking-tight text-black uppercase">{t('meal.my_nutrition')}</h1>
+          <p className="text-neutral-500 text-lg max-w-xl">{t('meal.tagline')}</p>
         </div>
         <div className="flex gap-4">
           <button className="flex items-center gap-2 px-6 py-3 border border-neutral-200 rounded-full bg-white text-sm font-bold hover:bg-neutral-50 shadow-sm transition-all">
             <span className="material-symbols-outlined text-[18px]">shopping_basket</span>
-            Grocery List
+            {t('meal.grocery_list')}
           </button>
           <button className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-full text-sm font-bold hover:bg-neutral-800 shadow-xl transition-all">
             <span className="material-symbols-outlined text-[18px]">download</span>
-            Download PDF
+            {t('meal.download_pdf')}
           </button>
         </div>
       </div>
@@ -90,9 +108,9 @@ const MealPlan: React.FC = () => {
       {/* Week Selector */}
       <div className="mb-12 overflow-x-auto no-scrollbar border-b border-neutral-100">
         <div className="flex min-w-max">
-          {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, i) => (
-            <button key={day} className={`flex flex-col items-center px-10 py-4 transition-all border-b-[3px] ${i === 0 ? 'border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
-              <span className="text-[10px] font-bold uppercase tracking-widest mb-1">{day}</span>
+          {dayKeys.map((dayKey, i) => (
+            <button key={dayKey} className={`flex flex-col items-center px-10 py-4 transition-all border-b-[3px] ${i === 0 ? 'border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
+              <span className="text-[10px] font-bold uppercase tracking-widest mb-1">{t(dayKey)}</span>
               <span className={`text-xl font-black ${i === 0 ? 'text-black' : ''}`}>{12 + i}</span>
             </button>
           ))}
@@ -105,35 +123,26 @@ const MealPlan: React.FC = () => {
           <div className="bg-neutral-50 rounded-3xl p-8 border border-neutral-100">
             <h3 className="text-xl font-bold font-display uppercase mb-8 flex items-center gap-2">
               <span className="material-symbols-outlined">monitoring</span>
-              Daily Targets
+              {t('meal.daily_targets')}
             </h3>
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Calories', val: '2,800', sub: 'kcal' },
-                { label: 'Protein', val: '220', sub: 'grams' },
-                { label: 'Carbs', val: '300', sub: 'grams' },
-                { label: 'Fat', val: '85', sub: 'grams' },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm">
-                  <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest mb-1">{stat.label}</p>
+              {targets.map((stat) => (
+                <div key={stat.labelKey} className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm">
+                  <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest mb-1">{t(stat.labelKey)}</p>
                   <p className="text-2xl font-black text-black">{stat.val}</p>
-                  <p className="text-[10px] text-neutral-300 font-bold uppercase mt-1">{stat.sub}</p>
+                  <p className="text-[10px] text-neutral-300 font-bold uppercase mt-1">{t(stat.subKey)}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="bg-white border border-neutral-100 rounded-3xl p-8 shadow-sm">
-            <h3 className="text-xl font-bold font-display uppercase mb-8">Today's Consumption</h3>
+            <h3 className="text-xl font-bold font-display uppercase mb-8">{t('meal.todays_consumption')}</h3>
             <div className="space-y-8">
-              {[
-                { label: 'Protein', val: '176g / 220g', pct: 80, color: 'bg-black' },
-                { label: 'Carbohydrates', val: '150g / 300g', pct: 50, color: 'bg-black/60' },
-                { label: 'Fat', val: '45g / 85g', pct: 53, color: 'bg-black/30' },
-              ].map((macro) => (
-                <div key={macro.label} className="space-y-2">
+              {macros.map((macro) => (
+                <div key={macro.labelKey} className="space-y-2">
                   <div className="flex justify-between items-end">
-                    <span className="text-sm font-bold text-black uppercase tracking-wider">{macro.label}</span>
+                    <span className="text-sm font-bold text-black uppercase tracking-wider">{t(macro.labelKey)}</span>
                     <span className="text-xs font-medium text-neutral-400">{macro.val}</span>
                   </div>
                   <div className="h-2.5 w-full bg-neutral-100 rounded-full overflow-hidden">
@@ -145,8 +154,8 @@ const MealPlan: React.FC = () => {
             <div className="mt-10 p-5 bg-green-50 rounded-2xl border border-green-100 flex gap-4 items-start">
               <span className="material-symbols-outlined text-green-700">check_circle</span>
               <div className="space-y-1">
-                <p className="text-sm font-bold text-green-800">On Track</p>
-                <p className="text-xs text-green-700 leading-relaxed">You're hitting your protein goals perfectly. Keep it up!</p>
+                <p className="text-sm font-bold text-green-800">{t('meal.on_track')}</p>
+                <p className="text-xs text-green-700 leading-relaxed">{t('meal.on_track_msg')}</p>
               </div>
             </div>
           </div>
@@ -155,8 +164,8 @@ const MealPlan: React.FC = () => {
         {/* Meals Column */}
         <div className="lg:col-span-8 space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold font-display uppercase">Scheduled Meals</h2>
-            <span className="text-sm text-neutral-400 font-bold uppercase tracking-widest">{MOCK_MEAL_PLAN.meals.length} meals • {MOCK_MEAL_PLAN.totalCalories} kcal</span>
+            <h2 className="text-2xl font-bold font-display uppercase">{t('meal.scheduled_meals')}</h2>
+            <span className="text-sm text-neutral-400 font-bold uppercase tracking-widest">{t('meal.meals_kcal', { meals: MOCK_MEAL_PLAN.meals.length, kcal: MOCK_MEAL_PLAN.totalCalories })}</span>
           </div>
 
           <div className="grid gap-8">
@@ -221,11 +230,11 @@ const MealPlan: React.FC = () => {
           <div className="mt-12 rounded-3xl bg-black text-white p-10 overflow-hidden relative shadow-2xl">
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
               <div className="max-w-md space-y-3">
-                <h4 className="text-2xl font-bold font-display uppercase tracking-tight">Need a custom plan?</h4>
-                <p className="text-neutral-400 text-base leading-relaxed">Upgrade your course to get 1-on-1 nutritional coaching and fully personalized macro adjustments based on your weekly progress.</p>
+                <h4 className="text-2xl font-bold font-display uppercase tracking-tight">{t('meal.custom_plan_q')}</h4>
+                <p className="text-neutral-400 text-base leading-relaxed">{t('meal.custom_plan_desc')}</p>
               </div>
               <button className="shrink-0 bg-white text-black px-8 py-4 rounded-full font-bold text-base hover:bg-neutral-100 transition-all shadow-xl">
-                Explore Coaching
+                {t('meal.explore_coaching')}
               </button>
             </div>
             <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-[80px]"></div>
