@@ -558,6 +558,132 @@ function ForTimeTimerBlock({ item }: { item: Exercise }) {
   );
 }
 
+// ─── HOLD Stopwatch Block ──────────────────────────────────────────────────────
+// Count-up clock for isometric holds (plank, wall sit, etc.). The athlete holds the
+// position, the clock counts up, and tapping "Save Hold" registers the time. The ring
+// fills toward the personal best (or coach target) and turns gold the moment it's beaten.
+function HoldTimerBlock({ item, best, onRecord }: { item: Exercise; best: number | null; onRecord: (seconds: number) => void }) {
+  const targetSecs = item.time ? parseEmomSeconds(item.time) : 0; // optional coach goal
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [recorded, setRecorded] = useState<number | null>(null);
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!isRunning) return;
+    intervalRef.current = setInterval(() => {
+      setElapsed(e => {
+        const next = e + 1;
+        if (best != null && best > 0 && next === best + 1) playEmomSound('switch'); // just passed PB
+        if (targetSecs > 0 && next === targetSecs) playEmomSound('done');             // hit coach target
+        return next;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning, best, targetSecs]);
+
+  const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  const stopAndSave = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsRunning(false);
+    if (elapsed > 0) {
+      setRecorded(elapsed);
+      onRecord(elapsed);
+      playEmomSound('done');
+    }
+  };
+
+  const reset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsRunning(false); setElapsed(0); setRecorded(null);
+  };
+
+  // Ring reference: the coach target if set, otherwise the personal best, otherwise 60s.
+  const refSecs = targetSecs > 0 ? targetSecs : (best && best > 0 ? best : 60);
+  const beatPB = best != null && best > 0 && elapsed > best;
+  const R = 68;
+  const circ = 2 * Math.PI * R;
+  const progress = Math.min(elapsed / refSecs, 1);
+  const ringColor = recorded != null ? '#22c55e' : beatPB ? '#f59e0b' : '#137fec';
+
+  return (
+    <div className="mt-2 rounded-2xl overflow-hidden border border-neutral-800 bg-gradient-to-b from-neutral-950 to-black text-white">
+
+      {/* Top bar: best + target + reset */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-neutral-800">
+        <div className="flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-amber-400 text-sm leading-none">emoji_events</span>
+          <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">Best</span>
+          <span className="text-[11px] font-black text-white tabular-nums" dir="ltr">{best && best > 0 ? fmtTime(best) : '—'}</span>
+        </div>
+        {targetSecs > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">Target</span>
+            <span className="text-[11px] font-black text-white tabular-nums" dir="ltr">{fmtTime(targetSecs)}</span>
+          </div>
+        )}
+        <button onClick={reset} className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:text-accent transition-colors active:scale-90">
+          <span className="material-symbols-outlined text-base leading-none">restart_alt</span>
+        </button>
+      </div>
+
+      {/* Clock area */}
+      <div className="flex flex-col items-center px-4 py-5">
+        <p className={`text-[9px] font-black uppercase tracking-[0.25em] mb-4 ${beatPB ? 'text-amber-400' : 'text-accent'}`}>
+          {recorded != null ? '✓ Hold Saved' : beatPB ? '🔥 New Personal Best!' : isRunning ? 'Hold The Position' : 'Ready To Hold'}
+        </p>
+
+        {/* SVG count-up ring */}
+        <div className="relative flex items-center justify-center" style={{ width: 176, height: 176 }}>
+          <svg className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }} viewBox="0 0 160 160" width="176" height="176">
+            <circle cx="80" cy="80" r={R} fill="none" stroke="#1f1f1f" strokeWidth="10" />
+            <circle
+              cx="80" cy="80" r={R} fill="none"
+              stroke={ringColor} strokeWidth="10" strokeLinecap="round"
+              strokeDasharray={`${circ * progress} ${circ}`}
+              style={{ transition: 'stroke-dasharray 0.9s linear, stroke 0.3s' }}
+            />
+          </svg>
+          <div className="flex flex-col items-center z-10 select-none">
+            <span className={`font-black tabular-nums leading-none tracking-tight ${beatPB ? 'text-amber-400' : 'text-white'}`} style={{ fontSize: 48 }} dir="ltr">
+              {fmtTime(elapsed)}
+            </span>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] mt-1.5" style={{ color: ringColor }}>
+              {recorded != null ? 'saved' : 'holding'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Start / Pause + Save */}
+      <div className="px-4 pb-4 pt-1 flex gap-2">
+        <button
+          onClick={() => { if (recorded != null) { reset(); } else { setIsRunning(r => !r); } }}
+          className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] ${
+            recorded != null ? 'bg-green-600 hover:bg-green-500 text-white'
+            : isRunning ? 'bg-white/10 text-white border border-white/20 hover:bg-white/15'
+            : 'bg-accent hover:bg-blue-500 text-white shadow-lg shadow-accent/30'
+          }`}
+        >
+          {recorded != null ? '↺ Hold Again' : isRunning ? '⏸  Pause' : '▶  Start Hold'}
+        </button>
+        {recorded == null && (isRunning || elapsed > 0) && (
+          <button
+            onClick={stopAndSave}
+            className="px-5 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.97] bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-900/30"
+          >
+            Save Hold
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUser }) => {
   const { id } = useParams();
   const location = useLocation();
@@ -602,6 +728,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   const [prevLifts, setPrevLifts] = useState<Record<string, any>>({});
   // Keyed by normalized exercise name — used for cross-course history matching
   const [prevLiftsByName, setPrevLiftsByName] = useState<Record<string, { weight?: string; reps?: string; time?: string; unit?: string; loggedAt: number }>>({});
+  // Personal-best hold time (longest) keyed by normalized exercise name — for HOLD exercises
+  const [bestHoldsByName, setBestHoldsByName] = useState<Record<string, { seconds: number; time: string; loggedAt: number }>>({});
 
   // ── Log Data ────────────────────────────────────────────────────────────────
   const [logData, setLogData] = useState<{
@@ -650,14 +778,26 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const logsRef = collection(db, 'users', currentUser.id, 'workout_logs');
     const unsub = onSnapshot(logsRef, (snap) => {
       const byName: Record<string, { weight?: string; reps?: string; time?: string; unit?: string; loggedAt: number }> = {};
+      const bestHolds: Record<string, { seconds: number; time: string; loggedAt: number }> = {};
       snap.docs.forEach(d => {
         const data = d.data();
         if (!data.results || !data.loggedAt) return;
         Object.values(data.results).forEach((result: unknown) => {
-          const r = result as { weight?: string; reps?: string; time?: string; name?: string; unit?: string } | null;
+          const r = result as { weight?: string; reps?: string; time?: string; name?: string; unit?: string; format?: string } | null;
           if (!r?.name) return;
-          if (!r.weight && !r.time) return;
           const key = normalizeExerciseName(r.name);
+
+          // Personal best for HOLD exercises = longest recorded hold time.
+          if (r.format === 'HOLD' && r.time) {
+            const secs = parseEmomSeconds(r.time);
+            const existingBest = bestHolds[key];
+            if (secs > 0 && (!existingBest || secs > existingBest.seconds)) {
+              bestHolds[key] = { seconds: secs, time: r.time, loggedAt: data.loggedAt };
+            }
+            return; // a hold result has no weight/reps to track below
+          }
+
+          if (!r.weight && !r.time) return;
           const existing = byName[key];
           if (!existing || data.loggedAt > existing.loggedAt) {
             byName[key] = { weight: r.weight, reps: r.reps, time: r.time, unit: r.unit || 'kg', loggedAt: data.loggedAt };
@@ -665,6 +805,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         });
       });
       setPrevLiftsByName(byName);
+      setBestHoldsByName(bestHolds);
     });
     return () => unsub();
   }, [currentUser]);
@@ -813,7 +954,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           const enrichedResults = Object.fromEntries(
             Object.entries(logData.results).map(([exId, result]) => [
               exId,
-              { ...(result as { weight?: string; reps?: string; time?: string }), name: selectedDay?.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: getUnit(exId) },
+              { ...(result as { weight?: string; reps?: string; time?: string }), name: selectedDay?.exercises.find((ex: Exercise) => ex.id === exId)?.name, format: selectedDay?.exercises.find((ex: Exercise) => ex.id === exId)?.format, unit: getUnit(exId) },
             ])
           );
           const logKey = `${course.id}_${selectedWeek?.weekNumber ?? 0}_${selectedDay?.id}`;
@@ -887,7 +1028,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
       const enrichedResults = Object.fromEntries(
         Object.entries(logData.results).map(([exId, result]) => [
           exId,
-          { ...(result as { weight?: string; reps?: string; time?: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: getUnit(exId) },
+          { ...(result as { weight?: string; reps?: string; time?: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, format: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.format, unit: getUnit(exId) },
         ])
       );
       const logKey = `${course.id}_${selectedWeek?.weekNumber ?? 0}_${selectedDay.id}`;
@@ -925,7 +1066,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         const enrichedResults = Object.fromEntries(
           Object.entries(logData.results).map(([exId, result]) => [
             exId,
-            { ...(result as { weight: string; reps: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, unit: getUnit(exId) },
+            { ...(result as { weight: string; reps: string }), name: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.name, format: selectedDay.exercises.find((ex: Exercise) => ex.id === exId)?.format, unit: getUnit(exId) },
           ])
         );
         const logRef = doc(db, 'users', currentUser.id, 'workout_logs', logKey);
@@ -965,7 +1106,9 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const isSuperSet = item.format === 'SUPER_SET';
     const isEmom = item.format === 'EMOM' || item.format === 'AMRAP' || item.format === 'HIIT';
     const isForTime = item.format === 'FOR_TIME';
+    const isHold = item.format === 'HOLD';
     const isCardio = item.format === 'CARDIO' || isForTime;
+    const bestHold = isHold ? bestHoldsByName[normalizeExerciseName(item.name)] : undefined;
     const prevLift = prevLifts[item.id] ?? prevLiftsByName[normalizeExerciseName(item.name)];
     const hasVideo = !!item.videoUrl;
     const hasImage = !!item.imageUrl;
@@ -986,6 +1129,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         { label: t('workout.rounds'), val: String(item.rounds || '-') },
         { label: t('workout.total_time'), val: item.durationMinutes ? `${item.durationMinutes}m` : '-' },
         { label: t('workout.work_rest'), val: item.workInterval ? `${item.workInterval}/${item.restInterval}` : '-' }
+      ];
+    } else if (isHold) {
+      statsToRender = [
+        { label: 'Sets', val: item.sets || '1' },
+        { label: 'Target', val: item.time || 'Max' },
+        { label: 'Best', val: bestHold ? bestHold.time : '—' }
       ];
     }
 
@@ -1082,6 +1231,18 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               <ForTimeTimerBlock item={item} />
             )}
 
+            {/* HOLD stopwatch — counts up, saves time, tracks personal best */}
+            {isHold && (
+              <HoldTimerBlock
+                item={item}
+                best={bestHold ? bestHold.seconds : null}
+                onRecord={(secs) => {
+                  const mmss = `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+                  setLogData(prev => ({ ...prev, results: { ...prev.results, [item.id]: { ...prev.results[item.id], time: mmss } } }));
+                }}
+              />
+            )}
+
             {/* Coach cue */}
             {item.description && (
               <p className="text-[11px] font-medium text-neutral-400 leading-relaxed italic border-l-2 border-neutral-200 pl-3">
@@ -1089,8 +1250,24 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               </p>
             )}
 
+            {/* Personal-best hold chip — beat your longest recorded hold */}
+            {isHold && (
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-xs text-amber-500">emoji_events</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{t('workout.best') !== 'workout.best' ? t('workout.best') : 'Best'}</span>
+                {bestHold ? (
+                  <>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-accent" dir="ltr">{bestHold.time}</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-accent">— {t('workout.beat_it')}</span>
+                  </>
+                ) : (
+                  <span className="text-[9px] font-black uppercase tracking-widest text-neutral-300">No record yet — set one!</span>
+                )}
+              </div>
+            )}
+
             {/* Previous lift chip — data portion is locked LTR so numbers/units stay readable in RTL */}
-            {prevLift && (
+            {!isHold && prevLift && (
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-xs text-neutral-400">history</span>
                 <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{t('workout.last')}</span>
@@ -1116,10 +1293,10 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               </div>
             )}
 
-            {/* Inline inputs — Time for FOR_TIME, Weight+Reps otherwise */}
-            {isForTime ? (
+            {/* Inline inputs — Time for FOR_TIME / HOLD, Weight+Reps otherwise */}
+            {(isForTime || isHold) ? (
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-[9px] text-neutral-400 font-medium">{t('workout.your_time')}:</span>
+                <span className="text-[9px] text-neutral-400 font-medium">{isHold ? 'Your hold' : t('workout.your_time')}:</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -1129,7 +1306,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   style={{ fontSize: '16px' }}
                   className="w-20 bg-transparent border-b border-blue-200 focus:border-blue-600 outline-none text-[11px] font-black text-black text-center transition-colors tabular-nums"
                 />
-                <span className="text-[9px] text-neutral-400 font-medium">{t('workout.to_finish')}</span>
+                <span className="text-[9px] text-neutral-400 font-medium">{isHold ? 'held — tap Save Hold above to auto-fill' : t('workout.to_finish')}</span>
               </div>
             ) : (
               <div className="flex items-center gap-3 mt-1 flex-wrap">

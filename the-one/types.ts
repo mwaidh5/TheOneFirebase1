@@ -21,9 +21,10 @@ export type ExerciseFormat =
   | 'DROP_SET' 
   | 'AMRAP' 
   | 'FOR_TIME' // For specific tasks like "Run 5k for time"
-  | 'HIIT' 
+  | 'HIIT'
   | 'CARDIO' // Monostructural
-  | 'MAX_EFFORT'; // 1RM, 3RM etc.
+  | 'MAX_EFFORT' // 1RM, 3RM etc.
+  | 'HOLD'; // Timed isometric hold (plank, wall sit) — count-up stopwatch, tracks personal best
 
 export interface User {
   id: string;

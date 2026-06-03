@@ -449,6 +449,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                                       <option value="CARDIO">Cardio (Monostructural)</option>
                                       <option value="MAX_EFFORT">Max Effort (1RM/3RM)</option>
                                       <option value="FOR_TIME">For Time</option>
+                                      <option value="HOLD">Hold (Timed Position)</option>
                                     </select></div>
                                 </div>
                                 <div className="space-y-4">
@@ -484,6 +485,14 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                                          <button onClick={() => updateExercise(exIdx, 'forTimeItems', [...(ex.forTimeItems || []), { id: String(Date.now()), name: '', reps: '' }])} className="text-[8px] font-black uppercase text-blue-400 flex items-center gap-1 hover:text-blue-600 transition-colors">
                                             <span className="material-symbols-outlined text-sm">add_circle</span> Add Movement
                                          </button>
+                                      </div>
+                                   )}
+
+                                   {/* Hold — timed isometric position (plank, wall sit, etc.) */}
+                                   {ex.format === 'HOLD' && (
+                                      <div className="grid grid-cols-2 gap-2">
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets || ''} onChange={e => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Target Hold</label><input type="text" value={ex.time || ''} onChange={e => updateExercise(exIdx, 'time', e.target.value)} placeholder="01:00 (optional)" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                                       </div>
                                    )}
 
