@@ -49,8 +49,10 @@ workflows:
             --certificate-key=@file:/tmp/cert_key.pem \
             --create
       - name: Add certificates to keychain
+        # The fetch step above already saved the certificate (with its private
+        # key) to disk; add-certificates imports it — no extra flags needed.
         script: |
-          keychain add-certificates --certificate-key=@file:/tmp/cert_key.pem
+          keychain add-certificates
       - name: Set up code signing
         script: |
           xcode-project use-profiles
