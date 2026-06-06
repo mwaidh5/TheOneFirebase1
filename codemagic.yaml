@@ -32,6 +32,19 @@ workflows:
         script: |
           cd the-one
           npx cap sync ios
+      - name: Initialize keychain
+        script: |
+          keychain initialize
+      - name: Fetch or create signing files
+        # --create registers the App ID and creates the App Store provisioning
+        # profile (and a distribution certificate) if they don't exist yet.
+        script: |
+          app-store-connect fetch-signing-files "com.theone.training" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
       - name: Set up code signing
         script: |
           xcode-project use-profiles
