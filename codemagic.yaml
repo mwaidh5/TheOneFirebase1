@@ -1,6 +1,9 @@
 # Codemagic CI config — builds the Capacitor iOS app and uploads it to TestFlight.
 # The web app lives in the-one/ and the iOS project in the-one/ios/App.
 # Docs: https://docs.codemagic.io/yaml-quick-start/building-a-capacitor-app/
+#
+# Auto-builds on push to main (see `triggering` below). This requires the
+# GitHub -> Codemagic webhook (api.codemagic.io/hooks/...) to be active on the repo.
 workflows:
   ios-testflight:
     name: iOS – TestFlight
