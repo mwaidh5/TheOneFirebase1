@@ -6,19 +6,38 @@ workflows:
     name: iOS – TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
+    # Auto-build on every push to main, but only when the app or this config
+    # changes — avoids spending build minutes on unrelated commits.
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    when:
+      changeset:
+        includes:
+          - 'the-one'
+          - 'codemagic.yaml'
     integrations:
       # Must match the App Store Connect API key integration name in
       # Codemagic → Team settings → Integrations → App Store Connect.
       app_store_connect: AppStoreConnect
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.theone.training
-      node: 20
+      # No ios_signing block on purpose: that triggers Codemagic's automatic
+      # signing, which only FETCHES existing profiles and fails before our
+      # scripts run. We create the signing files explicitly below instead.
+      groups:
+        # Codemagic variable group holding CERTIFICATE_PRIVATE_KEY
+        # (base64-encoded RSA private key, reused across builds).
+        - ios_signing
+      node: 22
       xcode: latest
       vars:
         XCODE_PROJECT: "the-one/ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
+        APP_STORE_APP_ID: 6777401855
     scripts:
       - name: Install npm dependencies
         script: |
@@ -32,9 +51,57 @@ workflows:
         script: |
           cd the-one
           npx cap sync ios
+      - name: Initialize keychain
+        script: |
+          keychain initialize
+      - name: Restore the persistent certificate private key
+        # CERTIFICATE_PRIVATE_KEY (base64 of an RSA key) comes from the
+        # ios_signing variable group. Using the SAME key every build lets
+        # fetch-signing-files reuse ONE distribution certificate instead of
+        # trying to create a new one each run (which hits Apple's cert cap -> 409).
+        script: |
+          if [ -z "$CERTIFICATE_PRIVATE_KEY" ]; then
+            echo "ERROR: CERTIFICATE_PRIVATE_KEY is empty."
+            echo "Add it as a SECURE variable in a group named exactly 'ios_signing'."
+            exit 1
+          fi
+          # Accept either a base64-encoded PEM or a raw PEM (whichever was stored).
+          echo "$CERTIFICATE_PRIVATE_KEY" | base64 --decode > /tmp/cert_key.pem 2>/dev/null || true
+          if ! openssl rsa -in /tmp/cert_key.pem -check -noout >/dev/null 2>&1; then
+            printf '%s' "$CERTIFICATE_PRIVATE_KEY" > /tmp/cert_key.pem
+          fi
+          if ! openssl rsa -in /tmp/cert_key.pem -check -noout >/dev/null 2>&1; then
+            echo "ERROR: CERTIFICATE_PRIVATE_KEY is neither valid base64 nor a raw PEM key."
+            echo "Stored length: ${#CERTIFICATE_PRIVATE_KEY} chars"
+            exit 1
+          fi
+          echo "Private key restored and validated."
+      - name: Fetch or create signing files
+        # Reuses the cert tied to the persistent key, or creates it once.
+        # Also (re)generates the App Store provisioning profile to match.
+        script: |
+          app-store-connect fetch-signing-files "com.theone.training" \
+            --type IOS_APP_STORE \
+            --certificate-key=@file:/tmp/cert_key.pem \
+            --create
+      - name: Add certificates to keychain
+        # The fetch step above already saved the certificate (with its private
+        # key) to disk; add-certificates imports it — no extra flags needed.
+        script: |
+          keychain add-certificates
       - name: Set up code signing
         script: |
           xcode-project use-profiles
+      - name: Set the build number
+        # App Store Connect rejects re-uploading the same version+build number.
+        # Bump CURRENT_PROJECT_VERSION to one above the latest build already on
+        # TestFlight so every upload is unique. (BSD sed -> macOS build machine.)
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
+          NEW=$((LATEST + 1))
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9][0-9]*;/CURRENT_PROJECT_VERSION = $NEW;/g" \
+            "$XCODE_PROJECT/project.pbxproj"
+          echo "Build number set to $NEW"
       - name: Build .ipa
         script: |
           xcode-project build-ipa \
@@ -46,5 +113,6 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        # Uploads the build to TestFlight automatically after a successful build.
-        submit_to_testflight: true
+        # Uploads the build to App Store Connect so it's available for INTERNAL
+        # testers. No submit_to_testflight: that would trigger external beta
+        # review, which requires the Test Information form to be filled in.
