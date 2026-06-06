@@ -1,91 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
-import { User, UserRole } from '../types';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { User } from '../types';
 import { useT } from '../i18n/I18nContext';
+import { readActiveSession, ActiveSession } from '../hooks/activeSession';
 
 interface BottomNavProps {
   isLoggedIn: boolean;
   currentUser: User | null;
 }
 
-interface Tab {
-  to: string;
-  icon: string;
-  label: string;
-  /** Returns true when this tab should be highlighted for the given path. */
-  match: (path: string) => boolean;
-  badge?: number;
-}
-
 const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useT();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [active, setActive] = useState<ActiveSession | null>(() => readActiveSession());
 
-  // Live unread message count (mirrors the old navbar badge).
+  // Keep the Resume button in sync with the active workout session.
   useEffect(() => {
-    if (!currentUser) {
-      setUnreadCount(0);
-      return;
-    }
-    const q = query(
-      collection(db, 'conversations'),
-      where('participants', 'array-contains', currentUser.id)
-    );
-    const unsub = onSnapshot(q, (snapshot) => {
-      let count = 0;
-      snapshot.docs.forEach((d) => {
-        const data = d.data() as any;
-        if (data.unreadCounts && data.unreadCounts[currentUser.id] > 0) {
-          count += data.unreadCounts[currentUser.id];
-        }
-        if (
-          (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) &&
-          data.type === 'support' &&
-          data.unreadCounts &&
-          data.unreadCounts['support-team'] > 0
-        ) {
-          count += data.unreadCounts['support-team'];
-        }
-      });
-      setUnreadCount(count);
-    });
-    return () => unsub();
-  }, [currentUser]);
+    const update = () => setActive(readActiveSession());
+    update();
+    window.addEventListener('storage', update);
+    window.addEventListener('theone-session-change', update as EventListener);
+    const iv = setInterval(update, 5000); // expire the chip if the 3h window lapses
+    return () => {
+      window.removeEventListener('storage', update);
+      window.removeEventListener('theone-session-change', update as EventListener);
+      clearInterval(iv);
+    };
+  }, [location.pathname]);
 
   const path = location.pathname;
+  const isHome = path === '/';
+  const isCourses = path.startsWith('/courses');
+  const isMenu = path === '/menu';
+  const onWorkout = path.startsWith('/workout');
 
-  const tabs: Tab[] = [
-    { to: '/', icon: 'home', label: t('nav.home'), match: (p) => p === '/' },
-    { to: '/courses', icon: 'fitness_center', label: t('nav.courses'), match: (p) => p.startsWith('/courses') },
-    { to: '/coaches', icon: 'groups', label: t('nav.coaches'), match: (p) => p.startsWith('/coaches') },
-  ];
+  const tabBase = 'relative flex flex-col items-center justify-center flex-1 gap-1 transition-colors';
 
-  if (isLoggedIn) {
-    tabs.push({
-      to: '/profile/messages',
-      icon: 'chat_bubble',
-      label: t('nav.messages'),
-      match: (p) => p === '/profile/messages',
-      badge: unreadCount,
-    });
-    tabs.push({
-      to: '/profile',
-      icon: 'person',
-      label: t('nav.account'),
-      // Any profile route except messages maps to the Account tab.
-      match: (p) => p.startsWith('/profile') && p !== '/profile/messages',
-    });
-  } else {
-    tabs.push({
-      to: '/login',
-      icon: 'person',
-      label: t('nav.account'),
-      match: (p) => p === '/login' || p === '/signup' || p.startsWith('/profile'),
-    });
-  }
+  const resumeWorkout = () => {
+    if (!active) return;
+    navigate(`/workout/${active.courseId}?week=${active.weekNumber}`);
+  };
 
   return (
     <nav
@@ -93,30 +48,30 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="max-w-xl mx-auto flex items-stretch justify-around px-2 h-16">
-        {tabs.map((tab) => {
-          const active = tab.match(path);
-          return (
-            <Link
-              key={tab.to}
-              to={tab.to}
-              className={`relative flex flex-col items-center justify-center flex-1 gap-1 transition-colors ${
-                active ? 'text-accent' : 'text-gray-400 hover:text-black'
-              }`}
-            >
-              <span className="relative">
-                <span className={`material-symbols-outlined text-[24px] ${active ? 'filled' : ''}`}>
-                  {tab.icon}
-                </span>
-                {tab.badge && tab.badge > 0 ? (
-                  <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-full min-w-[1rem] text-center">
-                    {tab.badge > 99 ? '99+' : tab.badge}
-                  </span>
-                ) : null}
-              </span>
-              <span className="text-[10px] font-bold tracking-wide">{tab.label}</span>
-            </Link>
-          );
-        })}
+        <Link to="/" className={`${tabBase} ${isHome ? 'text-accent' : 'text-gray-400 hover:text-black'}`}>
+          <span className={`material-symbols-outlined text-[24px] ${isHome ? 'filled' : ''}`}>home</span>
+          <span className="text-[10px] font-bold tracking-wide">{t('nav.home')}</span>
+        </Link>
+
+        <Link to="/courses" className={`${tabBase} ${isCourses ? 'text-accent' : 'text-gray-400 hover:text-black'}`}>
+          <span className={`material-symbols-outlined text-[24px] ${isCourses ? 'filled' : ''}`}>fitness_center</span>
+          <span className="text-[10px] font-bold tracking-wide">{t('nav.courses')}</span>
+        </Link>
+
+        {/* Resume training — only when a workout is in progress and we're not already on it */}
+        {active && !onWorkout && (
+          <button onClick={resumeWorkout} className={`${tabBase} text-accent`}>
+            <span className="absolute -top-3 flex items-center justify-center w-12 h-12 rounded-full bg-accent text-white shadow-lg shadow-accent/30 animate-pulse">
+              <span className="material-symbols-outlined text-[26px] filled">play_arrow</span>
+            </span>
+            <span className="text-[10px] font-bold tracking-wide mt-7">{t('nav.resume')}</span>
+          </button>
+        )}
+
+        <Link to="/menu" className={`${tabBase} ${isMenu ? 'text-accent' : 'text-gray-400 hover:text-black'}`}>
+          <span className={`material-symbols-outlined text-[24px] ${isMenu ? 'filled' : ''}`}>settings</span>
+          <span className="text-[10px] font-bold tracking-wide">{t('nav.settings')}</span>
+        </Link>
       </div>
     </nav>
   );

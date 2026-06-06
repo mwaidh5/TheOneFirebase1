@@ -6,6 +6,7 @@ import { db } from './firebase';
 import { useNotifications } from './hooks/useNotifications';
 
 import AppShell from './components/AppShell';
+import MorePage from './pages/MorePage';
 import Homepage from './pages/Homepage';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
@@ -196,6 +197,7 @@ const App: React.FC = () => {
             <Route path="/coaches/:id" element={<CoachProfile />} />
             <Route path="/checkout" element={<Checkout currentUser={currentUser} onEnroll={setCurrentUser} courses={courses} />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/menu" element={<MorePage currentUser={currentUser} onLogout={handleLogout} />} />
             <Route path="/login" element={<Login onLogin={setCurrentUser} />} />
             <Route path="/signup" element={<Signup onSignup={setCurrentUser} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

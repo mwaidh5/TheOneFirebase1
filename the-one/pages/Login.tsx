@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserRole, User } from '../types';
 import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
@@ -260,6 +261,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleGoogleLogin = async () => {
     setError('');
+    // Popup-based Google sign-in does not work inside the native app's WebView.
+    // It needs a native plugin + Firebase iOS app registration (see setup notes).
+    if (Capacitor.isNativePlatform()) {
+      setError(t('auth.google_app_setup'));
+      return;
+    }
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
