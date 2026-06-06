@@ -1,0 +1,25 @@
+# Builds the app and deploys it LIVE whenever a change lands on the main branch.
+# The web app lives in the-one/ and builds to the-one/dist (see firebase.json).
+name: Deploy to Firebase Hosting on merge
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+        working-directory: the-one
+      - run: npm run build
+        working-directory: the-one
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_THEONEFIREBASE1 }}
+          channelId: live
+          projectId: theonefirebase1-42441499-db7a8
