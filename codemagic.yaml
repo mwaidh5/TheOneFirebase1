@@ -45,6 +45,11 @@ workflows:
         # fetch-signing-files reuse ONE distribution certificate instead of
         # trying to create a new one each run (which hits Apple's cert cap -> 409).
         script: |
+          if [ -z "$CERTIFICATE_PRIVATE_KEY" ]; then
+            echo "ERROR: CERTIFICATE_PRIVATE_KEY is empty."
+            echo "Add it as a SECURE variable in a group named exactly 'ios_signing'."
+            exit 1
+          fi
           echo "$CERTIFICATE_PRIVATE_KEY" | base64 --decode > /tmp/cert_key.pem
       - name: Fetch or create signing files
         # Reuses the cert tied to the persistent key, or creates it once.
