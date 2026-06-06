@@ -23,6 +23,7 @@ workflows:
       vars:
         XCODE_PROJECT: "the-one/ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
+        APP_STORE_APP_ID: 6777401855
     scripts:
       - name: Install npm dependencies
         script: |
@@ -77,6 +78,16 @@ workflows:
       - name: Set up code signing
         script: |
           xcode-project use-profiles
+      - name: Set the build number
+        # App Store Connect rejects re-uploading the same version+build number.
+        # Bump CURRENT_PROJECT_VERSION to one above the latest build already on
+        # TestFlight so every upload is unique. (BSD sed -> macOS build machine.)
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" 2>/dev/null || echo 0)
+          NEW=$((LATEST + 1))
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9][0-9]*;/CURRENT_PROJECT_VERSION = $NEW;/g" \
+            "$XCODE_PROJECT/project.pbxproj"
+          echo "Build number set to $NEW"
       - name: Build .ipa
         script: |
           xcode-project build-ipa \
