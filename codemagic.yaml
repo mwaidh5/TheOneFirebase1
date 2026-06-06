@@ -11,9 +11,9 @@ workflows:
       # Codemagic → Team settings → Integrations → App Store Connect.
       app_store_connect: AppStoreConnect
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.theone.training
+      # No ios_signing block on purpose: that triggers Codemagic's automatic
+      # signing, which only FETCHES existing profiles and fails before our
+      # scripts run. We create the signing files explicitly below instead.
       node: 20
       xcode: latest
       vars:
