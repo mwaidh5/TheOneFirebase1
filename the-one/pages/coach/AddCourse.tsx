@@ -5,6 +5,7 @@ import { setDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { Course, Exercise, WeekProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, User } from '../../types';
 import AICourseGenerator from '../../components/AICourseGenerator';
+import CourseWeekBoard from '../../components/CourseWeekBoard';
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -316,78 +317,13 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10">
         <div className="lg:col-span-3">
            <div className="bg-white rounded-[2rem] p-4 md:p-8 border border-neutral-100 shadow-sm flex flex-col">
-              <div className="flex overflow-x-auto no-scrollbar gap-2 mb-4 md:flex-col md:overflow-visible">
+              <div className="flex overflow-x-auto no-scrollbar gap-2 md:flex-col md:overflow-visible">
                  <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'settings' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">settings</span> Settings</button>
-                 
-                  {weeks.map((week, wIdx) => (
-                    <div key={week.id} className="relative group/week-btn">
-                      <button 
-                        onClick={() => { setActiveWeekIdx(wIdx); setActiveDayIdx(0); setActiveTab('workouts'); }} 
-                        className={`w-full text-left whitespace-nowrap px-4 md:px-5 py-2.5 md:py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeWeekIdx === wIdx && activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}
-                      >
-                        Week {week.weekNumber}
-                      </button>
-                      <div className="md:absolute right-2 top-1/2 md:-translate-y-1/2 flex gap-1 opacity-0 group-hover/week-btn:opacity-100 transition-opacity">
-                         <div className="flex flex-col gap-0.5">
-                            <button onClick={(e) => { e.stopPropagation(); moveWeek(wIdx, 'up'); }} disabled={wIdx === 0} className="w-5 h-5 rounded-md bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-neutral-50 disabled:hover:text-neutral-400" title="Move Up">
-                               <span className="material-symbols-outlined text-[10px]">keyboard_arrow_up</span>
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); moveWeek(wIdx, 'down'); }} disabled={wIdx === weeks.length - 1} className="w-5 h-5 rounded-md bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-neutral-50 disabled:hover:text-neutral-400" title="Move Down">
-                               <span className="material-symbols-outlined text-[10px]">keyboard_arrow_down</span>
-                            </button>
-                         </div>
-                         <button onClick={(e) => { e.stopPropagation(); duplicateWeek(wIdx); }} className="w-6 h-6 rounded-lg bg-accent/10 text-accent flex items-center justify-center hover:bg-accent hover:text-white transition-all shadow-sm" title="Duplicate Week">
-                            <span className="material-symbols-outlined text-xs">content_copy</span>
-                         </button>
-                         <button onClick={(e) => { e.stopPropagation(); deleteWeek(wIdx); }} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm" title="Delete Week">
-                            <span className="material-symbols-outlined text-xs">delete</span>
-                         </button>
-                      </div>
-                    </div>
-                 ))}
-                 
-                 <button onClick={addWeek} className={`whitespace-nowrap px-4 py-2.5 bg-accent/5 text-accent rounded-xl border border-accent/20 text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-accent hover:text-white transition-all`}><span className="material-symbols-outlined text-xs">add</span> Week</button>
-                 
+                 <button onClick={() => setActiveTab('workouts')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">calendar_view_week</span> Workouts</button>
                  {courseData.hasMealPlan && (
                     <button onClick={() => setActiveTab('nutrition')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'nutrition' ? 'bg-accent text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">restaurant</span> Plan</button>
                  )}
               </div>
-              
-              {activeTab === 'workouts' && (
-                 <div className="flex flex-col gap-1 pt-4 border-t border-neutral-100 mt-4 max-h-[250px] overflow-y-auto no-scrollbar">
-                    <p className="text-[8px] font-black text-neutral-300 uppercase tracking-widest mb-2 px-2">Days in Week {weeks[activeWeekIdx].weekNumber}</p>
-                    {weeks[activeWeekIdx].days.map((day, dIdx) => (
-                        <div key={day.id} className="relative group/day-btn">
-                          <button onClick={() => setActiveDayIdx(dIdx)} className={`w-full text-left px-4 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:text-black'}`}>
-                            Day {day.dayNumber}
-                          </button>
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 items-center opacity-0 group-hover/day-btn:opacity-100 transition-opacity">
-                            <div className="flex flex-col gap-0.5">
-                              <button onClick={(e) => { e.stopPropagation(); moveDay(dIdx, 'up'); }} disabled={dIdx === 0} className="w-4 h-4 rounded bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-30" title="Move Up">
-                                <span className="material-symbols-outlined text-[8px]">keyboard_arrow_up</span>
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); moveDay(dIdx, 'down'); }} disabled={dIdx === weeks[activeWeekIdx].days.length - 1} className="w-4 h-4 rounded bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-30" title="Move Down">
-                                <span className="material-symbols-outlined text-[8px]">keyboard_arrow_down</span>
-                              </button>
-                            </div>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if(weeks[activeWeekIdx].days.length <= 1) return;
-                                const updated = weeks.map((w, i) => i === activeWeekIdx ? { ...w, days: w.days.filter((_, j) => j !== dIdx).map((d, k) => ({...d, dayNumber: k+1})) } : w);
-                                setWeeks(updated);
-                                setActiveDayIdx(0);
-                              }} 
-                              className="text-neutral-300 hover:text-red-500 transition-opacity"
-                            >
-                              <span className="material-symbols-outlined text-xs">close</span>
-                            </button>
-                          </div>
-                        </div>
-                    ))}
-                    <button onClick={addDay} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase text-neutral-300 hover:text-accent">+ Add Day</button>
-                 </div>
-              )}
            </div>
         </div>
 
@@ -411,143 +347,14 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
            )}
 
            {activeTab === 'workouts' && (
-              <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-neutral-100 shadow-xl space-y-8 animate-in fade-in">
-                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-100 pb-6">
-                    <div className="space-y-1">
-                       <span className="text-[9px] font-black uppercase text-accent">W{weeks[activeWeekIdx].weekNumber}D{activeDay?.dayNumber}</span>
-                       <input type="text" value={activeDay?.title || ''} onChange={e => {
-                           const updatedWeeks = weeks.map((w, i) => i === activeWeekIdx ? { ...w, days: w.days.map((d, j) => j === activeDayIdx ? { ...d, title: e.target.value } : d) } : w);
-                           setWeeks(updatedWeeks);
-                       }} className="text-xl md:text-3xl font-black uppercase text-black bg-transparent outline-none w-full" />
-                    </div>
-                    <div className="flex gap-2">
-                       <button onClick={() => setIsPickerOpen({ type: 'workout', activeExIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase border border-neutral-100 flex items-center gap-2"><span className="material-symbols-outlined text-base">library_add</span> Blueprint</button>
-                       <button onClick={addExercise} className="px-4 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-2"><span className="material-symbols-outlined text-base">add</span> Exercise</button>
-                    </div>
-                 </div>
-                 
-                 <div className="space-y-6">
-                    {activeDay?.exercises.map((ex, exIdx) => (
-                       <div key={ex.id} className="p-5 md:p-8 bg-neutral-50 rounded-2xl md:rounded-[2.5rem] border border-neutral-100 relative group space-y-6">
-                          <div className="absolute top-4 md:top-6 right-4 md:right-6 flex gap-3">
-                             <button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> Exercises Library</button>
-                             <button onClick={() => {
-                                 const updatedWeeks = weeks.map((w, i) => i === activeWeekIdx ? { ...w, days: w.days.map((d, j) => j === activeDayIdx ? { ...d, exercises: d.exercises.filter((_, k) => k !== exIdx) } : d) } : w);
-                                 setWeeks(updatedWeeks);
-                             }} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-lg">delete</span></button>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                             <div className="space-y-6">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1"><label className="text-[8px] font-black text-neutral-300 ml-1">Name</label><input type="text" value={ex.name} onChange={e => updateExercise(exIdx, 'name', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 font-bold text-xs" /></div>
-                                    <div className="space-y-1"><label className="text-[8px] font-black text-neutral-300 ml-1">Type</label><select value={ex.format} onChange={e => updateExercise(exIdx, 'format', e.target.value as any)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[9px] font-black uppercase outline-none">
-                                      <option value="REGULAR">Standard (Straight Sets)</option>
-                                      <option value="SUPER_SET">Superset / Circuit</option>
-                                      <option value="EMOM">EMOM</option>
-                                      <option value="AMRAP">AMRAP</option>
-                                      <option value="HIIT">HIIT (Intervals)</option>
-                                      <option value="CARDIO">Cardio (Monostructural)</option>
-                                      <option value="MAX_EFFORT">Max Effort (1RM/3RM)</option>
-                                      <option value="FOR_TIME">For Time</option>
-                                      <option value="HOLD">Hold (Timed Position)</option>
-                                    </select></div>
-                                </div>
-                                <div className="space-y-4">
-                                   {/* Standard / Max Effort / Drop Set / Superset */}
-                                   {(ex.format === 'REGULAR' || ex.format === 'MAX_EFFORT' || ex.format === 'DROP_SET' || ex.format === 'SUPER_SET') && (
-                                      <div className="grid grid-cols-3 gap-2">
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets} onChange={e => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Reps</label><input type="text" value={ex.reps} onChange={e => updateExercise(exIdx, 'reps', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.rest} onChange={e => updateExercise(exIdx, 'rest', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                      </div>
-                                   )}
-
-                                   {/* Cardio / Monostructural */}
-                                   {(ex.format === 'CARDIO' || ex.format === 'FOR_TIME') && (
-                                      <div className="grid grid-cols-3 gap-2">
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Distance</label><input type="text" value={ex.distance || ''} onChange={e => updateExercise(exIdx, 'distance', e.target.value)} placeholder="5km" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Time Cap</label><input type="text" value={ex.time || ''} onChange={e => updateExercise(exIdx, 'time', e.target.value)} placeholder="20:00" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Pace/Cals</label><input type="text" value={ex.speed || ex.calories || ''} onChange={e => updateExercise(exIdx, 'speed', e.target.value)} placeholder="Zone 2" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                      </div>
-                                   )}
-
-                                   {/* For Time — Sub-exercises */}
-                                   {ex.format === 'FOR_TIME' && (
-                                      <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-2">
-                                         <p className="text-[8px] font-black uppercase text-blue-400">Movements To Complete</p>
-                                         {(ex.forTimeItems || []).map((item, itemIdx) => (
-                                            <div key={item.id} className="flex gap-2 items-center">
-                                               <input type="text" value={item.name} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="Exercise name" className="flex-1 bg-white border border-blue-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
-                                               <input type="text" value={item.reps || ''} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="21 reps" className="w-20 bg-white border border-blue-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
-                                               <button onClick={() => updateExercise(exIdx, 'forTimeItems', (ex.forTimeItems || []).filter((_, i) => i !== itemIdx))} className="text-blue-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
-                                            </div>
-                                         ))}
-                                         <button onClick={() => updateExercise(exIdx, 'forTimeItems', [...(ex.forTimeItems || []), { id: String(Date.now()), name: '', reps: '' }])} className="text-[8px] font-black uppercase text-blue-400 flex items-center gap-1 hover:text-blue-600 transition-colors">
-                                            <span className="material-symbols-outlined text-sm">add_circle</span> Add Movement
-                                         </button>
-                                      </div>
-                                   )}
-
-                                   {/* Hold — timed isometric position (plank, wall sit, etc.) */}
-                                   {ex.format === 'HOLD' && (
-                                      <div className="grid grid-cols-2 gap-2">
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets || ''} onChange={e => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Target Hold</label><input type="text" value={ex.time || ''} onChange={e => updateExercise(exIdx, 'time', e.target.value)} placeholder="01:00 (optional)" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                      </div>
-                                   )}
-
-                                   {/* EMOM / AMRAP / HIIT */}
-                                   {(ex.format === 'EMOM' || ex.format === 'AMRAP' || ex.format === 'HIIT') && (
-                                      <div className="space-y-2">
-                                         <div className="grid grid-cols-2 gap-2">
-                                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Total Time (Min)</label><input type="number" value={ex.durationMinutes || ''} onChange={e => updateExercise(exIdx, 'durationMinutes', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rounds</label><input type="number" value={ex.rounds || ''} onChange={e => updateExercise(exIdx, 'rounds', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                         </div>
-                                         {ex.format === 'HIIT' && (
-                                            <div className="grid grid-cols-2 gap-2">
-                                               <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Work</label><input type="text" value={ex.workInterval || ''} onChange={e => updateExercise(exIdx, 'workInterval', e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                               <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.restInterval || ''} onChange={e => updateExercise(exIdx, 'restInterval', e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                                            </div>
-                                         )}
-                                         {ex.format === 'EMOM' && (
-                                            <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 space-y-2">
-                                               <p className="text-[8px] font-black uppercase text-orange-400">Exercises Per Round</p>
-                                               {(ex.emomItems || []).map((item, itemIdx) => (
-                                                  <div key={item.id} className="flex gap-2 items-center">
-                                                     <input type="text" value={item.name} onChange={e => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'emomItems', items); }} placeholder="Exercise name" className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
-                                                     <input type="text" value={item.time} onChange={e => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], time: e.target.value }; updateExercise(exIdx, 'emomItems', items); }} placeholder="30s" className="w-16 bg-white border border-orange-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
-                                                     <button onClick={() => updateExercise(exIdx, 'emomItems', (ex.emomItems || []).filter((_, i) => i !== itemIdx))} className="text-orange-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
-                                                  </div>
-                                               ))}
-                                               <button onClick={() => updateExercise(exIdx, 'emomItems', [...(ex.emomItems || []), { id: String(Date.now()), name: '', time: '' }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors">
-                                                  <span className="material-symbols-outlined text-sm">add_circle</span> Add Exercise
-                                               </button>
-                                            </div>
-                                         )}
-                                      </div>
-                                   )}
-
-                                   {/* Superset Linker */}
-                                   {ex.format === 'SUPER_SET' && (
-                                       <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                           <p className="text-[8px] font-black uppercase text-blue-400 mb-2">Circuit Grouping</p>
-                                           <input type="text" value={ex.supersetId || ''} onChange={e => updateExercise(exIdx, 'supersetId', e.target.value)} placeholder="Group A" className="w-full bg-white border border-blue-100 rounded-lg p-2 text-[10px] font-bold" />
-                                           <p className="text-[8px] text-blue-300 mt-1">Give consecutive exercises the same Group ID (e.g. "A") to link them.</p>
-                                       </div>
-                                   )}
-                                </div>
-                             </div>
-                             <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: exIdx, activeField: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${ex.imageUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">Photo</span></button>
-                                    <button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: exIdx, activeField: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${ex.videoUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">Video</span></button>
-                                </div>
-                                <textarea rows={1} value={ex.description} onChange={e => updateExercise(exIdx, 'description', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[10px] font-medium resize-none" placeholder="Coaching Notes..." />
-                             </div>
-                          </div>
-                       </div>
-                    ))}
-                 </div>
+              <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-neutral-100 shadow-xl animate-in fade-in">
+                 <CourseWeekBoard
+                    weeks={weeks}
+                    setWeeks={setWeeks}
+                    exerciseLibrary={exerciseLibrary}
+                    workoutLibrary={workoutLibrary}
+                    mediaLibrary={library}
+                 />
               </div>
            )}
 
