@@ -57,31 +57,44 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
 
   const workouts = (currentUser as any)?.workoutsCompleted ?? 0;
   const minutes = (currentUser as any)?.minutesLogged ?? 0;
+  const heroImg = settings.heroImage || 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1400';
 
   const quickActions = [
-    { to: '/courses', icon: 'fitness_center', label: t('nav.courses') },
-    { to: '/profile/courses', icon: 'school', label: t('nav.my_courses') },
-    { to: '/profile/nutrition', icon: 'restaurant', label: t('nav.nutrition') },
-    { to: '/profile/messages', icon: 'chat_bubble', label: t('nav.messages') },
+    { to: '/courses', icon: 'fitness_center', label: t('nav.courses'), bg: 'bg-blue-50', color: 'text-accent' },
+    { to: '/profile/courses', icon: 'school', label: t('nav.my_courses'), bg: 'bg-purple-50', color: 'text-purple-600' },
+    { to: '/profile/nutrition', icon: 'restaurant', label: t('nav.nutrition'), bg: 'bg-green-50', color: 'text-green-600' },
+    { to: '/profile/messages', icon: 'chat_bubble', label: t('nav.messages'), bg: 'bg-orange-50', color: 'text-orange-600' },
   ];
 
   return (
     <div className="w-full bg-neutral-50 min-h-screen pb-6">
-      <div className="max-w-xl mx-auto px-5 pt-6 space-y-7">
+      <div className="max-w-xl mx-auto px-5 pt-5 space-y-6">
 
-        {/* Greeting header */}
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-neutral-400">{t('home.app_welcome')}</p>
-            <h1 className="text-2xl font-black font-display uppercase tracking-tight text-black truncate">
-              {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'The One Training'}
-            </h1>
+        {/* Hero banner */}
+        <div className="relative overflow-hidden rounded-[2rem] shadow-xl bg-black" style={{ minHeight: 200 }}>
+          <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10" />
+          <div className="relative z-10 p-6 flex flex-col justify-between" style={{ minHeight: 200 }}>
+            <div className="flex items-start justify-between">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/15 text-[9px] font-black uppercase tracking-[0.2em] text-white">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" /> The One Training
+              </span>
+              {currentUser ? (
+                <Link to="/menu"><img src={currentUser.avatar} alt="" className="w-11 h-11 rounded-2xl object-cover border-2 border-white/30" /></Link>
+              ) : (
+                <Link to="/login" className="px-4 py-2 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest">{t('nav.login')}</Link>
+              )}
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.25em] text-white/60">{t('home.app_welcome')}</p>
+              <h1 className="text-3xl font-black font-display uppercase tracking-tight text-white leading-none mt-1">
+                {currentUser ? currentUser.firstName : t('home.app_explore')}
+              </h1>
+              {!currentUser && (
+                <p className="text-sm font-medium text-white/70 mt-2 max-w-xs">{t('home.app_welcome_sub')}</p>
+              )}
+            </div>
           </div>
-          {currentUser ? (
-            <Link to="/menu"><img src={currentUser.avatar} alt="" className="w-12 h-12 rounded-2xl object-cover border border-neutral-200" /></Link>
-          ) : (
-            <Link to="/login" className="px-5 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest">{t('nav.login')}</Link>
-          )}
         </div>
 
         {/* Diagnostic banner */}
@@ -97,19 +110,17 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
         {active && (
           <button
             onClick={() => navigate(`/workout/${active.courseId}?week=${active.weekNumber}`)}
-            className="w-full text-left relative overflow-hidden rounded-3xl bg-black text-white p-6 shadow-xl"
+            className="w-full text-left relative overflow-hidden rounded-3xl bg-gradient-to-r from-accent to-blue-600 text-white p-5 shadow-xl shadow-accent/20"
           >
-            <div className="absolute -bottom-10 -right-8 w-40 h-40 bg-accent/30 rounded-full blur-3xl" />
             <div className="relative z-10 flex items-center gap-4">
-              <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-accent text-white shrink-0 animate-pulse">
+              <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur shrink-0 animate-pulse">
                 <span className="material-symbols-outlined text-3xl filled">play_arrow</span>
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">{t('home.app_resume_title')}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">{t('home.app_resume_title')}</p>
                 <p className="text-lg font-black uppercase truncate">{active.dayTitle || active.courseTitle}</p>
-                <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mt-0.5">{active.courseTitle} · {t('nav.resume')}</p>
               </div>
-              <span className="material-symbols-outlined">chevron_right</span>
+              <span className="px-3 py-2 rounded-xl bg-white text-accent text-[10px] font-black uppercase tracking-widest">{t('nav.resume')}</span>
             </div>
           </button>
         )}
@@ -117,13 +128,19 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
         {/* Stats (logged in) */}
         {currentUser && (
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-              <p className="text-3xl font-black font-display text-black leading-none">{workouts}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">{t('home.app_workouts')}</p>
+            <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex items-center gap-4">
+              <span className="w-11 h-11 rounded-xl bg-accent/10 text-accent flex items-center justify-center"><span className="material-symbols-outlined filled">exercise</span></span>
+              <div>
+                <p className="text-2xl font-black font-display text-black leading-none">{workouts}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 mt-1">{t('home.app_workouts')}</p>
+              </div>
             </div>
-            <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-              <p className="text-3xl font-black font-display text-black leading-none">{minutes}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">{t('home.app_minutes')}</p>
+            <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex items-center gap-4">
+              <span className="w-11 h-11 rounded-xl bg-green-50 text-green-600 flex items-center justify-center"><span className="material-symbols-outlined filled">timer</span></span>
+              <div>
+                <p className="text-2xl font-black font-display text-black leading-none">{minutes}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 mt-1">{t('home.app_minutes')}</p>
+              </div>
             </div>
           </div>
         )}
@@ -133,8 +150,10 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('home.app_quick')}</p>
           <div className="grid grid-cols-4 gap-3">
             {quickActions.map((a) => (
-              <Link key={a.to} to={a.to} className="flex flex-col items-center gap-2 bg-white rounded-2xl border border-neutral-100 py-4 hover:border-black transition-all">
-                <span className="material-symbols-outlined text-[26px] text-black">{a.icon}</span>
+              <Link key={a.to} to={a.to} className="flex flex-col items-center gap-2 bg-white rounded-2xl border border-neutral-100 py-4 hover:-translate-y-0.5 hover:shadow-md transition-all">
+                <span className={`w-11 h-11 rounded-xl ${a.bg} ${a.color} flex items-center justify-center`}>
+                  <span className="material-symbols-outlined text-[22px]">{a.icon}</span>
+                </span>
                 <span className="text-[9px] font-black uppercase tracking-wider text-neutral-500 text-center px-1 leading-tight">{a.label}</span>
               </Link>
             ))}
@@ -152,18 +171,17 @@ const Homepage: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory theone-hide-scrollbar">
               {featuredCourses.map((course) => (
                 <Link key={course.id} to={`/courses/${course.id}`} className="snap-start shrink-0 w-64 bg-white rounded-3xl border border-neutral-100 overflow-hidden hover:shadow-xl transition-all">
-                  <div className="h-36 relative">
+                  <div className="h-40 relative">
                     <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover" displayWidth={500} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <span className="absolute top-3 left-3 bg-white/90 backdrop-blur text-black text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">{course.category}</span>
+                    <span className="absolute bottom-3 right-3 text-white text-lg font-black font-display drop-shadow">${course.price}</span>
                   </div>
-                  <div className="p-4 space-y-2">
+                  <div className="p-4">
                     <h3 className="text-base font-black font-display uppercase tracking-tight text-black leading-tight line-clamp-2">{course.title}</h3>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">schedule</span>{course.duration}
-                      </span>
-                      <span className="text-lg font-black font-display text-black">${course.price}</span>
-                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-1 mt-2">
+                      <span className="material-symbols-outlined text-[16px]">schedule</span>{course.duration}
+                    </span>
                   </div>
                 </Link>
               ))}

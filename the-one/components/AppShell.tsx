@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
@@ -33,6 +33,8 @@ const AppShell: React.FC<AppShellProps> = ({
   children,
 }) => {
   const path = useLocation().pathname;
+  const navigate = useNavigate();
+  const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate('/'); };
 
   const isRole = /^\/(admin|coach|support)(\/|$)/.test(path);
   const isAuth = ['/login', '/signup', '/forgot-password'].includes(path);
@@ -80,9 +82,19 @@ const AppShell: React.FC<AppShellProps> = ({
       </main>
 
       {isAuth && (
-        <div className="fixed top-4 right-4 z-[120]" style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}>
-          <LanguageToggle variant="pill" />
-        </div>
+        <>
+          <button
+            onClick={goBack}
+            aria-label="Back"
+            className="fixed left-4 z-[120] w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-sm flex items-center justify-center text-black hover:bg-black hover:text-white transition-all"
+            style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div className="fixed right-4 z-[120]" style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}>
+            <LanguageToggle variant="pill" />
+          </div>
+        </>
       )}
 
       {showFooter && <Footer logo={logo} />}
