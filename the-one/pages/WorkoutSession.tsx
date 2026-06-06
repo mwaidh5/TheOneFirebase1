@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import { Course, Exercise, WeekProgram, DayProgram, User } from '../types';
 import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
+import { writeActiveSession, clearActiveSession, readActiveSessionRaw, MAX_SESSION_MS } from '../hooks/activeSession';
 
 interface WorkoutSessionProps {
   courses?: Course[];
@@ -817,13 +818,25 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     setActiveExerciseId(firstUncompleted?.id ?? null);
   }, [workoutStarted, selectedDay]);
 
-  // ─── Reset workout started state when navigating away from exercises ─────────
+  // ─── Restore an in-progress session when returning to this course ───────────
+  // (The timer is wall-clock based, so it keeps counting even while the user is
+  // on another screen — here we just re-enter the active day and resume the UI.)
+  const restoredRef = useRef(false);
   useEffect(() => {
-    if (view !== 'exercises') {
-      setWorkoutStarted(false);
-      resetTimer();
+    if (restoredRef.current || workoutStarted || !course) return;
+    const s = readActiveSessionRaw();
+    if (!s || s.courseId !== course.id) return;
+    const wk = course.weeks?.find(w => w.weekNumber === s.weekNumber) || null;
+    const dy = wk?.days.find(d => d.id === s.dayId) || null;
+    if (wk && dy) {
+      restoredRef.current = true;
+      setSelectedWeek(wk);
+      setSelectedDay(dy);
+      setView('exercises');
+      setIsPaused(false);
+      setWorkoutStarted(true);
     }
-  }, [view]);
+  }, [course, workoutStarted]);
 
 
   const saveProgress = async (type: 'exercises' | 'days' | 'weeks', newSet: Set<string>) => {
@@ -872,6 +885,15 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     if (selectedDay) {
       const firstUncompleted = selectedDay.exercises.find(ex => !completedExercises.has(ex.id));
       setActiveExerciseId(firstUncompleted?.id ?? null);
+      // Mark the session active globally so it survives navigation + shows a Resume button.
+      writeActiveSession({
+        courseId: course.id,
+        courseTitle: course.title,
+        weekNumber: selectedWeek?.weekNumber ?? 1,
+        dayId: selectedDay.id,
+        dayTitle: selectedDay.title,
+        startTs: Date.now(),
+      });
     }
   };
 
@@ -923,9 +945,10 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         setCompletedExercises(nextEx);
         saveProgress('exercises', nextEx);
       }
-      // Stop the timer
+      // Stop the timer + end the global session
       setWorkoutStarted(false);
       setIsPaused(false);
+      clearActiveSession();
 
       // ── Write profile stats to Firestore ──────────────────────────────────
       try {
@@ -1002,6 +1025,16 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
       resetTimer();
       setIsPaused(false);
       setWorkoutStarted(true);
+      if (selectedDay) {
+        writeActiveSession({
+          courseId: course.id,
+          courseTitle: course.title,
+          weekNumber: selectedWeek?.weekNumber ?? 1,
+          dayId: selectedDay.id,
+          dayTitle: selectedDay.title,
+          startTs: Date.now(),
+        });
+      }
     }
     setCompletedDays(next);
     saveProgress('days', next);
@@ -1014,6 +1047,17 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     setCompletedWeeks(next);
     saveProgress('weeks', next);
   };
+
+  // ─── 3-hour cap: auto-stop & log if the session runs past the limit ─────────
+  // Fires while on the page; also catches sessions resumed after >3h (the
+  // wall-clock timer reports the elapsed time, so this triggers on return).
+  useEffect(() => {
+    if (!workoutStarted || !selectedDay) return;
+    if (timerElapsed >= MAX_SESSION_MS / 1000 && !completedDays.has(selectedDay.id)) {
+      toggleDayFinished(selectedDay.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerElapsed, workoutStarted, selectedDay]);
 
   // Auto-save inline weight / reps / time as the user types — debounced.
   // Without this, anything entered AFTER pressing "complete exercise" was lost
