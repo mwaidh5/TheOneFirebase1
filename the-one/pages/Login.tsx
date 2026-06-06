@@ -297,20 +297,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-6">
-          <button 
-            onClick={handleGoogleLogin}
-            disabled={loading || showDeviceLimitModal}
-            className="w-full py-4 bg-white border border-neutral-200 text-black rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            <img src="/google.svg" alt="Google" className="w-5 h-5" />
-            {t('auth.sign_in_google')}
-          </button>
+          {/* Google sign-in only on web — it can't work in the native app without
+              a registered Firebase iOS app, so we hide it there to avoid a dead button. */}
+          {!Capacitor.isNativePlatform() && (
+            <>
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading || showDeviceLimitModal}
+                className="w-full py-4 bg-white border border-neutral-200 text-black rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                <img src="/google.svg" alt="Google" className="w-5 h-5" />
+                {t('auth.sign_in_google')}
+              </button>
 
-          <div className="flex items-center">
-            <hr className="w-full border-neutral-200" />
-            <span className="px-4 text-xs font-bold text-neutral-400 uppercase">{t('auth.or')}</span>
-            <hr className="w-full border-neutral-200" />
-          </div>
+              <div className="flex items-center">
+                <hr className="w-full border-neutral-200" />
+                <span className="px-4 text-xs font-bold text-neutral-400 uppercase">{t('auth.or')}</span>
+                <hr className="w-full border-neutral-200" />
+              </div>
+            </>
+          )}
 
           <form className="space-y-6" onSubmit={handleLogin}>
             {/* Honeypot — hidden from humans, bots fill this in and get silently rejected */}
