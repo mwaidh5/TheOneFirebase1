@@ -67,5 +67,6 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        # Uploads the build to TestFlight automatically after a successful build.
-        submit_to_testflight: true
+        # Uploads the build to App Store Connect so it's available for INTERNAL
+        # testers. No submit_to_testflight: that would trigger external beta
+        # review, which requires the Test Information form to be filled in.
