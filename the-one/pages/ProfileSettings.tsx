@@ -12,8 +12,8 @@ interface ProfileSettingsProps {
 }
 
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialUser }) => {
-  const { t } = useT();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing'>('profile');
+  const { t, lang, setLang } = useT();
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing' | 'preferences'>('profile');
   const [isMfaSetupOpen, setIsMfaSetupOpen] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(() => localStorage.getItem(`mfa_enabled_${initialUser.id}`) === 'true');
   const [otpValue, setOtpValue] = useState('');
@@ -259,7 +259,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
            {[
              { id: 'profile', label: t('settings.tab_personal'), icon: 'person' },
              { id: 'security', label: t('settings.tab_security'), icon: 'shield_lock' },
-             { id: 'billing', label: t('settings.tab_billing'), icon: 'payments' }
+             { id: 'billing', label: t('settings.tab_billing'), icon: 'payments' },
+             { id: 'preferences', label: t('settings.tab_preferences'), icon: 'translate' }
            ].map(tab => (
              <button 
                key={tab.id}
@@ -523,6 +524,39 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                      ))}
                    </tbody>
                  </table>
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'preferences' && (
+            <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 duration-500">
+               <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
+                  <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.preferences_heading')}</h2>
+                  <span className="material-symbols-outlined text-neutral-200">tune</span>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="space-y-1">
+                     <h3 className="text-lg font-black font-display uppercase text-black">{t('settings.language')}</h3>
+                     <p className="text-sm text-neutral-400 font-medium">{t('settings.language_desc')}</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     {([
+                       { code: 'en', label: 'English', sub: 'EN' },
+                       { code: 'ar', label: 'العربية', sub: 'ع' },
+                     ] as const).map(opt => (
+                       <button
+                         key={opt.code}
+                         onClick={() => setLang(opt.code)}
+                         className={`flex items-center justify-between p-6 rounded-2xl border transition-all ${lang === opt.code ? 'bg-black text-white border-black shadow-xl' : 'bg-neutral-50 text-black border-neutral-100 hover:border-black'}`}
+                       >
+                         <span className="font-black uppercase tracking-widest text-sm">{opt.label}</span>
+                         <span className={`material-symbols-outlined ${lang === opt.code ? 'filled' : 'text-neutral-300'}`}>
+                           {lang === opt.code ? 'check_circle' : 'radio_button_unchecked'}
+                         </span>
+                       </button>
+                     ))}
+                  </div>
                </div>
             </div>
           )}
