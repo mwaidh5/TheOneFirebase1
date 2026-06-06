@@ -50,7 +50,17 @@ workflows:
             echo "Add it as a SECURE variable in a group named exactly 'ios_signing'."
             exit 1
           fi
-          echo "$CERTIFICATE_PRIVATE_KEY" | base64 --decode > /tmp/cert_key.pem
+          # Accept either a base64-encoded PEM or a raw PEM (whichever was stored).
+          echo "$CERTIFICATE_PRIVATE_KEY" | base64 --decode > /tmp/cert_key.pem 2>/dev/null || true
+          if ! openssl rsa -in /tmp/cert_key.pem -check -noout >/dev/null 2>&1; then
+            printf '%s' "$CERTIFICATE_PRIVATE_KEY" > /tmp/cert_key.pem
+          fi
+          if ! openssl rsa -in /tmp/cert_key.pem -check -noout >/dev/null 2>&1; then
+            echo "ERROR: CERTIFICATE_PRIVATE_KEY is neither valid base64 nor a raw PEM key."
+            echo "Stored length: ${#CERTIFICATE_PRIVATE_KEY} chars"
+            exit 1
+          fi
+          echo "Private key restored and validated."
       - name: Fetch or create signing files
         # Reuses the cert tied to the persistent key, or creates it once.
         # Also (re)generates the App Store provisioning profile to match.
