@@ -5,8 +5,7 @@ import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc, query } from
 import { db } from './firebase';
 import { useNotifications } from './hooks/useNotifications';
 
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import AppShell from './components/AppShell';
 import Homepage from './pages/Homepage';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
@@ -178,29 +177,14 @@ const App: React.FC = () => {
   return (
     <I18nProvider>
     <Router>
-      <div className="flex flex-col min-h-screen">
-        {originalAdmin && (
-          <div className="bg-accent py-2 px-6 flex items-center justify-center gap-6 animate-in slide-in-from-top duration-500 z-[60] fixed w-full top-0 left-0 shadow-xl">
-             <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-white text-[18px] filled animate-pulse">admin_panel_settings</span>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">
-                  Viewing as <span className="underline decoration-white/30 decoration-2 underline-offset-4">{currentUser?.firstName} {currentUser?.lastName}</span>
-                </p>
-             </div>
-             <button 
-                onClick={stopImpersonating}
-                className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl"
-             >
-                Exit Session
-             </button>
-          </div>
-        )}
-
-        <div className={originalAdmin ? 'mt-12' : ''}>
-          <Navbar isLoggedIn={isLoggedIn} currentUser={currentUser} onLogout={handleLogout} logo={siteSettings.logo} />
-        </div>
-        
-        <main className="flex-grow flex flex-col">
+      <AppShell
+        isLoggedIn={isLoggedIn}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        logo={siteSettings.logo}
+        originalAdmin={originalAdmin}
+        stopImpersonating={stopImpersonating}
+      >
           <Routes>
             <Route path="/" element={<Homepage currentUser={currentUser} settings={siteSettings} />} />
             
@@ -280,9 +264,7 @@ const App: React.FC = () => {
             
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
-        </main>
-        <Footer logo={siteSettings.logo} />
-      </div>
+      </AppShell>
     </Router>
     </I18nProvider>
   );

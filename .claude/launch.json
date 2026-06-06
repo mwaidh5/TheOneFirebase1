@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "the-one",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "the-one", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}

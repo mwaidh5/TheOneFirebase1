@@ -1,0 +1,94 @@
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+import Navbar from './Navbar';
+import Footer from './Footer';
+import BottomNav from './BottomNav';
+import LanguageToggle from './LanguageToggle';
+import { User } from '../types';
+
+interface AppShellProps {
+  isLoggedIn: boolean;
+  currentUser: User | null;
+  onLogout: () => void;
+  logo?: string;
+  originalAdmin: User | null;
+  stopImpersonating: () => void;
+  children: React.ReactNode;
+}
+
+/**
+ * Decides the app chrome based on the current route:
+ *  - Role areas (/admin, /coach, /support): keep the original top Navbar + Footer.
+ *  - Auth screens (login/signup/forgot): no chrome at all (clean full-screen).
+ *  - Everything else (the user-facing app): a native-style bottom tab bar,
+ *    no top header, no footer.
+ */
+const AppShell: React.FC<AppShellProps> = ({
+  isLoggedIn,
+  currentUser,
+  onLogout,
+  logo,
+  originalAdmin,
+  stopImpersonating,
+  children,
+}) => {
+  const path = useLocation().pathname;
+
+  const isRole = /^\/(admin|coach|support)(\/|$)/.test(path);
+  const isAuth = ['/login', '/signup', '/forgot-password'].includes(path);
+  const showTopNav = isRole;
+  const showBottomNav = !isRole && !isAuth;
+  const showFooter = isRole;
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      {originalAdmin && (
+        <div className="bg-accent py-2 px-6 flex items-center justify-center gap-6 animate-in slide-in-from-top duration-500 z-[110] fixed w-full top-0 left-0 shadow-xl">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-white text-[18px] filled animate-pulse">admin_panel_settings</span>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">
+              Viewing as <span className="underline decoration-white/30 decoration-2 underline-offset-4">{currentUser?.firstName} {currentUser?.lastName}</span>
+            </p>
+          </div>
+          <button
+            onClick={stopImpersonating}
+            className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl"
+          >
+            Exit Session
+          </button>
+        </div>
+      )}
+
+      {showTopNav && (
+        <div className={originalAdmin ? 'mt-12' : ''}>
+          <Navbar isLoggedIn={isLoggedIn} currentUser={currentUser} onLogout={onLogout} logo={logo} />
+        </div>
+      )}
+
+      <main
+        className="flex-grow flex flex-col"
+        style={{
+          paddingTop: originalAdmin && !showTopNav
+            ? 'calc(3rem + env(safe-area-inset-top))'
+            : showBottomNav
+              ? 'env(safe-area-inset-top)'
+              : undefined,
+          paddingBottom: showBottomNav ? 'calc(4rem + env(safe-area-inset-bottom))' : undefined,
+        }}
+      >
+        {children}
+      </main>
+
+      {isAuth && (
+        <div className="fixed top-4 right-4 z-[120]" style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}>
+          <LanguageToggle variant="pill" />
+        </div>
+      )}
+
+      {showFooter && <Footer logo={logo} />}
+      {showBottomNav && <BottomNav isLoggedIn={isLoggedIn} currentUser={currentUser} />}
+    </div>
+  );
+};
+
+export default AppShell;
