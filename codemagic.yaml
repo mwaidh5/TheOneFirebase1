@@ -14,6 +14,10 @@ workflows:
       # No ios_signing block on purpose: that triggers Codemagic's automatic
       # signing, which only FETCHES existing profiles and fails before our
       # scripts run. We create the signing files explicitly below instead.
+      groups:
+        # Codemagic variable group holding CERTIFICATE_PRIVATE_KEY
+        # (base64-encoded RSA private key, reused across builds).
+        - ios_signing
       node: 22
       xcode: latest
       vars:
@@ -35,14 +39,16 @@ workflows:
       - name: Initialize keychain
         script: |
           keychain initialize
-      - name: Generate a certificate private key
-        # Needed so --create can mint a brand-new distribution certificate
-        # (account has none yet). Reused below to import it into the keychain.
+      - name: Restore the persistent certificate private key
+        # CERTIFICATE_PRIVATE_KEY (base64 of an RSA key) comes from the
+        # ios_signing variable group. Using the SAME key every build lets
+        # fetch-signing-files reuse ONE distribution certificate instead of
+        # trying to create a new one each run (which hits Apple's cert cap -> 409).
         script: |
-          openssl genrsa -out /tmp/cert_key.pem 2048
+          echo "$CERTIFICATE_PRIVATE_KEY" | base64 --decode > /tmp/cert_key.pem
       - name: Fetch or create signing files
-        # --create registers the App ID and creates the App Store provisioning
-        # profile (and a distribution certificate) if they don't exist yet.
+        # Reuses the cert tied to the persistent key, or creates it once.
+        # Also (re)generates the App Store provisioning profile to match.
         script: |
           app-store-connect fetch-signing-files "com.theone.training" \
             --type IOS_APP_STORE \
