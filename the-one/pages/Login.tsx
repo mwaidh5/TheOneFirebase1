@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserRole, User } from '../types';
 import { auth, db } from '../firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
@@ -261,10 +262,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleGoogleLogin = async () => {
     setError('');
-    // Popup-based Google sign-in does not work inside the native app's WebView.
-    // It needs a native plugin + Firebase iOS app registration (see setup notes).
+    // Native app: use the Firebase Authentication plugin to get a Google
+    // credential, then sign into the Firebase JS SDK (our source of truth).
     if (Capacitor.isNativePlatform()) {
-      setError(t('auth.google_app_setup'));
+      setLoading(true);
+      try {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential?.idToken;
+        if (!idToken) throw new Error('No Google idToken returned');
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCred = await signInWithCredential(auth, credential);
+        await syncUserToFirestore(userCred.user);
+      } catch (err: any) {
+        console.error('Native Google sign-in error:', err);
+        setError(t('auth.google_failed'));
+        setLoading(false);
+      }
       return;
     }
     setLoading(true);
@@ -297,26 +310,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-6">
-          {/* Google sign-in only on web — it can't work in the native app without
-              a registered Firebase iOS app, so we hide it there to avoid a dead button. */}
-          {!Capacitor.isNativePlatform() && (
-            <>
-              <button
-                onClick={handleGoogleLogin}
-                disabled={loading || showDeviceLimitModal}
-                className="w-full py-4 bg-white border border-neutral-200 text-black rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-              >
-                <img src="/google.svg" alt="Google" className="w-5 h-5" />
-                {t('auth.sign_in_google')}
-              </button>
+          <button
+            onClick={handleGoogleLogin}
+            disabled={loading || showDeviceLimitModal}
+            className="w-full py-4 bg-white border border-neutral-200 text-black rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+          >
+            <img src="/google.svg" alt="Google" className="w-5 h-5" />
+            {t('auth.sign_in_google')}
+          </button>
 
-              <div className="flex items-center">
-                <hr className="w-full border-neutral-200" />
-                <span className="px-4 text-xs font-bold text-neutral-400 uppercase">{t('auth.or')}</span>
-                <hr className="w-full border-neutral-200" />
-              </div>
-            </>
-          )}
+          <div className="flex items-center">
+            <hr className="w-full border-neutral-200" />
+            <span className="px-4 text-xs font-bold text-neutral-400 uppercase">{t('auth.or')}</span>
+            <hr className="w-full border-neutral-200" />
+          </div>
 
           <form className="space-y-6" onSubmit={handleLogin}>
             {/* Honeypot — hidden from humans, bots fill this in and get silently rejected */}
