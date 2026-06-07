@@ -73,9 +73,11 @@ const AppShell: React.FC<AppShellProps> = ({
   }
 
   // ── Native app: app chrome — bottom tab bar, no top header, clean auth screens ──
-  const showTopNav = isRole;
+  // Role areas (admin/coach/support) use their OWN in-app header (AdminLayout etc.),
+  // so we never show the web Navbar/Footer inside the native app.
+  const showTopNav = false;
   const showBottomNav = !isRole && !isAuth;
-  const showFooter = isRole;
+  const showFooter = false;
   // Menu sub-pages (messages, nutrition, settings, …) are reached from the
   // Settings hub and otherwise have no way back, so give them a back button.
   const showBack = showBottomNav && path.startsWith('/profile');
@@ -93,13 +95,13 @@ const AppShell: React.FC<AppShellProps> = ({
       <main
         className="flex-grow flex flex-col"
         style={{
-          paddingTop: originalAdmin && !showTopNav
-            ? 'calc(3rem + env(safe-area-inset-top))'
-            : showBack
-              ? 'calc(3.25rem + env(safe-area-inset-top))'
-              : showBottomNav
-                ? 'env(safe-area-inset-top)'
-                : undefined,
+          paddingTop: isAuth
+            ? undefined
+            : originalAdmin
+              ? 'calc(3rem + env(safe-area-inset-top))'
+              : showBack
+                ? 'calc(3.25rem + env(safe-area-inset-top))'
+                : 'env(safe-area-inset-top)',
           paddingBottom: showBottomNav ? 'calc(4rem + env(safe-area-inset-bottom))' : undefined,
         }}
       >

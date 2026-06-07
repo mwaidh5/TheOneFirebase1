@@ -206,7 +206,7 @@ const App: React.FC = () => {
             <Route path="/profile/courses" element={isLoggedIn ? <MyCourses currentUser={currentUser} courses={courses} /> : <Navigate to="/login" />} />
             <Route path="/profile/messages" element={isLoggedIn ? <Chat currentUser={currentUser!} /> : <Navigate to="/login" />} />
             <Route path="/profile/nutrition" element={isLoggedIn ? <MealPlan /> : <Navigate to="/login" />} />
-            <Route path="/profile/vitals" element={isLoggedIn ? <UserDetails /> : <Navigate to="/login" />} />
+            <Route path="/profile/vitals" element={isLoggedIn ? <UserDetails currentUser={currentUser!} /> : <Navigate to="/login" />} />
             <Route path="/profile/settings" element={isLoggedIn ? <ProfileSettings currentUser={currentUser!} /> : <Navigate to="/login" />} />
             <Route path="/profile/notifications" element={isLoggedIn ? <NotificationsSettings /> : <Navigate to="/login" />} />
             <Route path="/profile/billing" element={isLoggedIn ? <BillingHistory /> : <Navigate to="/login" />} />
