@@ -67,6 +67,23 @@ const MealPlan: React.FC = () => {
     }));
   };
 
+  // Grocery list = every ingredient from the selected option of each meal item
+  // (falls back to the first option when nothing is selected yet).
+  const [showGrocery, setShowGrocery] = useState(false);
+  const buildGroceryList = () => {
+    const map: Record<string, string[]> = {};
+    MOCK_MEAL_PLAN.meals.forEach(meal => {
+      meal.items.forEach(item => {
+        const selId = selections[`${meal.id}_${item.id}`] || item.options[0]?.id;
+        const opt = item.options.find(o => o.id === selId) || item.options[0];
+        opt?.items.forEach(fi => {
+          (map[fi.name] ||= []).push(fi.amount);
+        });
+      });
+    });
+    return Object.entries(map).map(([name, amounts]) => ({ name, amounts: amounts.join(' + ') }));
+  };
+
   const dayKeys: TranslationKey[] = ['meal.day_mon', 'meal.day_tue', 'meal.day_wed', 'meal.day_thu', 'meal.day_fri', 'meal.day_sat', 'meal.day_sun'];
 
   const targets: Array<{ labelKey: TranslationKey; val: string; subKey: TranslationKey }> = [
@@ -94,7 +111,7 @@ const MealPlan: React.FC = () => {
           <p className="text-neutral-500 text-lg max-w-xl">{t('meal.tagline')}</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-3 border border-neutral-200 rounded-full bg-white text-xs md:text-sm font-bold hover:bg-neutral-50 shadow-sm transition-all">
+          <button onClick={() => setShowGrocery(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-3 border border-neutral-200 rounded-full bg-white text-xs md:text-sm font-bold hover:bg-neutral-50 shadow-sm transition-all">
             <span className="material-symbols-outlined text-[18px]">shopping_basket</span>
             {t('meal.grocery_list')}
           </button>
@@ -241,6 +258,30 @@ const MealPlan: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Grocery list modal */}
+      {showGrocery && (
+        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-6 bg-black/70 backdrop-blur-sm" onClick={() => setShowGrocery(false)}>
+          <div className="bg-white w-full md:max-w-md rounded-t-[2rem] md:rounded-3xl shadow-2xl flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+            <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-accent">shopping_basket</span>
+                <h3 className="text-lg font-black font-display uppercase">{t('meal.grocery_list')}</h3>
+              </div>
+              <button onClick={() => setShowGrocery(false)} className="w-9 h-9 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition-all"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+              {buildGroceryList().map((g, i) => (
+                <label key={i} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100">
+                  <input type="checkbox" className="w-5 h-5 rounded-md accent-black shrink-0" />
+                  <span className="flex-1 text-sm font-black uppercase text-black">{g.name}</span>
+                  <span className="text-xs font-bold text-neutral-400">{g.amounts}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
