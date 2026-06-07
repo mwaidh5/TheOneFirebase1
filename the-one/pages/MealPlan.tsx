@@ -83,8 +83,8 @@ const MealPlan: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+    <div className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-12">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-neutral-500 text-sm font-medium mb-1">
             <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
@@ -93,12 +93,12 @@ const MealPlan: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-black font-display tracking-tight text-black uppercase">{t('meal.my_nutrition')}</h1>
           <p className="text-neutral-500 text-lg max-w-xl">{t('meal.tagline')}</p>
         </div>
-        <div className="flex gap-4">
-          <button className="flex items-center gap-2 px-6 py-3 border border-neutral-200 rounded-full bg-white text-sm font-bold hover:bg-neutral-50 shadow-sm transition-all">
+        <div className="flex gap-3">
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-3 border border-neutral-200 rounded-full bg-white text-xs md:text-sm font-bold hover:bg-neutral-50 shadow-sm transition-all">
             <span className="material-symbols-outlined text-[18px]">shopping_basket</span>
             {t('meal.grocery_list')}
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-full text-sm font-bold hover:bg-neutral-800 shadow-xl transition-all">
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-3 bg-black text-white rounded-full text-xs md:text-sm font-bold hover:bg-neutral-800 shadow-xl transition-all">
             <span className="material-symbols-outlined text-[18px]">download</span>
             {t('meal.download_pdf')}
           </button>
@@ -106,10 +106,10 @@ const MealPlan: React.FC = () => {
       </div>
 
       {/* Week Selector */}
-      <div className="mb-12 overflow-x-auto no-scrollbar border-b border-neutral-100">
+      <div className="mb-8 md:mb-12 overflow-x-auto no-scrollbar border-b border-neutral-100">
         <div className="flex min-w-max">
           {dayKeys.map((dayKey, i) => (
-            <button key={dayKey} className={`flex flex-col items-center px-10 py-4 transition-all border-b-[3px] ${i === 0 ? 'border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
+            <button key={dayKey} className={`flex flex-col items-center px-6 md:px-10 py-3 md:py-4 transition-all border-b-[3px] ${i === 0 ? 'border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
               <span className="text-[10px] font-bold uppercase tracking-widest mb-1">{t(dayKey)}</span>
               <span className={`text-xl font-black ${i === 0 ? 'text-black' : ''}`}>{12 + i}</span>
             </button>
@@ -117,10 +117,10 @@ const MealPlan: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-12">
         {/* Targets Column */}
-        <div className="lg:col-span-4 space-y-8">
-          <div className="bg-neutral-50 rounded-3xl p-8 border border-neutral-100">
+        <div className="lg:col-span-4 space-y-5 md:space-y-8">
+          <div className="bg-neutral-50 rounded-3xl p-5 md:p-8 border border-neutral-100">
             <h3 className="text-xl font-bold font-display uppercase mb-8 flex items-center gap-2">
               <span className="material-symbols-outlined">monitoring</span>
               {t('meal.daily_targets')}
@@ -136,8 +136,8 @@ const MealPlan: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-neutral-100 rounded-3xl p-8 shadow-sm">
-            <h3 className="text-xl font-bold font-display uppercase mb-8">{t('meal.todays_consumption')}</h3>
+          <div className="bg-white border border-neutral-100 rounded-3xl p-5 md:p-8 shadow-sm">
+            <h3 className="text-xl font-bold font-display uppercase mb-6 md:mb-8">{t('meal.todays_consumption')}</h3>
             <div className="space-y-8">
               {macros.map((macro) => (
                 <div key={macro.labelKey} className="space-y-2">
@@ -162,15 +162,15 @@ const MealPlan: React.FC = () => {
         </div>
 
         {/* Meals Column */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="lg:col-span-8 space-y-5 md:space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-display uppercase">{t('meal.scheduled_meals')}</h2>
             <span className="text-sm text-neutral-400 font-bold uppercase tracking-widest">{t('meal.meals_kcal', { meals: MOCK_MEAL_PLAN.meals.length, kcal: MOCK_MEAL_PLAN.totalCalories })}</span>
           </div>
 
-          <div className="grid gap-8">
+          <div className="grid gap-5 md:gap-8">
             {MOCK_MEAL_PLAN.meals.map(meal => (
-              <div key={meal.id} className="group flex flex-col gap-6 p-8 rounded-[2rem] border border-neutral-100 bg-white shadow-sm hover:shadow-xl transition-all">
+              <div key={meal.id} className="group flex flex-col gap-5 md:gap-6 p-5 md:p-8 rounded-3xl md:rounded-[2rem] border border-neutral-100 bg-white shadow-sm hover:shadow-xl transition-all">
                 <div className="flex justify-between items-center border-b border-neutral-100 pb-4">
                   <h3 className="text-2xl font-black text-black font-display uppercase tracking-tight">{meal.label}</h3>
                 </div>
@@ -227,7 +227,7 @@ const MealPlan: React.FC = () => {
             ))}
           </div>
 
-          <div className="mt-12 rounded-3xl bg-black text-white p-10 overflow-hidden relative shadow-2xl">
+          <div className="mt-4 md:mt-12 rounded-3xl bg-black text-white p-6 md:p-10 overflow-hidden relative shadow-2xl">
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
               <div className="max-w-md space-y-3">
                 <h4 className="text-2xl font-bold font-display uppercase tracking-tight">{t('meal.custom_plan_q')}</h4>
