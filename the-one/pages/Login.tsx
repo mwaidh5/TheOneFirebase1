@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserRole, User } from '../types';
 import { auth, db } from '../firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
@@ -261,10 +262,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleGoogleLogin = async () => {
     setError('');
-    // Popup-based Google sign-in does not work inside the native app's WebView.
-    // It needs a native plugin + Firebase iOS app registration (see setup notes).
+    // Native app: use the Firebase Authentication plugin to get a Google
+    // credential, then sign into the Firebase JS SDK (our source of truth).
     if (Capacitor.isNativePlatform()) {
-      setError(t('auth.google_app_setup'));
+      setLoading(true);
+      try {
+        setError('1/4 Opening Google…');
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        setError('2/4 Got Google credential…');
+        const idToken = result.credential?.idToken;
+        if (!idToken) {
+          setError('No idToken. Got: ' + JSON.stringify(result?.credential || {}).slice(0, 140));
+          setLoading(false);
+          return;
+        }
+        setError('3/4 Signing in to Firebase…');
+        const userCred = await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
+        setError('4/4 Loading your profile…');
+        await syncUserToFirestore(userCred.user);
+      } catch (err: any) {
+        console.error('Native Google sign-in error:', err);
+        setError(err?.message ? `Google error: ${err.message}` : t('auth.google_failed'));
+        setLoading(false);
+      }
       return;
     }
     setLoading(true);
@@ -297,7 +317,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
 
         <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-6">
-          <button 
+          <button
             onClick={handleGoogleLogin}
             disabled={loading || showDeviceLimitModal}
             className="w-full py-4 bg-white border border-neutral-200 text-black rounded-2xl font-bold hover:bg-neutral-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"

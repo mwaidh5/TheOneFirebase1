@@ -1,5 +1,6 @@
 // Tracks the in-progress workout session globally (via localStorage) so the timer
 // keeps counting across navigation and a "Resume training" button can reappear.
+import { startWorkoutActivity, endWorkoutActivity } from './liveActivity';
 
 export const ACTIVE_SESSION_KEY = 'theone_active_session';
 export const MAX_SESSION_MS = 3 * 60 * 60 * 1000; // 3 hours -> auto-stop
@@ -46,6 +47,8 @@ export function writeActiveSession(s: ActiveSession): void {
     localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(s));
     window.dispatchEvent(new Event('theone-session-change'));
   } catch {}
+  // Mirror to the iOS Lock-Screen / Dynamic Island live timer (no-op on web).
+  startWorkoutActivity({ title: s.dayTitle || s.courseTitle || 'Workout', courseTitle: s.courseTitle || '', startTs: s.startTs });
 }
 
 export function clearActiveSession(): void {
@@ -53,4 +56,5 @@ export function clearActiveSession(): void {
     localStorage.removeItem(ACTIVE_SESSION_KEY);
     window.dispatchEvent(new Event('theone-session-change'));
   } catch {}
+  endWorkoutActivity();
 }

@@ -6,6 +6,7 @@ import { getStorage } from "firebase/storage";
 import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 import { getMessaging, isSupported } from "firebase/messaging";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { Capacitor } from "@capacitor/core";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCmKs7RNGNKvtVG-tT7n7QCf1ZpbFXBxD8",
@@ -22,6 +23,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
+  // In the native WebView, Firestore's default WebChannel transport often fails
+  // and requests hang forever (e.g. login stuck loading). Force long-polling there.
+  ...(Capacitor.isNativePlatform() ? { experimentalForceLongPolling: true } : {}),
 });
 export const storage = getStorage(app);
 
@@ -44,10 +48,15 @@ export const aiModel = getGenerativeModel(aiService, {
 // Google reCAPTCHA: https://www.google.com/recaptcha → register site → copy Site Key
 const RECAPTCHA_SITE_KEY = "6Ldnrp4sAAAAAP4xdFO8Iy8U_4aC_IpZ2fTCT9_P";
 
-initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
-  isTokenAutoRefreshEnabled: true,
-});
+// reCAPTCHA App Check only works in a real browser. In the native app the
+// WebView can't run reCAPTCHA, so the token fetch stalls and blocks Firebase
+// calls (e.g. sign-in hangs). Initialise App Check on web only.
+if (!Capacitor.isNativePlatform()) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
 // ─── Cloud Messaging (Push Notifications) ─────────────────────────────────────
 // FCM is only supported in secure contexts (HTTPS) and requires the service worker.
