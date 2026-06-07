@@ -1,6 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, getAuth, browserLocalPersistence, indexedDBLocalPersistence, browserPopupRedirectResolver } from "firebase/auth";
 import { initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
@@ -20,7 +20,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // ─── Core Services ────────────────────────────────────────────────────────────
-export const auth = getAuth(app);
+// Native WebViews stall on IndexedDB, which makes Firebase Auth (e.g.
+// signInWithCredential) hang while persisting the session. Use localStorage-based
+// persistence on native; keep IndexedDB + the popup resolver on web.
+export const auth = Capacitor.isNativePlatform()
+  ? initializeAuth(app, { persistence: browserLocalPersistence })
+  : initializeAuth(app, {
+      persistence: indexedDBLocalPersistence,
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
 export const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
   // In the native WebView, Firestore's default WebChannel transport often fails
