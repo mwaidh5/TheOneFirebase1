@@ -23,6 +23,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
+  // In the native WebView, Firestore's default WebChannel transport often fails
+  // and requests hang forever (e.g. login stuck loading). Force long-polling there.
+  ...(Capacitor.isNativePlatform() ? { experimentalForceLongPolling: true } : {}),
 });
 export const storage = getStorage(app);
 
