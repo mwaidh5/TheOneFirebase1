@@ -4,6 +4,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import LanguageToggle from './LanguageToggle';
+import { Capacitor } from '@capacitor/core';
 import { User } from '../types';
 
 interface AppShellProps {
@@ -36,30 +37,49 @@ const AppShell: React.FC<AppShellProps> = ({
   const navigate = useNavigate();
   const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate('/'); };
 
+  const isNative = Capacitor.isNativePlatform();
   const isRole = /^\/(admin|coach|support)(\/|$)/.test(path);
   const isAuth = ['/login', '/signup', '/forgot-password'].includes(path);
+
+  const banner = originalAdmin ? (
+    <div className="bg-accent py-2 px-6 flex items-center justify-center gap-6 animate-in slide-in-from-top duration-500 z-[110] fixed w-full top-0 left-0 shadow-xl">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-white text-[18px] filled animate-pulse">admin_panel_settings</span>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">
+          Viewing as <span className="underline decoration-white/30 decoration-2 underline-offset-4">{currentUser?.firstName} {currentUser?.lastName}</span>
+        </p>
+      </div>
+      <button
+        onClick={stopImpersonating}
+        className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl"
+      >
+        Exit Session
+      </button>
+    </div>
+  ) : null;
+
+  // ── Web (any browser): the original full website — top navbar + footer on every route ──
+  if (!isNative) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        {banner}
+        <div className={originalAdmin ? 'mt-12' : ''}>
+          <Navbar isLoggedIn={isLoggedIn} currentUser={currentUser} onLogout={onLogout} logo={logo} />
+        </div>
+        <main className="flex-grow flex flex-col">{children}</main>
+        <Footer logo={logo} />
+      </div>
+    );
+  }
+
+  // ── Native app: app chrome — bottom tab bar, no top header, clean auth screens ──
   const showTopNav = isRole;
   const showBottomNav = !isRole && !isAuth;
   const showFooter = isRole;
 
   return (
     <div className="flex flex-col min-h-screen">
-      {originalAdmin && (
-        <div className="bg-accent py-2 px-6 flex items-center justify-center gap-6 animate-in slide-in-from-top duration-500 z-[110] fixed w-full top-0 left-0 shadow-xl">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-white text-[18px] filled animate-pulse">admin_panel_settings</span>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">
-              Viewing as <span className="underline decoration-white/30 decoration-2 underline-offset-4">{currentUser?.firstName} {currentUser?.lastName}</span>
-            </p>
-          </div>
-          <button
-            onClick={stopImpersonating}
-            className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl"
-          >
-            Exit Session
-          </button>
-        </div>
-      )}
+      {banner}
 
       {showTopNav && (
         <div className={originalAdmin ? 'mt-12' : ''}>
