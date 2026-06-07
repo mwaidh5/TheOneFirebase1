@@ -267,15 +267,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (Capacitor.isNativePlatform()) {
       setLoading(true);
       try {
+        setError('1/4 Opening Google…');
         const result = await FirebaseAuthentication.signInWithGoogle();
+        setError('2/4 Got Google credential…');
         const idToken = result.credential?.idToken;
-        if (!idToken) throw new Error('No Google idToken returned');
-        const credential = GoogleAuthProvider.credential(idToken);
-        const userCred = await signInWithCredential(auth, credential);
+        if (!idToken) {
+          setError('No idToken. Got: ' + JSON.stringify(result?.credential || {}).slice(0, 140));
+          setLoading(false);
+          return;
+        }
+        setError('3/4 Signing in to Firebase…');
+        const userCred = await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
+        setError('4/4 Loading your profile…');
         await syncUserToFirestore(userCred.user);
       } catch (err: any) {
         console.error('Native Google sign-in error:', err);
-        setError(err?.message ? `Google: ${err.message}` : t('auth.google_failed'));
+        setError(err?.message ? `Google error: ${err.message}` : t('auth.google_failed'));
         setLoading(false);
       }
       return;
