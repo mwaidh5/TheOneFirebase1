@@ -578,8 +578,13 @@ function HoldTimerBlock({ item, best, onRecord }: { item: Exercise; best: number
     intervalRef.current = setInterval(() => {
       setElapsed(e => {
         const next = e + 1;
+        // Approaching the target hold: 3 short peeps in the final 3 seconds,
+        // then one bigger chime the moment the target is reached.
+        if (targetSecs > 0) {
+          if (next > 0 && next >= targetSecs - 3 && next < targetSecs) playEmomSound('countdown');
+          if (next === targetSecs) playEmomSound('done');
+        }
         if (best != null && best > 0 && next === best + 1) playEmomSound('switch'); // just passed PB
-        if (targetSecs > 0 && next === targetSecs) playEmomSound('done');             // hit coach target
         return next;
       });
     }, 1000);
