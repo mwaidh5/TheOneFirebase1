@@ -910,6 +910,17 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     });
   };
 
+  // Cancel a session started by mistake — stops the clock and ends the session
+  // WITHOUT logging anything (also clears the Lock-Screen live timer).
+  const handleStopWorkout = () => {
+    if (!window.confirm(t('workout.stop_confirm'))) return;
+    resetTimer();
+    setIsPaused(false);
+    setWorkoutStarted(false);
+    setFinalTime(null);
+    clearActiveSession();
+  };
+
   const toggleExercise = (exId: string) => {
     const next = new Set<string>(completedExercises);
     const wasCompleted = next.has(exId);
@@ -1754,6 +1765,13 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                           >
                             <span className="material-symbols-outlined text-xs">restart_alt</span>
                             {t('common.reset')}
+                          </button>
+                          <button
+                            onClick={handleStopWorkout}
+                            className="text-[8px] font-black uppercase tracking-widest text-red-300 hover:text-white flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/40"
+                          >
+                            <span className="material-symbols-outlined text-xs">stop_circle</span>
+                            {t('workout.stop')}
                           </button>
                         </div>
                       </div>
