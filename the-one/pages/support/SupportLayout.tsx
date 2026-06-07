@@ -20,6 +20,9 @@ const SupportLayout: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto no-scrollbar pb-10">
+          <Link to="/" className="flex items-center gap-3 px-5 py-3 mb-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-black hover:bg-neutral-50 transition-all">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span> Back to App
+          </Link>
           <Link to="/support" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/support') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/support') ? 'filled text-purple-600' : ''}`}>dashboard</span>
             Overview
