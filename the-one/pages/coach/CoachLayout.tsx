@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MOCK_COACH_USER, COACHES } from '../../constants';
 
 const CoachLayout: React.FC = () => {
@@ -110,7 +110,10 @@ const CoachLayout: React.FC = () => {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-neutral-100 h-20 px-4 sm:px-10 flex items-center justify-between shrink-0">
-           <div className="flex items-center gap-4">
+           <div className="flex items-center gap-2 sm:gap-4">
+              <button onClick={() => navigate('/')} title="Back to app" className="w-9 h-9 rounded-xl bg-neutral-50 text-neutral-500 hover:text-black hover:bg-neutral-100 flex items-center justify-center transition-all">
+                  <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+              </button>
               <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-neutral-600">
                   <span className="material-symbols-outlined">{isSidebarOpen ? 'close' : 'menu'}</span>
               </button>
