@@ -76,6 +76,9 @@ const AppShell: React.FC<AppShellProps> = ({
   const showTopNav = isRole;
   const showBottomNav = !isRole && !isAuth;
   const showFooter = isRole;
+  // Menu sub-pages (messages, nutrition, settings, …) are reached from the
+  // Settings hub and otherwise have no way back, so give them a back button.
+  const showBack = showBottomNav && path.startsWith('/profile');
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -92,9 +95,11 @@ const AppShell: React.FC<AppShellProps> = ({
         style={{
           paddingTop: originalAdmin && !showTopNav
             ? 'calc(3rem + env(safe-area-inset-top))'
-            : showBottomNav
-              ? 'env(safe-area-inset-top)'
-              : undefined,
+            : showBack
+              ? 'calc(3.25rem + env(safe-area-inset-top))'
+              : showBottomNav
+                ? 'env(safe-area-inset-top)'
+                : undefined,
           paddingBottom: showBottomNav ? 'calc(4rem + env(safe-area-inset-bottom))' : undefined,
         }}
       >
@@ -115,6 +120,17 @@ const AppShell: React.FC<AppShellProps> = ({
             <LanguageToggle variant="pill" />
           </div>
         </>
+      )}
+
+      {showBack && (
+        <button
+          onClick={goBack}
+          aria-label="Back"
+          className="fixed left-3 z-[120] w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-neutral-200 shadow-md flex items-center justify-center text-black active:scale-95 transition-transform"
+          style={{ top: 'calc(0.6rem + env(safe-area-inset-top))' }}
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
       )}
 
       {showFooter && <Footer logo={logo} />}

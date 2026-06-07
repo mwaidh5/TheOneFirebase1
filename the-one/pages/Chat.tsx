@@ -5,6 +5,7 @@ import { User, UserRole } from '../types';
 import { db, storage } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Capacitor } from '@capacitor/core';
 import { useT } from '../i18n/I18nContext';
 
 interface Message {
@@ -387,8 +388,15 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
       if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Fill exactly the available area so only the message list scrolls (not the page).
+  // Native: viewport minus the back-button strip (3.25rem) + bottom tab bar (4rem) + safe areas.
+  // Web: viewport minus the 80px top navbar.
+  const chatHeight = Capacitor.isNativePlatform()
+    ? 'calc(100dvh - 7.25rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
+    : 'calc(100vh - 80px)';
+
   return (
-    <div className="flex-grow flex bg-white h-[calc(100vh-80px)] overflow-hidden relative">
+    <div className="flex bg-white overflow-hidden relative" style={{ height: chatHeight }}>
       <input type="file" className="hidden" ref={fileInputRef} accept="image/*,video/*" onChange={handleFileUpload} />
       {/* Sidebar */}
       <div className={`${showThreadList ? 'flex' : 'hidden md:flex'} w-full md:w-80 lg:w-96 border-r border-neutral-100 flex-col shrink-0 bg-neutral-50/30 absolute inset-0 z-20 md:relative`}>
