@@ -275,7 +275,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         await syncUserToFirestore(userCred.user);
       } catch (err: any) {
         console.error('Native Google sign-in error:', err);
-        setError(t('auth.google_failed'));
+        setError(err?.message ? `Google: ${err.message}` : t('auth.google_failed'));
         setLoading(false);
       }
       return;
