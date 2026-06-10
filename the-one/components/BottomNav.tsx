@@ -66,7 +66,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
     >
       <div className="max-w-xl mx-auto flex items-stretch justify-around px-2 h-16">
         {tab({ active: path === '/', icon: 'home', label: t('nav.home'), onClick: () => navigate('/') })}
-        {tab({ active: path.startsWith('/profile/courses'), icon: 'school', label: t('nav.my_courses'), onClick: () => navigate(trainingDestination()) })}
+        {tab({ active: path.startsWith('/courses'), icon: 'fitness_center', label: t('nav.courses'), onClick: () => navigate('/courses') })}
 
         {/* Center Start / Resume button */}
         <div className="flex-1 flex justify-center">
