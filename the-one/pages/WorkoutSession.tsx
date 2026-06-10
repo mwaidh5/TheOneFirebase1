@@ -736,6 +736,29 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   const [prevLiftsByName, setPrevLiftsByName] = useState<Record<string, { weight?: string; reps?: string; time?: string; unit?: string; loggedAt: number }>>({});
   // Personal-best hold time (longest) keyed by normalized exercise name — for HOLD exercises
   const [bestHoldsByName, setBestHoldsByName] = useState<Record<string, { seconds: number; time: string; loggedAt: number }>>({});
+  // Durable hold PBs (users/{uid}/hold_prs). The workout_logs scan above only sees the
+  // LATEST time per day (results get merged over), so an older, better hold would be
+  // lost — this collection keeps the true maximum forever.
+  const [holdPrs, setHoldPrs] = useState<Record<string, { seconds: number; time: string; loggedAt: number }>>({});
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = onSnapshot(collection(db, 'users', currentUser.id, 'hold_prs'), (snap) => {
+      const map: Record<string, { seconds: number; time: string; loggedAt: number }> = {};
+      snap.docs.forEach(d => { map[d.id] = d.data() as any; });
+      setHoldPrs(map);
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  // True best = max of the durable PB and anything still visible in the log scan.
+  const getBestHold = (name: string) => {
+    const key = normalizeExerciseName(name);
+    const a = holdPrs[key];
+    const b = bestHoldsByName[key];
+    if (a && b) return a.seconds >= b.seconds ? a : b;
+    return a || b;
+  };
 
   // ── Log Data ────────────────────────────────────────────────────────────────
   const [logData, setLogData] = useState<{
@@ -860,9 +883,16 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     if (!course) return;
     const params = new URLSearchParams(location.search);
     const weekNum = params.get('week');
+    const dayId = params.get('day');
     if (weekNum && course.weeks) {
       const week = course.weeks.find(w => w.weekNumber === parseInt(weekNum));
-      if (week) { setSelectedWeek(week); setView('days'); }
+      if (week) {
+        setSelectedWeek(week);
+        // With a day id, jump straight into that session's exercise list.
+        const day = dayId ? week.days.find(d => d.id === dayId) : undefined;
+        if (day) { setSelectedDay(day); setView('exercises'); }
+        else setView('days');
+      }
     }
   }, [location.search, course]);
 
@@ -1168,7 +1198,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const isForTime = item.format === 'FOR_TIME';
     const isHold = item.format === 'HOLD';
     const isCardio = item.format === 'CARDIO' || isForTime;
-    const bestHold = isHold ? bestHoldsByName[normalizeExerciseName(item.name)] : undefined;
+    const bestHold = isHold ? getBestHold(item.name) : undefined;
     const prevLift = prevLifts[item.id] ?? prevLiftsByName[normalizeExerciseName(item.name)];
     const hasVideo = !!item.videoUrl;
     const hasImage = !!item.imageUrl;
@@ -1299,6 +1329,17 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                 onRecord={(secs) => {
                   const mmss = `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
                   setLogData(prev => ({ ...prev, results: { ...prev.results, [item.id]: { ...prev.results[item.id], time: mmss } } }));
+                  // Persist a durable PB only when this hold beats the previous best,
+                  // so "Best" always shows the true record — not just the last entry.
+                  const currentBest = getBestHold(item.name);
+                  if (secs > (currentBest?.seconds ?? 0)) {
+                    setDoc(doc(db, 'users', currentUser.id, 'hold_prs', normalizeExerciseName(item.name)), {
+                      name: item.name,
+                      seconds: secs,
+                      time: mmss,
+                      loggedAt: Date.now(),
+                    }).catch(err => console.error('save hold PB', err));
+                  }
                 }}
               />
             )}
