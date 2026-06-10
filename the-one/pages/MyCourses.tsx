@@ -102,7 +102,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
   const actionRequired = customRequests.some(r => r.status === 'DIAGNOSTIC');
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500 min-h-[80vh]">
+    <div className="w-full max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 text-start animate-in fade-in duration-500 min-h-[80vh] overflow-x-clip">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
         <div className="space-y-2">
           <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{t('mycourses.header_label')}</span>
@@ -148,7 +148,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
               <div className="w-14 h-14 bg-red-500 text-white rounded-2xl flex items-center justify-center shrink-0">
                  <span className="material-symbols-outlined text-3xl animate-pulse">priority_high</span>
               </div>
-              <div className="space-y-1 text-left">
+              <div className="space-y-1 text-start">
                  <h3 className="text-lg font-black text-black uppercase tracking-tight">{t('mycourses.diag_required_title')}</h3>
                  <p className="text-xs text-neutral-500 font-medium leading-relaxed">{t('mycourses.diag_required_sub')}</p>
               </div>
@@ -179,7 +179,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                                       </span>
                                   )}
                               </div>
-                              <div className="text-left">
+                              <div className="text-start">
                                   <h3 className="text-xl font-black text-black uppercase tracking-tight">{req.goal}</h3>
                                   <p className="text-xs text-neutral-400 font-medium mt-1">{t('mycourses.sport')} {req.sport.toUpperCase()}</p>
                               </div>
@@ -225,7 +225,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
               </div>
 
               <div className="p-6 md:p-8 lg:p-10 space-y-6 md:space-y-8 flex-grow flex flex-col">
-                <div className="space-y-4 text-left">
+                <div className="space-y-4 text-start">
                   <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-tight font-display leading-tight line-clamp-2">{course.title}</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
