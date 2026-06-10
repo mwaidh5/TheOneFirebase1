@@ -52,13 +52,13 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
 
   const Section: React.FC<{ title: string; rows: Row[] }> = ({ title, rows }) => (
     <div className="space-y-2">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{title}</p>
+      <p className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{title}</p>
       <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden divide-y divide-neutral-50">
         {rows.map((r) => (
-          <Link key={r.to} to={r.to} className="flex items-center gap-4 px-5 py-4 hover:bg-neutral-50 transition-colors">
-            <span className={`material-symbols-outlined text-[22px] ${r.accent ? 'text-accent filled' : 'text-neutral-400'}`}>{r.icon}</span>
-            <span className={`flex-1 text-sm font-bold ${r.accent ? 'text-accent uppercase tracking-wide' : 'text-black'}`}>{r.label}</span>
-            <span className="material-symbols-outlined text-neutral-300 text-[20px]">chevron_right</span>
+          <Link key={r.to} to={r.to} className="flex items-center gap-4 px-5 py-5 hover:bg-neutral-50 transition-colors">
+            <span className={`material-symbols-outlined text-[28px] ${r.accent ? 'text-accent filled' : 'text-neutral-400'}`}>{r.icon}</span>
+            <span className={`flex-1 text-lg font-bold ${r.accent ? 'text-accent uppercase tracking-wide' : 'text-black'}`}>{r.label}</span>
+            <span className="material-symbols-outlined text-neutral-300 text-[22px]">chevron_right</span>
           </Link>
         ))}
       </div>
@@ -66,13 +66,13 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
   );
 
   return (
-    <div className="max-w-xl mx-auto px-5 py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="w-full px-4 py-8 space-y-8 animate-in fade-in duration-300">
       {/* Profile header */}
       <Link to="/profile" className="flex items-center gap-4 p-5 bg-white rounded-3xl border border-neutral-100 hover:border-black transition-all">
-        <img src={currentUser.avatar} alt="" className="w-14 h-14 rounded-2xl object-cover border border-neutral-200" />
+        <img src={currentUser.avatar} alt="" className="w-16 h-16 rounded-2xl object-cover border border-neutral-200" />
         <div className="flex-1 min-w-0">
-          <p className="text-lg font-black uppercase text-black leading-tight truncate">{currentUser.firstName} {currentUser.lastName}</p>
-          <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-widest">{currentUser.role}</p>
+          <p className="text-2xl font-black uppercase text-black leading-tight truncate">{currentUser.firstName} {currentUser.lastName}</p>
+          <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{currentUser.role}</p>
         </div>
         <span className="material-symbols-outlined text-neutral-300">chevron_right</span>
       </Link>
@@ -84,13 +84,13 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
 
       {/* Language */}
       <div className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('settings.language')}</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('settings.language')}</p>
         <div className="bg-white rounded-2xl border border-neutral-100 p-2 flex gap-2">
           {(['en', 'ar'] as const).map((code) => (
             <button
               key={code}
               onClick={() => setLang(code)}
-              className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${lang === code ? 'bg-black text-white' : 'text-neutral-400 hover:bg-neutral-50'}`}
+              className={`flex-1 py-4 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${lang === code ? 'bg-black text-white' : 'text-neutral-400 hover:bg-neutral-50'}`}
             >
               {code === 'en' ? 'English' : 'العربية'}
             </button>
@@ -101,9 +101,9 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
       {/* Logout */}
       <button
         onClick={() => { onLogout(); navigate('/login'); }}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-[11px] hover:bg-red-500 hover:text-white transition-all"
+        className="w-full flex items-center justify-center gap-2 py-5 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-sm hover:bg-red-500 hover:text-white transition-all"
       >
-        <span className="material-symbols-outlined text-[20px]">logout</span>
+        <span className="material-symbols-outlined text-[22px]">logout</span>
         {t('nav.logout')}
       </button>
     </div>
