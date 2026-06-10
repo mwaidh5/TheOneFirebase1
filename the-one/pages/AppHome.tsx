@@ -6,6 +6,7 @@ import { Course, CustomCourseRequest, User } from '../types';
 import LazyImage from '../components/LazyImage';
 import { useT } from '../i18n/I18nContext';
 import { readActiveSession, ActiveSession } from '../hooks/activeSession';
+import ResultsShowcase from '../components/ResultsShowcase';
 
 interface HomepageProps {
   currentUser?: User | null;
@@ -247,6 +248,9 @@ const AppHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             </div>
           )}
         </div>
+
+        {/* Athlete results — before/after + customer feedback (mockup data) */}
+        <ResultsShowcase />
 
         {/* Explore CTA for logged-out */}
         {!currentUser && (
