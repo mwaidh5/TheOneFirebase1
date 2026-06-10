@@ -17,8 +17,31 @@ interface HomepageProps {
   };
 }
 
+// Day-aware content, Sunday(0) → Saturday(6). The Iraqi work week runs
+// Sun–Thu; Friday & Saturday are the weekend, so their tips lean into
+// rest, family, and recovery instead of grinding.
+const DAILY_TIPS: { icon: string; tone: 'work' | 'weekend'; title: { en: string; ar: string }; body: { en: string; ar: string } }[] = [
+  { icon: 'flag', tone: 'work', title: { en: 'New week, new standard', ar: 'أسبوع جديد، مستوى جديد' }, body: { en: "It's Sunday — the week starts here. Pick your training days now and treat them like appointments you can't miss.", ar: 'اليوم الأحد — بداية الأسبوع. حدّد أيام تمرينك الآن وتعامل معها كمواعيد لا تُفوَّت.' } },
+  { icon: 'fitness_center', tone: 'work', title: { en: 'Form before load', ar: 'الأداء قبل الوزن' }, body: { en: 'Monday check: slow your reps down today. Perfect form at a lighter weight beats ugly reps at a heavy one.', ar: 'فحص الاثنين: بطّئ تكراراتك اليوم. الأداء الصحيح بوزن أخف أفضل من تكرارات سيئة بوزن ثقيل.' } },
+  { icon: 'water_drop', tone: 'work', title: { en: 'Fuel the engine', ar: 'زوّد المحرك' }, body: { en: 'Tuesday tip: protein with every meal and 2–3L of water. Your performance tomorrow is built in the kitchen today.', ar: 'نصيحة الثلاثاء: بروتين مع كل وجبة و٢-٣ لتر ماء. أداؤك غداً يُبنى في المطبخ اليوم.' } },
+  { icon: 'bolt', tone: 'work', title: { en: 'Mid-week wall? Push through', ar: 'جدار منتصف الأسبوع؟ اخترقه' }, body: { en: "Wednesday is where most people quit. You're not most people — show up even if it's only 70% effort.", ar: 'الأربعاء هو اليوم الذي يستسلم فيه الأغلبية. أنت لست منهم — احضر حتى لو كان جهدك ٧٠٪ فقط.' } },
+  { icon: 'sports_score', tone: 'work', title: { en: 'Finish the week strong', ar: 'اختم الأسبوع بقوة' }, body: { en: 'Thursday — last working day. Empty the tank in today\'s session; the weekend is for recovering, not regretting.', ar: 'الخميس — آخر يوم دوام. أفرغ طاقتك في تمرين اليوم؛ العطلة للاستشفاء لا للندم.' } },
+  { icon: 'self_improvement', tone: 'weekend', title: { en: 'Jumu\'a mode: recover', ar: 'وضع الجمعة: استشفاء' }, body: { en: "It's Friday — family lunch, rest, and prayers. Recovery IS training: stretch 10 minutes and sleep well tonight.", ar: 'اليوم الجمعة — غداء العائلة وراحة وصلاة. الاستشفاء تمرينٌ أيضاً: تمدد ١٠ دقائق ونَم جيداً الليلة.' } },
+  { icon: 'directions_walk', tone: 'weekend', title: { en: 'Saturday: move easy', ar: 'السبت: حركة خفيفة' }, body: { en: 'Weekend day two — go for a light walk, do some mobility, and prep your meals. Tomorrow the week begins again.', ar: 'ثاني أيام العطلة — امشِ مشياً خفيفاً، تمارين مرونة، وجهّز وجباتك. غداً يبدأ الأسبوع من جديد.' } },
+];
+
+const DAILY_QUOTES: { en: string; ar: string }[] = [
+  { en: 'Discipline is choosing what you want most over what you want now.', ar: 'الانضباط هو اختيار ما تريده أكثر على ما تريده الآن.' },
+  { en: 'You don\'t have to be extreme, just consistent.', ar: 'لا تحتاج أن تكون متطرفاً، فقط مستمراً.' },
+  { en: 'The body achieves what the mind believes.', ar: 'الجسد يحقق ما يؤمن به العقل.' },
+  { en: 'Sweat today, shine tomorrow.', ar: 'اتعب اليوم، تألق غداً.' },
+  { en: 'Strong people are harder to kill and more useful in general.', ar: 'الأقوياء أصعب كسراً وأكثر نفعاً.' },
+  { en: 'Rest is part of the program, not a break from it.', ar: 'الراحة جزء من البرنامج، وليست انقطاعاً عنه.' },
+  { en: 'Prepare today so next week has no excuses.', ar: 'استعد اليوم حتى لا يجد الأسبوع القادم عذراً.' },
+];
+
 const AppHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
-  const { t } = useT();
+  const { t, lang } = useT();
   const navigate = useNavigate();
   const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
   const [pendingDiagnostic, setPendingDiagnostic] = useState<CustomCourseRequest | null>(null);
@@ -58,6 +81,12 @@ const AppHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
   const workouts = (currentUser as any)?.workoutsCompleted ?? 0;
   const minutes = (currentUser as any)?.minutesLogged ?? 0;
   const heroImg = settings.heroImage || 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1400';
+
+  const day = new Date().getDay();
+  const tip = DAILY_TIPS[day];
+  const quote = DAILY_QUOTES[day];
+  const isWeekend = tip.tone === 'weekend'; // Friday & Saturday in Iraq
+  const dayName = new Date().toLocaleDateString(lang === 'ar' ? 'ar' : 'en-US', { weekday: 'long' });
 
   const quickActions = [
     { to: '/courses', icon: 'fitness_center', label: t('nav.courses'), bg: 'bg-blue-50', color: 'text-accent' },
@@ -144,6 +173,32 @@ const AppHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             </div>
           </div>
         )}
+
+        {/* Tip of the day — weekday-aware (Fri & Sat = Iraqi weekend) */}
+        <div className={`relative overflow-hidden rounded-3xl border p-5 shadow-sm ${isWeekend ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+          <div className="flex items-start gap-4">
+            <span className={`flex items-center justify-center w-12 h-12 rounded-2xl text-white shrink-0 ${isWeekend ? 'bg-emerald-500' : 'bg-amber-500'}`}>
+              <span className="material-symbols-outlined text-[26px] filled">{tip.icon}</span>
+            </span>
+            <div className="min-w-0">
+              <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isWeekend ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {lang === 'ar' ? 'نصيحة اليوم' : 'Tip of the day'} · {dayName}
+              </p>
+              <p className="text-base font-black uppercase tracking-tight text-black mt-0.5">{tip.title[lang]}</p>
+              <p className="text-sm font-medium text-neutral-600 leading-relaxed mt-1">{tip.body[lang]}</p>
+            </div>
+          </div>
+          <span className={`material-symbols-outlined absolute -bottom-4 -right-3 text-[90px] select-none ${isWeekend ? 'text-emerald-500/10' : 'text-amber-500/10'}`}>{tip.icon}</span>
+        </div>
+
+        {/* Daily motivation banner */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neutral-900 to-black text-white p-5 shadow-xl">
+          <div className="absolute -top-8 -right-8 w-32 h-32 bg-accent/20 rounded-full blur-3xl" />
+          <div className="relative z-10 flex items-center gap-3">
+            <span className="material-symbols-outlined text-accent text-[28px] filled">format_quote</span>
+            <p className="text-sm font-bold leading-snug">{quote[lang]}</p>
+          </div>
+        </div>
 
         {/* Quick actions */}
         <div className="space-y-3">
