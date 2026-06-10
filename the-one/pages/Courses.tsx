@@ -10,12 +10,35 @@ interface CoursesProps {
   currentUser?: User | null;
 }
 
+// Sports available on the platform (mirrors the course builder's categories).
+const SPORTS = ['CrossFit', 'Weightlifting', 'Body Building', 'Powerlifting', 'Strength & Conditioning', 'Muay Thai', 'General Fitness', 'Hyrox', 'Running'];
+
 const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
   const navigate = useNavigate();
   const { t } = useT();
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [quizStep, setQuizStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  // Search + filters
+  const [searchQ, setSearchQ] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedSports, setSelectedSports] = useState<Set<string>>(new Set());
+  const [selectedLevels, setSelectedLevels] = useState<Set<string>>(new Set());
+  const toggleIn = (set: Set<string>, v: string) => {
+    const next = new Set(set);
+    next.has(v) ? next.delete(v) : next.add(v);
+    return next;
+  };
+
+  const visibleCourses = courses.filter(c => {
+    const q = searchQ.trim().toLowerCase();
+    const matchesQ = !q || c.title.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q) || (c.category || '').toLowerCase().includes(q);
+    const matchesSport = selectedSports.size === 0 || selectedSports.has(c.category);
+    const matchesLevel = selectedLevels.size === 0 || selectedLevels.has(String(c.level));
+    return matchesQ && matchesSport && matchesLevel;
+  });
+  const activeFilterCount = selectedSports.size + selectedLevels.size;
 
   const ownedCourseIds = currentUser?.enrolledCourseIds || [];
 
@@ -67,26 +90,62 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col lg:flex-row gap-12 text-left">
-      {/* Sidebar Filters */}
-      <aside className="w-full lg:w-72 shrink-0">
-        <div className="sticky top-28 space-y-8">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
-            <h3 className="text-black text-xs font-black uppercase tracking-[0.2em] mb-8">{t('courses.refine_search')}</h3>
-            <div className="flex flex-col gap-8">
+      {/* Sidebar Filters — hidden on mobile until the Filters button is pressed */}
+      <aside className={`w-full lg:w-72 shrink-0 ${showFilters ? 'block' : 'hidden'} lg:block`}>
+        <div className="lg:sticky lg:top-28 space-y-8">
+          <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+            <h3 className="text-black text-xs font-black uppercase tracking-[0.2em] mb-6">{t('courses.refine_search')}</h3>
+            <div className="flex flex-col gap-7">
               <div>
-                <p className="text-black text-[10px] font-black uppercase tracking-widest mb-4 opacity-40">{t('courses.skill_level')}</p>
+                <p className="text-black text-[10px] font-black uppercase tracking-widest mb-3 opacity-40">{t('courses.skill_level')}</p>
                 <div className="flex flex-col gap-3">
-                  {[t('courses.level_beginner'), t('courses.level_intermediate'), t('courses.level_elite')].map((level) => (
-                    <label key={level} className="flex items-center gap-4 cursor-pointer group">
-                      <div className="relative flex items-center justify-center">
-                        <input type="checkbox" className="peer h-5 w-5 rounded-lg border-neutral-200 text-black focus:ring-black cursor-pointer appearance-none border checked:bg-black transition-all" />
-                        <span className="material-symbols-outlined absolute text-[14px] text-white opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
-                      </div>
-                      <span className="text-neutral-400 group-hover:text-black text-sm font-bold uppercase tracking-tight transition-colors">{level}</span>
-                    </label>
-                  ))}
+                  {(['Beginner', 'Intermediate', 'Elite'] as const).map((levelVal, i) => {
+                    const label = [t('courses.level_beginner'), t('courses.level_intermediate'), t('courses.level_elite')][i];
+                    const checked = selectedLevels.has(levelVal);
+                    return (
+                      <label key={levelVal} className="flex items-center gap-4 cursor-pointer group">
+                        <div className="relative flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => setSelectedLevels(prev => toggleIn(prev, levelVal))}
+                            className="peer h-5 w-5 rounded-lg border-neutral-200 text-black focus:ring-black cursor-pointer appearance-none border checked:bg-black transition-all"
+                          />
+                          <span className="material-symbols-outlined absolute text-[14px] text-white opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                        </div>
+                        <span className="text-neutral-400 group-hover:text-black text-sm font-bold uppercase tracking-tight transition-colors">{label}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
+
+              <div>
+                <p className="text-black text-[10px] font-black uppercase tracking-widest mb-3 opacity-40">{t('courses.sport')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {SPORTS.map(sport => {
+                    const on = selectedSports.has(sport);
+                    return (
+                      <button
+                        key={sport}
+                        onClick={() => setSelectedSports(prev => toggleIn(prev, sport))}
+                        className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-all ${on ? 'bg-black text-white border-black shadow' : 'bg-neutral-50 text-neutral-500 border-neutral-100 hover:border-black'}`}
+                      >
+                        {sport}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => { setSelectedSports(new Set()); setSelectedLevels(new Set()); }}
+                  className="text-[10px] font-black uppercase tracking-widest text-red-500 self-start"
+                >
+                  {t('courses.clear_filters')} ({activeFilterCount})
+                </button>
+              )}
             </div>
           </div>
 
@@ -106,16 +165,47 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
         </div>
       </aside>
 
-      <main className="flex-1 space-y-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <main className="flex-1 space-y-8 md:space-y-12">
+        <div className="space-y-4">
           <div>
-            <h2 className="text-4xl font-black text-black font-display tracking-tight uppercase">{t('courses.training_tracks')}</h2>
-            <p className="text-neutral-400 text-sm font-medium mt-2 uppercase tracking-widest">{t('courses.showing_count', { n: courses.length })}</p>
+            <h2 className="text-3xl md:text-4xl font-black text-black font-display tracking-tight uppercase">{t('courses.training_tracks')}</h2>
+            <p className="text-neutral-400 text-sm font-medium mt-2 uppercase tracking-widest">{t('courses.showing_count', { n: visibleCourses.length })}</p>
+          </div>
+
+          {/* Search + filter toggle */}
+          <div className="flex gap-2">
+            <div className="flex-1 flex items-center gap-2 bg-white border border-neutral-200 rounded-2xl px-4 focus-within:border-black transition-colors">
+              <span className="material-symbols-outlined text-neutral-400 text-[20px]">search</span>
+              <input
+                type="search"
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder={t('courses.search_placeholder')}
+                className="w-full bg-transparent outline-none py-3.5 text-sm font-medium"
+              />
+              {searchQ && (
+                <button onClick={() => setSearchQ('')} className="text-neutral-300 hover:text-black"><span className="material-symbols-outlined text-[18px]">close</span></button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowFilters(s => !s)}
+              className={`lg:hidden shrink-0 flex items-center gap-1.5 px-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all ${showFilters || activeFilterCount > 0 ? 'bg-black text-white border-black' : 'bg-white text-neutral-500 border-neutral-200'}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">tune</span>
+              {activeFilterCount > 0 && <span className="bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">{activeFilterCount}</span>}
+            </button>
           </div>
         </div>
 
+        {visibleCourses.length === 0 && (
+          <div className="py-16 text-center bg-white rounded-3xl border border-neutral-100">
+            <span className="material-symbols-outlined text-4xl text-neutral-200">search_off</span>
+            <p className="text-neutral-300 font-black uppercase tracking-[0.2em] text-xs mt-2">{t('courses.no_results')}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          {courses.map(course => {
+          {visibleCourses.map(course => {
             const isOwned = ownedCourseIds.includes(course.id);
             return (
               <Link key={course.id} to={`/courses/${course.id}`} className="group bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col">

@@ -103,12 +103,13 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
     if (!currentUser?.id) return;
     const progressRef = collection(db, 'users', currentUser.id, 'progress');
     const unsub = onSnapshot(progressRef, (snap) => {
-      const map: Record<string, { days: string[]; weeks: string[] }> = {};
+      const map: Record<string, { days: string[]; weeks: string[]; exercises: string[] }> = {};
       snap.docs.forEach(d => {
         const data = d.data();
         map[d.id] = {
           days: (data.completedDays as string[]) || [],
           weeks: (data.completedWeeks as string[]) || [],
+          exercises: (data.completedExercises as string[]) || [],
         };
       });
       setCourseProgress(map);
@@ -123,21 +124,27 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
     sunday.setHours(23, 59, 59, 999);
 
     const minutesByDay = new Map<string, number>();
+    const trainedDays = new Set<string>();
     allLogs.forEach(log => {
       if (!log.loggedAt) return;
       const d = new Date(log.loggedAt);
       if (d < monday || d > sunday) return;
       const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
       minutesByDay.set(key, (minutesByDay.get(key) ?? 0) + Math.round((log.durationSeconds ?? 0) / 60));
+      // Any log with results or a completed flag = a trained day, even if the
+      // session timer wasn't running (older builds logged 0 duration).
+      if (log.completed || (log.results && Object.keys(log.results).length > 0)) trainedDays.add(key);
     });
 
     const today = new Date();
     const days: ChartEntry[] = Array.from({ length: 7 }, (_, i) => {
       const day = new Date(monday.getTime() + i * 86400000);
       const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+      const mins = minutesByDay.get(key) ?? 0;
       return {
         name: `${DAY_LETTERS[day.getDay()]}|${day.getDate()}`,
-        val: minutesByDay.get(key) ?? 0,
+        // Trained days always show a visible bar (min 5) even with 0 logged minutes.
+        val: mins > 0 ? mins : (trainedDays.has(key) ? 5 : 0),
         isToday: isSameCalendarDay(day, today),
       };
     });
@@ -601,15 +608,20 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
               return (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   {enrolledCourses.map((course: Course) => {
-                    const cp = courseProgress[course.id] || { days: [], weeks: [] };
+                    const cp = courseProgress[course.id] || { days: [], weeks: [], exercises: [] };
                     const completedDayIds = new Set(cp.days);
                     const completedWeekIds = new Set(cp.weeks);
+                    const completedExIds = new Set(cp.exercises || []);
                     const weeks = course.weeks || [];
                     const totalDays = weeks.reduce((sum, w) => sum + w.days.length, 0);
-                    // Count a day as done if the day itself is marked OR its whole week is marked finished.
+                    // A day counts as done if marked, OR its week is marked, OR every
+                    // exercise in it is ticked (fixes courses stuck below 100%).
                     const completedDayCount = weeks.reduce((sum, w) => {
                       if (completedWeekIds.has(w.id)) return sum + w.days.length;
-                      return sum + w.days.filter(d => completedDayIds.has(d.id)).length;
+                      return sum + w.days.filter(d =>
+                        completedDayIds.has(d.id) ||
+                        (d.exercises.length > 0 && d.exercises.every(ex => completedExIds.has(ex.id)))
+                      ).length;
                     }, 0);
                     const progress = totalDays > 0 ? Math.min(100, Math.round((completedDayCount / totalDays) * 100)) : 0;
                     const coachAvatar = COACHES.find((c: { name: string; avatar?: string }) => c.name.includes(course.instructor.split(' ')[0]))?.avatar;
