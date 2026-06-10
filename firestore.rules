@@ -48,6 +48,16 @@ service cloud.firestore {
       match /progress/{progressId} {
         allow read, write: if isOwner(userId) || isAdmin() || isCoach();
       }
+
+      // Body-metric history (weight / body fat / resting HR) — Vitals page
+      match /vitals/{entryId} {
+        allow read, write: if isOwner(userId) || isAdmin() || isCoach();
+      }
+
+      // Personal-best hold times per exercise — Hold timer "Best"
+      match /hold_prs/{prId} {
+        allow read, write: if isOwner(userId) || isAdmin() || isCoach();
+      }
     }
 
     // 2. Courses Collection
