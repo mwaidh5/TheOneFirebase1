@@ -94,7 +94,16 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
       <aside className={`w-full lg:w-72 shrink-0 ${showFilters ? 'block' : 'hidden'} lg:block`}>
         <div className="lg:sticky lg:top-28 space-y-8">
           <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
-            <h3 className="text-black text-xs font-black uppercase tracking-[0.2em] mb-6">{t('courses.refine_search')}</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-black text-xs font-black uppercase tracking-[0.2em]">{t('courses.refine_search')}</h3>
+              <button
+                onClick={() => setShowFilters(false)}
+                aria-label="Close filters"
+                className="lg:hidden w-8 h-8 rounded-xl bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-black hover:text-white transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
             <div className="flex flex-col gap-7">
               <div>
                 <p className="text-black text-[10px] font-black uppercase tracking-widest mb-3 opacity-40">{t('courses.skill_level')}</p>
