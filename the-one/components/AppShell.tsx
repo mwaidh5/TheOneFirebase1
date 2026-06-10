@@ -102,7 +102,9 @@ const AppShell: React.FC<AppShellProps> = ({
               : showBack
                 ? 'calc(3.25rem + env(safe-area-inset-top))'
                 : 'env(safe-area-inset-top)',
-          paddingBottom: showBottomNav ? 'calc(4rem + env(safe-area-inset-bottom))' : undefined,
+          // Generous clearance under the fixed tab bar so the last section
+          // (buttons, feedback cards) is never hidden behind it.
+          paddingBottom: showBottomNav ? 'calc(6.5rem + env(safe-area-inset-bottom))' : undefined,
         }}
       >
         {children}
