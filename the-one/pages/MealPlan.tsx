@@ -107,8 +107,8 @@ const MealPlan: React.FC = () => {
             <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
             <span>{t('meal.meal_plan')}</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black font-display tracking-tight text-black uppercase">{t('meal.my_nutrition')}</h1>
-          <p className="text-neutral-500 text-lg max-w-xl">{t('meal.tagline')}</p>
+          <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight text-black uppercase">{t('meal.my_nutrition')}</h1>
+          <p className="text-neutral-500 text-sm md:text-lg max-w-xl">{t('meal.tagline')}</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowGrocery(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-3 border border-neutral-200 rounded-full bg-white text-xs md:text-sm font-bold hover:bg-neutral-50 shadow-sm transition-all">
@@ -142,11 +142,11 @@ const MealPlan: React.FC = () => {
               <span className="material-symbols-outlined">monitoring</span>
               {t('meal.daily_targets')}
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               {targets.map((stat) => (
-                <div key={stat.labelKey} className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm">
+                <div key={stat.labelKey} className="bg-white p-4 md:p-6 rounded-2xl border border-black/5 shadow-sm">
                   <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-widest mb-1">{t(stat.labelKey)}</p>
-                  <p className="text-2xl font-black text-black">{stat.val}</p>
+                  <p className="text-xl md:text-2xl font-black text-black">{stat.val}</p>
                   <p className="text-[10px] text-neutral-300 font-bold uppercase mt-1">{t(stat.subKey)}</p>
                 </div>
               ))}
@@ -180,35 +180,35 @@ const MealPlan: React.FC = () => {
 
         {/* Meals Column */}
         <div className="lg:col-span-8 space-y-5 md:space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold font-display uppercase">{t('meal.scheduled_meals')}</h2>
-            <span className="text-sm text-neutral-400 font-bold uppercase tracking-widest">{t('meal.meals_kcal', { meals: MOCK_MEAL_PLAN.meals.length, kcal: MOCK_MEAL_PLAN.totalCalories })}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <h2 className="text-xl md:text-2xl font-bold font-display uppercase">{t('meal.scheduled_meals')}</h2>
+            <span className="text-[11px] md:text-sm text-neutral-400 font-bold uppercase tracking-widest">{t('meal.meals_kcal', { meals: MOCK_MEAL_PLAN.meals.length, kcal: MOCK_MEAL_PLAN.totalCalories })}</span>
           </div>
 
           <div className="grid gap-5 md:gap-8">
             {MOCK_MEAL_PLAN.meals.map(meal => (
               <div key={meal.id} className="group flex flex-col gap-5 md:gap-6 p-5 md:p-8 rounded-3xl md:rounded-[2rem] border border-neutral-100 bg-white shadow-sm hover:shadow-xl transition-all">
-                <div className="flex justify-between items-center border-b border-neutral-100 pb-4">
-                  <h3 className="text-2xl font-black text-black font-display uppercase tracking-tight">{meal.label}</h3>
+                <div className="flex justify-between items-center border-b border-neutral-100 pb-3 md:pb-4">
+                  <h3 className="text-xl md:text-2xl font-black text-black font-display uppercase tracking-tight">{meal.label}</h3>
                 </div>
-                
-                <div className="space-y-8">
+
+                <div className="space-y-6 md:space-y-8">
                   {meal.items.map((item) => (
                     <div key={item.id} className="space-y-4">
                       <div className="flex items-center gap-2">
                          <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
                          <h4 className="text-xs font-black text-neutral-400 uppercase tracking-widest">{item.name}</h4>
                       </div>
-                      <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+                      <div className="grid grid-cols-1 gap-3 md:flex md:gap-4 md:overflow-x-auto md:pb-2 no-scrollbar">
                         {item.options.map((option) => {
                           const isSelected = selections[`${meal.id}_${item.id}`] === option.id;
                           return (
-                            <label 
-                              key={option.id} 
+                            <label
+                              key={option.id}
                               className={`
-                                flex flex-col gap-3 p-5 rounded-2xl border-2 cursor-pointer transition-all min-w-[240px] shrink-0
-                                ${isSelected 
-                                  ? 'border-black bg-black text-white shadow-lg scale-[1.02]' 
+                                flex flex-col gap-3 p-4 md:p-5 rounded-2xl border-2 cursor-pointer transition-all w-full md:w-auto md:min-w-[240px] md:shrink-0
+                                ${isSelected
+                                  ? 'border-black bg-black text-white shadow-lg md:scale-[1.02]'
                                   : 'border-neutral-100 bg-neutral-50 hover:border-neutral-300 text-black'}
                               `}
                             >
