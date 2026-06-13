@@ -34,6 +34,18 @@ else
   puts "Added #{plist_name} to App resources."
 end
 
+# ── 1b) Ensure SoundPlugin (native silent-mode beeps) is in the App target ──
+sound_name = 'SoundPlugin.swift'
+in_app = app_target.source_build_phase.files_references.any? { |r| r && r.display_name == sound_name }
+if in_app
+  puts "#{sound_name} already in App target."
+else
+  app_group = project.main_group.find_subpath('App', true)
+  sound_ref = ref(app_group, File.join(APP_DIR, 'App', sound_name))
+  app_target.add_file_references([sound_ref])
+  puts "Added #{sound_name} to App target."
+end
+
 # ── 2) Add the WorkoutWidget extension target ───────────────────────────────
 if project.targets.any? { |t| t.name == WIDGET }
   puts "#{WIDGET} target already present."

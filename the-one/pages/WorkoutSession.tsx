@@ -7,7 +7,7 @@ import { Course, Exercise, WeekProgram, DayProgram, User } from '../types';
 import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
 import { writeActiveSession, clearActiveSession, readActiveSessionRaw, MAX_SESSION_MS } from '../hooks/activeSession';
-import { beep, notify, unlockAudio, ensureNotifPermission } from '../utils/feedback';
+import { beep, unlockAudio } from '../utils/feedback';
 
 interface WorkoutSessionProps {
   courses?: Course[];
@@ -229,7 +229,6 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
         // Advance
         if (isFinal) {
           playEmomSound('done');
-          notify(`${item.name || 'EMOM'} complete`, `All ${totalRounds} round${totalRounds > 1 ? 's' : ''} done — great work!`);
           setIsDone(true);
           setIsRunning(false);
           return 0;
@@ -393,10 +392,7 @@ function ForTimeTimerBlock({ item }: { item: Exercise }) {
     intervalRef.current = setInterval(() => {
       setElapsed(e => {
         const next = e + 1;
-        if (capSecs > 0 && next >= capSecs && e < capSecs) {
-          playEmomSound('done');
-          notify('Time cap reached', `${item.name || 'Workout'} — the clock's up. Log your score.`);
-        }
+        if (capSecs > 0 && next >= capSecs && e < capSecs) playEmomSound('done');
         return next;
       });
     }, 1000);
@@ -569,7 +565,7 @@ function HoldTimerBlock({ item, best, onRecord }: { item: Exercise; best: number
         // then one bigger chime the moment the target is reached.
         if (targetSecs > 0) {
           if (next > 0 && next >= targetSecs - 3 && next < targetSecs) playEmomSound('countdown');
-          if (next === targetSecs) { playEmomSound('done'); notify('Hold complete!', `${item.name || 'Hold'} target of ${targetSecs}s reached.`); }
+          if (next === targetSecs) playEmomSound('done');
         }
         if (best != null && best > 0 && next === best + 1) playEmomSound('switch'); // just passed PB
         return next;
@@ -896,10 +892,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   }
 
   const handleStartWorkout = () => {
-    // This tap is the user gesture iOS needs to unlock audio; also ask for
-    // notification permission up front so the "workout done" banner can fire.
+    // This tap is the user gesture the browser build needs to unlock WebAudio.
     unlockAudio();
-    ensureNotifPermission();
     resetTimer(); // clears any leftover localStorage state
     setIsPaused(false);
     setFinalTime(null);
@@ -987,10 +981,9 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
       setIsPaused(false);
       clearActiveSession();
 
-      // Celebrate + surface a lock-screen banner with the session time.
+      // Completion chime + haptic. The lock-screen Live Activity clock ends
+      // here automatically (clearActiveSession → endWorkoutActivity).
       beep('done');
-      const mm = Math.floor(captured / 60), ss = captured % 60;
-      notify('Workout complete! 💪', `${selectedDay?.title ?? 'Session'} done in ${mm}:${String(ss).padStart(2, '0')}. Logged to your profile.`);
 
       // ── Write profile stats to Firestore ──────────────────────────────────
       try {
