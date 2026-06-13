@@ -239,8 +239,6 @@ export const translations = {
   'courses.skill_level': { en: 'Skill Level', ar: 'مستوى المهارة' },
   'courses.sport': { en: 'Sport', ar: 'الرياضة' },
   'courses.clear_filters': { en: 'Clear filters', ar: 'مسح الفلاتر' },
-  'courses.search_placeholder': { en: 'Search courses…', ar: 'ابحث عن الدورات…' },
-  'courses.no_results': { en: 'No courses match your search', ar: 'لا توجد دورات تطابق بحثك' },
   'courses.level_beginner': { en: 'Beginner', ar: 'مبتدئ' },
   'courses.level_intermediate': { en: 'Intermediate / RX', ar: 'متوسط / RX' },
   'courses.level_elite': { en: 'Elite', ar: 'نخبة' },
@@ -438,6 +436,7 @@ export const translations = {
   'profile.resume_btn': { en: 'Resume', ar: 'متابعة' },
 
   // ── Workout Session ─────────────────────────────────────────────────────
+  'workout.best': { en: 'Best', ar: 'الأفضل' },
   'workout.training_hub': { en: 'Training Hub', ar: 'مركز التدريب' },
   'workout.nutrition_plan': { en: 'Nutrition Plan', ar: 'خطة التغذية' },
   'workout.week_overview': { en: 'Week {n} Overview', ar: 'نظرة الأسبوع {n}' },
@@ -726,7 +725,6 @@ export const translations = {
   'settings.tab_security': { en: 'Security & MFA', ar: 'الأمان والمصادقة' },
   'settings.tab_billing': { en: 'Billing History', ar: 'سجل الفواتير' },
   'settings.tab_preferences': { en: 'Preferences', ar: 'التفضيلات' },
-  'settings.language': { en: 'Language', ar: 'اللغة' },
   'settings.language_desc': { en: 'Choose the language used across the app.', ar: 'اختر اللغة المستخدمة في التطبيق.' },
   'settings.preferences_heading': { en: 'App Preferences', ar: 'تفضيلات التطبيق' },
   'settings.identity_details': { en: 'Identity Details', ar: 'تفاصيل الهوية' },
