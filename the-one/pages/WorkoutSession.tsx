@@ -8,6 +8,7 @@ import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
 import { writeActiveSession, clearActiveSession, readActiveSessionRaw, MAX_SESSION_MS } from '../hooks/activeSession';
 import { beep, unlockAudio } from '../utils/feedback';
+import { getLiveActivityStatus, LiveActivityStatus } from '../hooks/liveActivity';
 
 interface WorkoutSessionProps {
   courses?: Course[];
@@ -752,6 +753,14 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
 
   // ── Timer — ticks when workoutStarted AND NOT paused ───────────────────────
   const { display: timerDisplay, elapsed: timerElapsed, reset: resetTimer, fmt: fmtTime, pauseTimer, resumeTimer } = useSessionTimer(workoutStarted && !isPaused);
+
+  // ── Lock-Screen Live Activity status (surfaced so failures are visible) ────
+  const [liveStatus, setLiveStatus] = useState<LiveActivityStatus>(() => getLiveActivityStatus());
+  useEffect(() => {
+    const h = (e: Event) => setLiveStatus((e as CustomEvent).detail as LiveActivityStatus);
+    window.addEventListener('theone-liveactivity-status', h as EventListener);
+    return () => window.removeEventListener('theone-liveactivity-status', h as EventListener);
+  }, []);
 
   // ─── Load Progress ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1814,6 +1823,24 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                         {timerDisplay}
                       </div>
                       <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{isPaused ? t('workout.timer_paused') : t('workout.time_elapsed')}</p>
+
+                      {/* Lock-screen timer status — only meaningful in the native app */}
+                      {liveStatus.state !== 'web' && liveStatus.state !== 'idle' && (
+                        <div className={`flex items-start gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold leading-snug ${
+                          liveStatus.state === 'active' ? 'bg-green-500/15 text-green-300' : 'bg-amber-500/15 text-amber-200'
+                        }`}>
+                          <span className="material-symbols-outlined text-[16px] mt-px">
+                            {liveStatus.state === 'active' ? 'lock_clock' : 'error'}
+                          </span>
+                          <span>
+                            {liveStatus.state === 'active'
+                              ? 'Lock-screen timer on — lock your phone to see it.'
+                              : liveStatus.state === 'unsupported'
+                                ? 'Lock-screen timer needs iOS 16.2 or newer.'
+                                : (liveStatus as { reason: string }).reason}
+                          </span>
+                        </div>
+                      )}
                     </>
                   ) : finalTime !== null ? (
                     <>
