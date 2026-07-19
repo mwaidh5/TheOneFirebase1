@@ -819,8 +819,18 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           }
 
           if (!r.weight && !r.time) return;
+          // Keep the BEST (heaviest) weight ever lifted for this exercise —
+          // not the most recent. Unit-normalized so kg and lbs entries compare
+          // fairly; ties (and weightless timed entries) fall back to latest.
+          const toKg = (w?: string, u?: string) => {
+            const n = parseFloat(w || '');
+            if (isNaN(n)) return 0;
+            return u === 'lbs' ? n * 0.4536 : n;
+          };
           const existing = byName[key];
-          if (!existing || data.loggedAt > existing.loggedAt) {
+          const newKg = toKg(r.weight, r.unit);
+          const oldKg = existing ? toKg(existing.weight, existing.unit) : -1;
+          if (!existing || newKg > oldKg || (newKg === oldKg && data.loggedAt > existing.loggedAt)) {
             byName[key] = { weight: r.weight, reps: r.reps, time: r.time, unit: r.unit || 'kg', loggedAt: data.loggedAt };
           }
         });
@@ -837,6 +847,13 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const firstUncompleted = selectedDay.exercises.find(ex => !completedExercises.has(ex.id));
     setActiveExerciseId(firstUncompleted?.id ?? null);
   }, [workoutStarted, selectedDay]);
+
+  // ─── Reset the "Session Complete" card when switching days ──────────────────
+  // finalTime belongs to the session just finished on THAT day; without this it
+  // leaked onto other days, showing them as completed with the old time.
+  useEffect(() => {
+    setFinalTime(null);
+  }, [selectedDay?.id]);
 
   // ─── Restore an in-progress session when returning to this course ───────────
   // (The timer is wall-clock based, so it keeps counting even while the user is
@@ -1197,7 +1214,10 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const isHold = item.format === 'HOLD';
     const isCardio = item.format === 'CARDIO' || isForTime;
     const bestHold = isHold ? getBestHold(item.name) : undefined;
-    const prevLift = prevLifts[item.id] ?? prevLiftsByName[normalizeExerciseName(item.name)];
+    // Weight hint = your BEST lift for this exercise (cross-course, tracked in
+    // prevLiftsByName). For-time exercises keep the same-day "last time" to beat.
+    const nameBest = prevLiftsByName[normalizeExerciseName(item.name)];
+    const prevLift = isForTime ? (prevLifts[item.id] ?? nameBest) : (nameBest ?? prevLifts[item.id]);
     const hasVideo = !!item.videoUrl;
     const hasImage = !!item.imageUrl;
 
@@ -1368,8 +1388,8 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             {/* Previous lift chip — data portion is locked LTR so numbers/units stay readable in RTL */}
             {!isHold && prevLift && (
               <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-xs text-neutral-400">history</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{t('workout.last')}</span>
+                <span className="material-symbols-outlined text-xs text-neutral-400">{isForTime ? 'history' : 'emoji_events'}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{t(isForTime ? 'workout.last' : 'workout.best')}</span>
                 {typeof prevLift === 'object' ? (
                   isForTime && (prevLift as any).time ? (
                     <>
@@ -1943,17 +1963,20 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                           <p className="text-[9px] font-black text-neutral-300 uppercase tracking-widest mb-0.5">{ex.format}</p>
                           <p className="text-base font-black text-black uppercase leading-none">{ex.name}</p>
                           {(prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)]) && (() => {
-                            const pl = prevLifts[ex.id] ?? prevLiftsByName[normalizeExerciseName(ex.name)];
-                            if (ex.format === 'FOR_TIME' && pl?.time) {
+                            const dayPl = prevLifts[ex.id];
+                            const bestPl = prevLiftsByName[normalizeExerciseName(ex.name)];
+                            if (ex.format === 'FOR_TIME' && (dayPl ?? bestPl)?.time) {
+                              const pl = dayPl ?? bestPl;
                               return (
                                 <p className="text-[8px] font-black text-accent uppercase tracking-widest mt-0.5">
                                   {t('workout.last')} <span dir="ltr">{pl.time}</span> — {t('workout.beat_it')}
                                 </p>
                               );
                             }
+                            const pl = bestPl ?? dayPl; // heaviest ever, not the latest
                             return (
                               <p className="text-[8px] font-black text-accent uppercase tracking-widest mt-0.5">
-                                {t('workout.last')}{' '}
+                                {t('workout.best')}{' '}
                                 <span dir="ltr">{pl?.weight || '—'} {pl?.unit || 'kg'} × {pl?.reps || '—'}</span>{' '}
                                 {t('workout.reps_label')}
                               </p>
