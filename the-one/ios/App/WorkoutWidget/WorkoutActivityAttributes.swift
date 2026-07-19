@@ -10,6 +10,10 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         var startedAt: Date
         // What the athlete is doing, e.g. "Upper Body — Day 1".
         var title: String
+        // Currently active exercise (updated live), e.g. "Bench Press".
+        var exercise: String?
+        // Its prescription, e.g. "4 × 10".
+        var detail: String?
     }
 
     // Static info for the whole session.

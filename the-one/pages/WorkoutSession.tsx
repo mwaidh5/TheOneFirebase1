@@ -8,7 +8,7 @@ import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
 import { writeActiveSession, clearActiveSession, readActiveSessionRaw, MAX_SESSION_MS } from '../hooks/activeSession';
 import { beep, unlockAudio } from '../utils/feedback';
-import { getLiveActivityStatus, LiveActivityStatus } from '../hooks/liveActivity';
+import { getLiveActivityStatus, LiveActivityStatus, updateWorkoutActivity } from '../hooks/liveActivity';
 
 interface WorkoutSessionProps {
   courses?: Course[];
@@ -847,6 +847,15 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const firstUncompleted = selectedDay.exercises.find(ex => !completedExercises.has(ex.id));
     setActiveExerciseId(firstUncompleted?.id ?? null);
   }, [workoutStarted, selectedDay]);
+
+  // ─── Mirror the active exercise onto the Lock-Screen / Watch live timer ─────
+  useEffect(() => {
+    if (!workoutStarted) return;
+    const ex = selectedDay?.exercises.find(e => e.id === activeExerciseId);
+    if (!ex) return;
+    const detail = ex.reps ? `${ex.sets || '1'} × ${ex.reps}` : (ex.time || ex.format || '');
+    updateWorkoutActivity({ exercise: ex.name, detail });
+  }, [workoutStarted, activeExerciseId, selectedDay]);
 
   // ─── Reset the "Session Complete" card when switching days ──────────────────
   // finalTime belongs to the session just finished on THAT day; without this it
@@ -1844,20 +1853,14 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                       </div>
                       <p className="text-[9px] font-black uppercase tracking-widest text-white/30">{isPaused ? t('workout.timer_paused') : t('workout.time_elapsed')}</p>
 
-                      {/* Lock-screen timer status — only meaningful in the native app */}
-                      {liveStatus.state !== 'web' && liveStatus.state !== 'idle' && (
-                        <div className={`flex items-start gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold leading-snug ${
-                          liveStatus.state === 'active' ? 'bg-green-500/15 text-green-300' : 'bg-amber-500/15 text-amber-200'
-                        }`}>
-                          <span className="material-symbols-outlined text-[16px] mt-px">
-                            {liveStatus.state === 'active' ? 'lock_clock' : 'error'}
-                          </span>
+                      {/* Lock-screen timer status — shown only when something is WRONG */}
+                      {(liveStatus.state === 'error' || liveStatus.state === 'unsupported') && (
+                        <div className="flex items-start gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold leading-snug bg-amber-500/15 text-amber-200">
+                          <span className="material-symbols-outlined text-[16px] mt-px">error</span>
                           <span>
-                            {liveStatus.state === 'active'
-                              ? 'Lock-screen timer on — lock your phone to see it.'
-                              : liveStatus.state === 'unsupported'
-                                ? 'Lock-screen timer needs iOS 16.2 or newer.'
-                                : (liveStatus as { reason: string }).reason}
+                            {liveStatus.state === 'unsupported'
+                              ? 'Lock-screen timer needs iOS 16.2 or newer.'
+                              : liveStatus.reason}
                           </span>
                         </div>
                       )}
