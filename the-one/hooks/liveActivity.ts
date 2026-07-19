@@ -2,6 +2,7 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 
 export interface WorkoutActivityPlugin {
   start(opts: { title: string; courseTitle: string; startTs: number }): Promise<{ id: string }>;
+  update(opts: { title?: string; exercise?: string; detail?: string }): Promise<void>;
   end(): Promise<void>;
   isSupported(): Promise<{ supported: boolean }>;
 }
@@ -50,6 +51,15 @@ export async function startWorkoutActivity(opts: { title: string; courseTitle: s
     console.warn('Live Activity start failed:', reason);
   }
   return lastStatus;
+}
+
+// Push the current exercise (name + sets × reps) into the running Lock-Screen /
+// Watch timer. No-op on web; failures are silent (the activity may not exist).
+export async function updateWorkoutActivity(opts: { title?: string; exercise?: string; detail?: string }): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    await Plugin.update(opts);
+  } catch {}
 }
 
 // End the training timer. No-op on web.
