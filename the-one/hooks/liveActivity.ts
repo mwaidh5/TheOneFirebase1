@@ -1,7 +1,7 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
 export interface WorkoutActivityPlugin {
-  start(opts: { title: string; courseTitle: string; startTs: number }): Promise<{ id: string }>;
+  start(opts: { title: string; courseTitle: string; startTs: number; exercise?: string; detail?: string }): Promise<{ id: string }>;
   update(opts: { title?: string; exercise?: string; detail?: string }): Promise<void>;
   end(): Promise<void>;
   isSupported(): Promise<{ supported: boolean }>;
@@ -32,6 +32,13 @@ function setStatus(s: LiveActivityStatus) {
   } catch {}
 }
 
+// The exercise currently on screen. Kept here because the app usually asks for
+// an update in the same tick it starts the activity — before Activity.request()
+// has resolved — and such an update would find no activity to apply itself to.
+// Remembering it lets start() seed the value and re-apply it afterwards, so the
+// order the two calls happen in no longer matters.
+let currentExercise: { exercise?: string; detail?: string } = {};
+
 // Start the Lock-Screen / Dynamic Island training timer. No-op on web.
 export async function startWorkoutActivity(opts: { title: string; courseTitle: string; startTs: number }): Promise<LiveActivityStatus> {
   if (!Capacitor.isNativePlatform()) {
@@ -39,8 +46,12 @@ export async function startWorkoutActivity(opts: { title: string; courseTitle: s
     return lastStatus;
   }
   try {
-    const { id } = await Plugin.start(opts);
+    const { id } = await Plugin.start({ ...opts, ...currentExercise });
     setStatus({ state: 'active', id });
+    // Flush anything that changed while the activity was being created.
+    if (currentExercise.exercise) {
+      Plugin.update(currentExercise).catch(() => {});
+    }
   } catch (e: any) {
     const reason = (e && (e.message || e.errorMessage)) ? String(e.message || e.errorMessage) : 'Unknown error';
     // Map the plugin's known rejections to a cleaner state.
@@ -56,6 +67,8 @@ export async function startWorkoutActivity(opts: { title: string; courseTitle: s
 // Push the current exercise (name + sets × reps) into the running Lock-Screen /
 // Watch timer. No-op on web; failures are silent (the activity may not exist).
 export async function updateWorkoutActivity(opts: { title?: string; exercise?: string; detail?: string }): Promise<void> {
+  // Record it even on web/before the activity exists — start() picks it up.
+  currentExercise = { exercise: opts.exercise, detail: opts.detail };
   if (!Capacitor.isNativePlatform()) return;
   try {
     await Plugin.update(opts);
@@ -64,6 +77,7 @@ export async function updateWorkoutActivity(opts: { title?: string; exercise?: s
 
 // End the training timer. No-op on web.
 export async function endWorkoutActivity(): Promise<void> {
+  currentExercise = {};
   setStatus({ state: 'idle' });
   if (!Capacitor.isNativePlatform()) return;
   try {

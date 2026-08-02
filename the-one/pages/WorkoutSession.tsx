@@ -1000,7 +1000,13 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     if (!workoutStarted) return;
     const ex = selectedDay?.exercises.find(e => e.id === activeExerciseId);
     if (!ex) return;
-    const detail = ex.reps ? `${ex.sets || '1'} × ${ex.reps}` : (ex.time || ex.format || '');
+    // Prefer "4 × 10" (sets × reps); fall back to whichever half exists, then
+    // to a timed prescription, so the card always says something useful.
+    const detail =
+      ex.sets && ex.reps ? `${ex.sets} × ${ex.reps}`
+      : ex.reps ? `${ex.reps} reps`
+      : ex.sets ? `${ex.sets} sets`
+      : (ex.time || '');
     updateWorkoutActivity({ exercise: ex.name, detail });
   }, [workoutStarted, activeExerciseId, selectedDay]);
 
