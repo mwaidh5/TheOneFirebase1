@@ -53,6 +53,13 @@
         html.native-app #root { height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: none; -webkit-overflow-scrolling: touch; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Slim, always-visible scrollbar for desktop horizontal boards, so the
+           content off to the right is reachable with a plain mouse. */
+        .thin-scrollbar::-webkit-scrollbar { height: 10px; }
+        .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .thin-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 999px; }
+        .thin-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.35); }
+        .thin-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,.25) transparent; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1; }
         /* Arabic / RTL: swap body font to Cairo, keep ltr-locked things (timers, numbers) readable. */

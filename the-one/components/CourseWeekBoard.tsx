@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -254,6 +254,27 @@ const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: num
 
 // ───────────────────────────── Main board ───────────────────────────────────
 const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, workoutLibrary, mediaLibrary }) => {
+  // Horizontal week board: a plain mouse only emits vertical wheel deltas, so
+  // translate them into horizontal scrolling (and leave the page free to scroll
+  // once the board reaches either end).
+  const boardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // already horizontal
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return;
+      const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
+      const atEnd = el.scrollLeft >= max - 1 && e.deltaY > 0;
+      if (atStart || atEnd) return; // let the page scroll instead
+      e.preventDefault();
+      el.scrollLeft = Math.max(0, Math.min(max, el.scrollLeft + e.deltaY));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [isAIOpen, setIsAIOpen] = useState(false);
@@ -403,7 +424,7 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
 
       {/* Board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar items-start">
+        <div ref={boardRef} className="flex gap-4 overflow-x-auto pb-4 thin-scrollbar items-start">
           {weeks.map((week) => (
             <WeekColumn
               key={week.id}
