@@ -902,6 +902,9 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   const { display: timerDisplay, elapsed: timerElapsed, reset: resetTimer, fmt: fmtTime, pauseTimer, resumeTimer } = useSessionTimer(workoutStarted && !isPaused);
 
   // ── Lock-Screen Live Activity status (surfaced so failures are visible) ────
+  // Timers the athlete has opened ahead of their turn (see renderExerciseCard).
+  const [expandedTimers, setExpandedTimers] = useState<Set<string>>(new Set());
+
   const [liveStatus, setLiveStatus] = useState<LiveActivityStatus>(() => getLiveActivityStatus());
   useEffect(() => {
     const h = (e: Event) => setLiveStatus((e as CustomEvent).detail as LiveActivityStatus);
@@ -1132,8 +1135,13 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
   const toggleExercise = (exId: string) => {
     const next = new Set<string>(completedExercises);
     const wasCompleted = next.has(exId);
-    if (wasCompleted) next.delete(exId);
-    else next.add(exId);
+    // A superset is trained as one unit, so ticking any exercise in the group
+    // completes (or un-completes) the whole group together.
+    const block = selectedDay
+      ? groupExercises(selectedDay.exercises).find(b => b.type === 'superset' && b.ids.includes(exId))
+      : undefined;
+    const targetIds = block && block.type === 'superset' ? block.ids : [exId];
+    targetIds.forEach(id => { if (wasCompleted) next.delete(id); else next.add(id); });
     setCompletedExercises(next);
     saveProgress('exercises', next);
 
@@ -1375,6 +1383,12 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const isAmrap = item.format === 'AMRAP';
     const isForTime = item.format === 'FOR_TIME';
     const isHold = item.format === 'HOLD';
+    // Timer visibility: open for the exercise you're on, or one you've chosen to
+    // open early; collapsed otherwise so the card list stays readable.
+    const hasTimer =
+      (item.format === 'EMOM' && !!item.emomItems && item.emomItems.length > 0) ||
+      isAmrap || isForTime || isHold;
+    const timerOpen = isActive || expandedTimers.has(item.id);
     const isCardio = item.format === 'CARDIO' || isForTime;
     const bestHold = isHold ? getBestHold(item.name) : undefined;
     // Weight hint = your BEST lift for this exercise (cross-course, tracked in
@@ -1499,49 +1513,92 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               ))}
             </div>
 
-            {/* EMOM timer */}
-            {item.format === 'EMOM' && item.emomItems && item.emomItems.length > 0 && (
-              <EmomTimerBlock item={item} />
-            )}
+            {/* ── Timers ────────────────────────────────────────────────────
+                Finished  → collapsed "Done" strip; the timer unmounts, so it
+                            stops and can't be run again.
+                Not yet reached → collapsed, with a button to open it early.
+                Current   → expanded and ready.                                */}
+            {hasTimer && (isDone ? (
+              <div className="mt-2 flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3">
+                <span className="material-symbols-outlined text-green-600 text-[18px] filled">check_circle</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-green-700">{t('workout.timer_done')}</span>
+                {(logData.results[item.id] as any)?.time && (
+                  <span className="ms-auto text-[11px] font-black text-green-700 tabular-nums" dir="ltr">{(logData.results[item.id] as any).time}</span>
+                )}
+                {!((logData.results[item.id] as any)?.time) && (logData.results[item.id] as any)?.reps && (
+                  <span className="ms-auto text-[11px] font-black text-green-700 tabular-nums" dir="ltr">{(logData.results[item.id] as any).reps}</span>
+                )}
+              </div>
+            ) : !timerOpen ? (
+              <button
+                onClick={() => setExpandedTimers(prev => new Set(prev).add(item.id))}
+                className="mt-2 w-full flex items-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 hover:border-black transition-colors"
+              >
+                <span className="material-symbols-outlined text-neutral-400 text-[18px]">timer</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('workout.timer_waiting')}</span>
+                <span className="ms-auto flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-accent">
+                  {t('workout.show_timer')}
+                  <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                </span>
+              </button>
+            ) : (
+              <div className="space-y-2">
+                {/* Opened ahead of turn — allow tucking it away again */}
+                {!isActive && (
+                  <button
+                    onClick={() => setExpandedTimers(prev => { const n = new Set(prev); n.delete(item.id); return n; })}
+                    className="w-full flex items-center justify-end gap-1 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-black transition-colors"
+                  >
+                    {t('workout.hide_timer')}
+                    <span className="material-symbols-outlined text-[16px]">expand_less</span>
+                  </button>
+                )}
 
-            {/* AMRAP countdown + round counter */}
-            {isAmrap && (
-              <AmrapBlock
-                item={item}
-                onRecord={(rounds) => setLogData(prev => ({
-                  ...prev,
-                  results: { ...prev.results, [item.id]: { ...prev.results[item.id], reps: `${rounds} rounds` } },
-                }))}
-              />
-            )}
+                {/* EMOM timer */}
+                {item.format === 'EMOM' && item.emomItems && item.emomItems.length > 0 && (
+                  <EmomTimerBlock item={item} />
+                )}
 
-            {/* FOR_TIME stopwatch + movements */}
-            {isForTime && (
-              <ForTimeTimerBlock item={item} />
-            )}
+                {/* AMRAP countdown + round counter */}
+                {isAmrap && (
+                  <AmrapBlock
+                    item={item}
+                    onRecord={(rounds) => setLogData(prev => ({
+                      ...prev,
+                      results: { ...prev.results, [item.id]: { ...prev.results[item.id], reps: `${rounds} rounds` } },
+                    }))}
+                  />
+                )}
 
-            {/* HOLD stopwatch — counts up, saves time, tracks personal best */}
-            {isHold && (
-              <HoldTimerBlock
-                item={item}
-                best={bestHold ? bestHold.seconds : null}
-                onRecord={(secs) => {
-                  const mmss = `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-                  setLogData(prev => ({ ...prev, results: { ...prev.results, [item.id]: { ...prev.results[item.id], time: mmss } } }));
-                  // Persist a durable PB only when this hold beats the previous best,
-                  // so "Best" always shows the true record — not just the last entry.
-                  const currentBest = getBestHold(item.name);
-                  if (secs > (currentBest?.seconds ?? 0)) {
-                    setDoc(doc(db, 'users', currentUser.id, 'hold_prs', normalizeExerciseName(item.name)), {
-                      name: item.name,
-                      seconds: secs,
-                      time: mmss,
-                      loggedAt: Date.now(),
-                    }).catch(err => console.error('save hold PB', err));
-                  }
-                }}
-              />
-            )}
+                {/* FOR_TIME stopwatch + movements */}
+                {isForTime && (
+                  <ForTimeTimerBlock item={item} />
+                )}
+
+                {/* HOLD stopwatch — counts up, saves time, tracks personal best */}
+                {isHold && (
+                  <HoldTimerBlock
+                    item={item}
+                    best={bestHold ? bestHold.seconds : null}
+                    onRecord={(secs) => {
+                      const mmss = `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+                      setLogData(prev => ({ ...prev, results: { ...prev.results, [item.id]: { ...prev.results[item.id], time: mmss } } }));
+                      // Persist a durable PB only when this hold beats the previous best,
+                      // so "Best" always shows the true record — not just the last entry.
+                      const currentBest = getBestHold(item.name);
+                      if (secs > (currentBest?.seconds ?? 0)) {
+                        setDoc(doc(db, 'users', currentUser.id, 'hold_prs', normalizeExerciseName(item.name)), {
+                          name: item.name,
+                          seconds: secs,
+                          time: mmss,
+                          loggedAt: Date.now(),
+                        }).catch(err => console.error('save hold PB', err));
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            ))}
 
             {/* Coach cue */}
             {item.description && (
