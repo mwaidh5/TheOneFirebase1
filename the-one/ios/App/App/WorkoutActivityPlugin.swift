@@ -36,8 +36,16 @@ public class WorkoutActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         // End any stale activity before starting a fresh one.
         endAllActivities()
 
+        // Seed the current exercise straight away: the JS side may ask for an
+        // update before Activity.request() resolves, and such an update would
+        // find no activity to apply itself to.
         let attributes = WorkoutActivityAttributes(courseTitle: courseTitle)
-        let state = WorkoutActivityAttributes.ContentState(startedAt: startedAt, title: title)
+        let state = WorkoutActivityAttributes.ContentState(
+            startedAt: startedAt,
+            title: title,
+            exercise: call.getString("exercise"),
+            detail: call.getString("detail")
+        )
         do {
             let activity = try Activity.request(
                 attributes: attributes,
