@@ -543,6 +543,153 @@ function ForTimeTimerBlock({ item }: { item: Exercise }) {
   );
 }
 
+// ─── AMRAP Block ───────────────────────────────────────────────────────────────
+// "As Many Rounds As Possible": one clock counting DOWN, a fixed list of
+// movements with reps, and a round counter the athlete taps each time they
+// finish the full cycle. Rounds are the score, so they're logged as the result.
+function AmrapBlock({ item, onRecord }: { item: Exercise; onRecord: (rounds: number) => void }) {
+  // Movements come from forTimeItems (name + reps); fall back to emomItems so
+  // AMRAPs built before this format existed still list their exercises.
+  const movements = (item.forTimeItems && item.forTimeItems.length > 0)
+    ? item.forTimeItems.map(m => ({ id: m.id, name: m.name, reps: m.reps }))
+    : (item.emomItems || []).map(m => ({ id: m.id, name: m.name, reps: undefined as string | undefined }));
+
+  const capSecs = item.durationMinutes ? item.durationMinutes * 60 : (item.time ? parseEmomSeconds(item.time) : 0);
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(capSecs);
+  const [rounds, setRounds] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!isRunning || capSecs <= 0) return;
+    intervalRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        const next = prev - 1;
+        if (next > 0 && next <= 3) playEmomSound('countdown');
+        if (next <= 0) {
+          playEmomSound('done');
+          setIsDone(true);
+          setIsRunning(false);
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning, capSecs]);
+
+  // Log the score as it changes so progress survives leaving the page.
+  useEffect(() => { if (rounds > 0) onRecord(rounds); }, [rounds]);
+  useEffect(() => { if (isDone) onRecord(rounds); }, [isDone]);
+
+  const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const reset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsRunning(false); setIsDone(false); setTimeLeft(capSecs); setRounds(0);
+  };
+
+  const R = 68;
+  const circ = 2 * Math.PI * R;
+  const progress = capSecs > 0 ? Math.min(timeLeft / capSecs, 1) : 0;
+  const urgent = timeLeft > 0 && timeLeft <= 10;
+  const ringColor = isDone ? '#22c55e' : urgent ? '#ef4444' : '#f97316';
+
+  return (
+    <div className="mt-2 rounded-2xl overflow-hidden border border-neutral-800 bg-gradient-to-b from-neutral-950 to-black text-white">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-neutral-800">
+        <div className="flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-orange-400 text-sm leading-none">all_inclusive</span>
+          <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">AMRAP</span>
+        </div>
+        <span className="text-[11px] font-black text-white tabular-nums" dir="ltr">{capSecs > 0 ? fmtTime(capSecs) : '—'}</span>
+        <button onClick={reset} className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:text-orange-400 transition-colors active:scale-90">
+          <span className="material-symbols-outlined text-base leading-none">restart_alt</span>
+        </button>
+      </div>
+
+      {/* Countdown ring */}
+      <div className="flex flex-col items-center px-4 py-5">
+        <p className={`text-[9px] font-black uppercase tracking-[0.25em] mb-4 ${isDone ? 'text-green-400' : urgent ? 'text-red-400' : 'text-orange-400'}`}>
+          {isDone ? '✓ Time!' : isRunning ? 'Keep Cycling' : 'Ready'}
+        </p>
+        <div className="relative flex items-center justify-center" style={{ width: 176, height: 176 }}>
+          <svg className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }} viewBox="0 0 160 160" width="176" height="176">
+            <circle cx="80" cy="80" r={R} fill="none" stroke="#1f1f1f" strokeWidth="10" />
+            <circle
+              cx="80" cy="80" r={R} fill="none"
+              stroke={ringColor} strokeWidth="10" strokeLinecap="round"
+              strokeDasharray={`${circ * progress} ${circ}`}
+              style={{ transition: 'stroke-dasharray 0.9s linear, stroke 0.3s' }}
+            />
+          </svg>
+          <div className="flex flex-col items-center z-10 select-none">
+            <span className={`font-black tabular-nums leading-none tracking-tight ${urgent && !isDone ? 'text-red-400' : 'text-white'}`} style={{ fontSize: 44 }} dir="ltr">
+              {capSecs > 0 ? fmtTime(timeLeft) : '--:--'}
+            </span>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] mt-1.5" style={{ color: ringColor }}>remaining</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Round counter — the score */}
+      <div className="px-4 pb-4">
+        <div className="flex items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-2xl p-3">
+          <button
+            onClick={() => setRounds(r => Math.max(0, r - 1))}
+            className="w-12 h-12 rounded-xl bg-white/10 text-white flex items-center justify-center active:scale-95 transition-transform"
+            aria-label="One round fewer"
+          >
+            <span className="material-symbols-outlined">remove</span>
+          </button>
+          <div className="text-center leading-none">
+            <p className="text-4xl font-black tabular-nums text-white" dir="ltr">{rounds}</p>
+            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-neutral-500 mt-1">rounds done</p>
+          </div>
+          <button
+            onClick={() => { setRounds(r => r + 1); playEmomSound('switch'); }}
+            className="w-12 h-12 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 active:scale-95 transition-transform"
+            aria-label="One more round"
+          >
+            <span className="material-symbols-outlined">add</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Movements per round */}
+      {movements.length > 0 && (
+        <div className="px-4 pb-4 space-y-1.5">
+          <p className="text-[8px] font-black uppercase tracking-widest text-neutral-500 mb-1">Each round</p>
+          {movements.map(m => (
+            <div key={m.id} className="flex items-center justify-between gap-3 bg-white/5 rounded-xl px-3 py-2">
+              <span className="text-xs font-bold text-white truncate">{m.name || '—'}</span>
+              {m.reps && <span className="text-xs font-black text-orange-400 tabular-nums shrink-0" dir="ltr">{m.reps}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Start / Pause */}
+      <div className="px-4 pb-4">
+        <button
+          onClick={() => { if (isDone) reset(); else setIsRunning(r => !r); }}
+          disabled={capSecs <= 0}
+          className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] disabled:opacity-40 ${
+            isDone ? 'bg-green-600 text-white'
+            : isRunning ? 'bg-white/10 text-white border border-white/20'
+            : 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+          }`}
+        >
+          {isDone ? '↺ Go Again' : isRunning ? '⏸  Pause' : '▶  Start AMRAP'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── HOLD Stopwatch Block ──────────────────────────────────────────────────────
 // Count-up clock for isometric holds (plank, wall sit, etc.). The athlete holds the
 // position, the clock counts up, and tapping "Save Hold" registers the time. The ring
@@ -1219,6 +1366,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
     const isActive = workoutStarted && (activeExerciseId === item.id || (isInSuperset && isThisGroupActive && !isDone));
     const isSuperSet = item.format === 'SUPER_SET';
     const isEmom = item.format === 'EMOM' || item.format === 'AMRAP' || item.format === 'HIIT';
+    const isAmrap = item.format === 'AMRAP';
     const isForTime = item.format === 'FOR_TIME';
     const isHold = item.format === 'HOLD';
     const isCardio = item.format === 'CARDIO' || isForTime;
@@ -1240,6 +1388,13 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         { label: t('workout.distance'), val: item.distance || '-' },
         { label: t('workout.time_cap'), val: item.time || '-' },
         { label: t('workout.pace_cals'), val: item.speed || (item.calories ? String(item.calories) : '-') }
+      ];
+    } else if (isAmrap) {
+      // An AMRAP's rounds are the OUTPUT, so show the cap and the cycle instead.
+      statsToRender = [
+        { label: t('workout.time_cap'), val: item.durationMinutes ? `${item.durationMinutes}m` : (item.time || '-') },
+        { label: t('workout.movements'), val: String((item.forTimeItems?.length || item.emomItems?.length || 0) || '-') },
+        { label: t('workout.score'), val: t('workout.rounds') }
       ];
     } else if (isEmom) {
       statsToRender = [
@@ -1341,6 +1496,17 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             {/* EMOM timer */}
             {item.format === 'EMOM' && item.emomItems && item.emomItems.length > 0 && (
               <EmomTimerBlock item={item} />
+            )}
+
+            {/* AMRAP countdown + round counter */}
+            {isAmrap && (
+              <AmrapBlock
+                item={item}
+                onRecord={(rounds) => setLogData(prev => ({
+                  ...prev,
+                  results: { ...prev.results, [item.id]: { ...prev.results[item.id], reps: `${rounds} rounds` } },
+                }))}
+              />
             )}
 
             {/* FOR_TIME stopwatch + movements */}

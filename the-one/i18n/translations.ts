@@ -495,6 +495,8 @@ export const translations = {
   'workout.time_cap': { en: 'TIME CAP', ar: 'حد الوقت' },
   'workout.pace_cals': { en: 'PACE/CALS', ar: 'سرعة/سعرات' },
   'workout.rounds': { en: 'ROUNDS', ar: 'جولات' },
+  'workout.movements': { en: 'MOVEMENTS', ar: 'حركات' },
+  'workout.score': { en: 'SCORE', ar: 'النتيجة' },
   'workout.total_time': { en: 'TOTAL TIME', ar: 'الوقت الكلي' },
   'workout.work_rest': { en: 'WORK/REST', ar: 'عمل/راحة' },
 

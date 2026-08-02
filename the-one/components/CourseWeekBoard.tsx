@@ -207,10 +207,27 @@ const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: num
             )}
             {(ex.format === 'EMOM' || ex.format === 'AMRAP' || ex.format === 'HIIT') && (
               <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Total Time (Min)</label><input type="number" value={ex.durationMinutes || ''} onChange={(e) => updateExercise(exIdx, 'durationMinutes', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                  <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rounds</label><input type="number" value={ex.rounds || ''} onChange={(e) => updateExercise(exIdx, 'rounds', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                {/* An AMRAP's rounds are the athlete's score, not a target, so
+                    it takes a time cap only — the reps live on each movement. */}
+                <div className={ex.format === 'AMRAP' ? '' : 'grid grid-cols-2 gap-2'}>
+                  <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{ex.format === 'AMRAP' ? 'Time Cap (Min)' : 'Total Time (Min)'}</label><input type="number" value={ex.durationMinutes || ''} onChange={(e) => updateExercise(exIdx, 'durationMinutes', parseInt(e.target.value))} placeholder={ex.format === 'AMRAP' ? '6' : ''} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                  {ex.format !== 'AMRAP' && (
+                    <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rounds</label><input type="number" value={ex.rounds || ''} onChange={(e) => updateExercise(exIdx, 'rounds', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                  )}
                 </div>
+                {ex.format === 'AMRAP' && (
+                  <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 space-y-2">
+                    <p className="text-[8px] font-black uppercase text-orange-400">Movements Per Round (cycle through these)</p>
+                    {(ex.forTimeItems || []).map((item: any, itemIdx: number) => (
+                      <div key={item.id} className="flex gap-2 items-center">
+                        <input type="text" value={item.name} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="Exercise name" className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                        <input type="text" value={item.reps || ''} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="5" className="w-16 bg-white border border-orange-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
+                        <button onClick={() => updateExercise(exIdx, 'forTimeItems', (ex.forTimeItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-orange-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
+                      </div>
+                    ))}
+                    <button onClick={() => updateExercise(exIdx, 'forTimeItems', [...(ex.forTimeItems || []), { id: uid(), name: '', reps: '' }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors"><span className="material-symbols-outlined text-sm">add_circle</span> Add Movement</button>
+                  </div>
+                )}
                 {ex.format === 'HIIT' && (
                   <div className="grid grid-cols-2 gap-2">
                     <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Work</label><input type="text" value={ex.workInterval || ''} onChange={(e) => updateExercise(exIdx, 'workInterval', e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
