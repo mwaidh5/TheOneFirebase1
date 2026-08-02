@@ -45,13 +45,25 @@ const DayCard: React.FC<{ day: DayProgram; weekId: string; onOpen: () => void; o
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       onClick={onOpen}
-      className="group/card relative bg-white border border-neutral-200 rounded-2xl p-4 cursor-pointer hover:border-black hover:shadow-md transition-all select-none touch-none"
+      className="group/card relative bg-white border border-neutral-200 rounded-2xl p-4 cursor-pointer hover:border-black hover:shadow-md transition-all select-none"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[8px] font-black uppercase tracking-widest text-accent">Day {day.dayNumber}</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {/* Drag ONLY from this grip — dragging the whole card caused accidental
+              moves and blocked touch scrolling. touch-none stays on the grip. */}
+          <button
+            {...attributes}
+            {...listeners}
+            onClick={stop}
+            aria-label={`Reorder day ${day.dayNumber}`}
+            title="Drag to move"
+            className="-ml-1 shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-neutral-300 hover:text-black hover:bg-neutral-100 cursor-grab active:cursor-grabbing touch-none transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">drag_indicator</span>
+          </button>
+          <span className="text-[8px] font-black uppercase tracking-widest text-accent">Day {day.dayNumber}</span>
+        </div>
         <div className="flex gap-1 opacity-100 md:opacity-0 group-hover/card:opacity-100 transition-opacity">
           <button onPointerDown={stop} onClick={(e) => { stop(e); onClone(); }} className="w-6 h-6 rounded-lg bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-accent hover:text-white transition-all" title="Clone day">
             <span className="material-symbols-outlined text-[14px]">content_copy</span>
@@ -124,8 +136,14 @@ const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: num
   const style = { transform: CSS.Transform.toString(transform), transition };
   return (
     <div ref={setNodeRef} style={style} className="p-5 bg-neutral-50 rounded-2xl border border-neutral-100 relative space-y-6">
-      <div className="absolute top-4 left-4 cursor-grab" {...attributes} {...listeners}>
-        <span className="material-symbols-outlined text-neutral-400 hover:text-black">drag_indicator</span>
+      {/* Grip — the only place this block can be dragged from */}
+      <div
+        {...attributes}
+        {...listeners}
+        title="Drag to reorder"
+        className="absolute top-3 left-3 w-8 h-8 rounded-lg flex items-center justify-center text-neutral-300 hover:text-black hover:bg-neutral-200/70 cursor-grab active:cursor-grabbing touch-none transition-colors"
+      >
+        <span className="material-symbols-outlined text-[18px]">drag_indicator</span>
       </div>
       <div className="absolute top-4 right-4 flex gap-3">
         <button onClick={() => openPicker({ type: 'exercise', exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> Library</button>
