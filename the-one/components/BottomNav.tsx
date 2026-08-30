@@ -14,6 +14,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
   const navigate = useNavigate();
   const { t } = useT();
   const [active, setActive] = useState<ActiveSession | null>(() => readActiveSession());
+  // Center button opens a small sheet so daily nutrition is one tap away too.
+  const [showActions, setShowActions] = useState(false);
 
   useEffect(() => {
     const update = () => setActive(readActiveSession());
@@ -40,11 +42,16 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
 
   const onWorkout = path.startsWith('/workout');
   const startOrResume = () => {
+    setShowActions(false);
     if (active && !onWorkout) {
       navigate(`/workout/${active.courseId}?week=${active.weekNumber}`);
     } else {
       navigate(trainingDestination());
     }
+  };
+  const goNutrition = () => {
+    setShowActions(false);
+    navigate(isLoggedIn ? '/profile/nutrition' : '/login');
   };
 
   const tab = (opts: { active: boolean; icon: string; label: string; onClick: () => void }) => (
@@ -60,6 +67,36 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
   const isResume = !!active && !onWorkout;
 
   return (
+    <>
+    {/* Quick actions — train or log today's nutrition */}
+    {showActions && (
+      <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-150" onClick={() => setShowActions(false)}>
+        <div
+          className="w-full max-w-xl bg-white rounded-t-[2rem] p-5 pb-8 space-y-3 shadow-2xl animate-in slide-in-from-bottom duration-200"
+          onClick={(e) => e.stopPropagation()}
+          style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
+        >
+          <div className="w-10 h-1 bg-neutral-200 rounded-full mx-auto mb-1" />
+          <button
+            onClick={startOrResume}
+            className={`w-full flex items-center gap-4 p-4 rounded-2xl text-white shadow-lg transition-all active:scale-[0.98] ${isResume ? 'bg-accent shadow-accent/30' : 'bg-black'}`}
+          >
+            <span className="material-symbols-outlined text-[26px] filled">{isResume ? 'play_arrow' : 'exercise'}</span>
+            <span className="flex-1 text-start text-sm font-black uppercase tracking-widest">{isResume ? t('nav.resume') : t('nav.start')}</span>
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
+          <button
+            onClick={goNutrition}
+            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-100 transition-all active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[26px] filled">restaurant</span>
+            <span className="flex-1 text-start text-sm font-black uppercase tracking-widest">{t('nav.nutrition')}</span>
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    )}
+
     <nav
       className="fixed bottom-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-lg border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -70,7 +107,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
 
         {/* Center Start / Resume button */}
         <div className="flex-1 flex justify-center">
-          <button onClick={startOrResume} className="relative flex flex-col items-center" aria-label={isResume ? t('nav.resume') : t('home.app_explore')}>
+          <button onClick={() => setShowActions(true)} className="relative flex flex-col items-center" aria-label={isResume ? t('nav.resume') : t('home.app_explore')}>
             <span className={`absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full text-white shadow-lg shadow-accent/30 ${isResume ? 'bg-accent animate-pulse' : 'bg-black'}`}>
               <span className="material-symbols-outlined text-[28px] filled">{isResume ? 'play_arrow' : 'exercise'}</span>
             </span>
@@ -82,6 +119,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
         {tab({ active: path === '/menu', icon: 'settings', label: t('nav.settings'), onClick: () => navigate('/menu') })}
       </div>
     </nav>
+    </>
   );
 };
 
