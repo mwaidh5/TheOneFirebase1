@@ -1,148 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useT } from '../i18n/I18nContext';
 import type { TranslationKey } from '../i18n/translations';
 
-// ── Mock per-day plan (until plans are wired to purchased courses) ───────────
-// The diet is defined PER DAY of the week. A day can reuse another day's meals
-// (how "duplicate this diet" looks in practice) or be flagged as a cheat day.
-interface FoodLine { name: string; amount: string; }
-interface MealOption { id: string; name: string; items: FoodLine[]; }
-interface MealItem { id: string; name: string; options: MealOption[]; }
-interface Meal { id: string; label: string; items: MealItem[]; }
-interface DayPlan { isCheat?: boolean; meals: Meal[]; }
+// ── The daily plan ───────────────────────────────────────────────────────────
+// Same meals every day (the "duplicate the diet" case), tracked per calendar
+// day. Any day can be flipped to a cheat day, which pauses tracking for it.
+interface Meal {
+  id: string;
+  label: string;
+  title: string;
+  items: string[];
+  kcal: number;
+  protein: number;
+}
 
-const BASE_MEALS: Meal[] = [
-  {
-    id: 'm1',
-    label: 'Breakfast',
-    items: [
-      {
-        id: 'i1',
-        name: 'Carbohydrates',
-        options: [
-          { id: 'o1', name: 'Oatmeal', items: [{ name: 'Oats', amount: '100g' }, { name: 'Berries', amount: '50g' }] },
-          { id: 'o2', name: 'Toast', items: [{ name: 'Whole Wheat Bread', amount: '2 slices' }, { name: 'Jam', amount: '1 tbsp' }] },
-        ],
-      },
-      {
-        id: 'i2',
-        name: 'Protein',
-        options: [
-          { id: 'o3', name: 'Eggs', items: [{ name: 'Whole Eggs', amount: '3' }] },
-          { id: 'o4', name: 'Protein Shake', items: [{ name: 'Whey Protein', amount: '1 scoop' }, { name: 'Milk', amount: '250ml' }] },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'm2',
-    label: 'Lunch',
-    items: [
-      {
-        id: 'i3',
-        name: 'Base',
-        options: [
-          { id: 'o5', name: 'Rice Bowl', items: [{ name: 'White Rice', amount: '150g' }] },
-          { id: 'o6', name: 'Sweet Potato', items: [{ name: 'Roasted Sweet Potato', amount: '200g' }] },
-        ],
-      },
-      {
-        id: 'i4',
-        name: 'Protein',
-        options: [
-          { id: 'o7', name: 'Chicken', items: [{ name: 'Chicken Breast', amount: '150g' }] },
-          { id: 'o8', name: 'Beef', items: [{ name: 'Lean Ground Beef', amount: '150g' }] },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'm3',
-    label: 'Dinner',
-    items: [
-      {
-        id: 'i5',
-        name: 'Light meal',
-        options: [
-          { id: 'o9', name: 'Tuna Salad', items: [{ name: 'Tuna', amount: '1 can' }, { name: 'Greens', amount: '1 bowl' }] },
-          { id: 'o10', name: 'Greek Yogurt', items: [{ name: 'Yogurt', amount: '250g' }, { name: 'Honey', amount: '1 tsp' }] },
-        ],
-      },
-    ],
-  },
+const PLAN: Meal[] = [
+  { id: 'breakfast', label: 'Breakfast', title: 'Protein pancakes', items: ['Protein pancakes'], kcal: 400, protein: 40 },
+  { id: 'lunch', label: 'Lunch', title: 'Chicken + rice + salad', items: ['Chicken 200g', 'Rice', 'Salad'], kcal: 650, protein: 55 },
+  { id: 'snack1', label: 'Snack 1', title: 'Protein bar', items: ['Protein bar'], kcal: 220, protein: 18 },
+  { id: 'snack2', label: 'Snack 2', title: 'Laban', items: ['Laban 250g'], kcal: 150, protein: 15 },
+  { id: 'dinner', label: 'Dinner', title: 'Fish / beef / chicken + lentils + salad', items: ['Fish, beef or chicken 200g', 'Lentils', 'Salad'], kcal: 600, protein: 50 },
 ];
 
-const LIGHT_MEALS: Meal[] = [
-  BASE_MEALS[0],
-  {
-    id: 'm2l',
-    label: 'Lunch',
-    items: [
-      {
-        id: 'i3l',
-        name: 'Light base',
-        options: [
-          { id: 'o5l', name: 'Quinoa Bowl', items: [{ name: 'Quinoa', amount: '120g' }, { name: 'Veggies', amount: '1 bowl' }] },
-          { id: 'o6l', name: 'Lentil Soup', items: [{ name: 'Lentils', amount: '200g' }] },
-        ],
-      },
-    ],
-  },
-  BASE_MEALS[2],
-];
+const TARGET_KCAL = PLAN.reduce((s, m) => s + m.kcal, 0);       // 2020
+const TARGET_PROTEIN = PLAN.reduce((s, m) => s + m.protein, 0); // 178
 
-// Sunday(0) → Saturday(6). Sun–Thu share the training diet (duplicated),
-// Friday is the cheat day (Iraqi weekend), Saturday is a lighter day.
-const WEEK_PLAN: DayPlan[] = [
-  { meals: BASE_MEALS },
-  { meals: BASE_MEALS },
-  { meals: BASE_MEALS },
-  { meals: BASE_MEALS },
-  { meals: BASE_MEALS },
-  { isCheat: true, meals: [] },
-  { meals: LIGHT_MEALS },
-];
+const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const eatenKey = (d: Date) => `theone_meals_${dateKey(d)}`;
+const cheatKey = (d: Date) => `theone_cheat_${dateKey(d)}`;
 
-const PLAN_NAME = 'Performance Plan';
-const PLAN_KCAL = 2800;
+const readSet = (k: string): Set<string> => {
+  try {
+    const raw = localStorage.getItem(k);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch { return new Set(); }
+};
 
 const MealPlan: React.FC = () => {
   const { t, lang } = useT();
-  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
-  // Option selections keyed per day: `${day}_${mealId}_${itemId}` -> optionId
-  const [selections, setSelections] = useState<Record<string, string>>({});
+
+  // Sunday-first week (the Iraqi week) so the tabs line up with real dates.
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+
+  const [selectedIdx, setSelectedIdx] = useState(today.getDay());
+  const selectedDate = weekDays[selectedIdx];
+
+  const [eaten, setEaten] = useState<Set<string>>(() => readSet(eatenKey(weekDays[today.getDay()])));
+  const [isCheat, setIsCheat] = useState(false);
   const [showGrocery, setShowGrocery] = useState(false);
 
-  const dayPlan = WEEK_PLAN[selectedDay];
-  const selKey = (mealId: string, itemId: string) => `${selectedDay}_${mealId}_${itemId}`;
+  // Reload the log whenever the selected day changes.
+  useEffect(() => {
+    setEaten(readSet(eatenKey(selectedDate)));
+    try { setIsCheat(localStorage.getItem(cheatKey(selectedDate)) === '1'); } catch { setIsCheat(false); }
+  }, [selectedIdx]);
 
-  const handleSelectOption = (mealId: string, itemId: string, optionId: string) => {
-    setSelections(prev => ({ ...prev, [selKey(mealId, itemId)]: optionId }));
+  const persist = (next: Set<string>) => {
+    setEaten(next);
+    try { localStorage.setItem(eatenKey(selectedDate), JSON.stringify(Array.from(next))); } catch {}
   };
 
-  // Grocery list for the SELECTED day — derived from the chosen options only
-  // (no custom items; the plan is the single source of truth).
-  const buildGroceryList = () => {
-    const map: Record<string, string[]> = {};
-    dayPlan.meals.forEach(meal => {
-      meal.items.forEach(item => {
-        const selId = selections[selKey(meal.id, item.id)] || item.options[0]?.id;
-        const opt = item.options.find(o => o.id === selId) || item.options[0];
-        opt?.items.forEach(fi => { (map[fi.name] ||= []).push(fi.amount); });
-      });
-    });
-    return Object.entries(map).map(([name, amounts]) => ({ name, amounts: amounts.join(' + ') }));
+  const toggleMeal = (id: string) => {
+    const next = new Set<string>(eaten);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    persist(next);
   };
 
-  // Sunday-first day tabs to match the Iraqi week.
+  const toggleCheat = () => {
+    const next = !isCheat;
+    setIsCheat(next);
+    try { localStorage.setItem(cheatKey(selectedDate), next ? '1' : '0'); } catch {}
+  };
+
+  const kcal = PLAN.filter(m => eaten.has(m.id)).reduce((s, m) => s + m.kcal, 0);
+  const protein = PLAN.filter(m => eaten.has(m.id)).reduce((s, m) => s + m.protein, 0);
+  const pct = (v: number, target: number) => Math.min(100, Math.round((v / target) * 100));
+
   const dayKeys: TranslationKey[] = ['meal.day_sun', 'meal.day_mon', 'meal.day_tue', 'meal.day_wed', 'meal.day_thu', 'meal.day_fri', 'meal.day_sat'];
-
-  const targets: Array<{ labelKey: TranslationKey; val: string; subKey: TranslationKey }> = [
-    { labelKey: 'meal.calories', val: '2,800', subKey: 'meal.kcal' },
-    { labelKey: 'meal.protein', val: '220', subKey: 'meal.grams' },
-    { labelKey: 'meal.carbs', val: '300', subKey: 'meal.grams' },
-    { labelKey: 'meal.fat', val: '85', subKey: 'meal.grams' },
-  ];
+  const isToday = dateKey(selectedDate) === dateKey(today);
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-10 text-start overflow-x-clip">
@@ -151,7 +94,7 @@ const MealPlan: React.FC = () => {
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-neutral-500 text-xs font-medium mb-1">
             <span className="material-symbols-outlined text-[16px]">restaurant_menu</span>
-            <span>{PLAN_NAME} · {PLAN_KCAL} {t('meal.kcal')}</span>
+            <span dir="ltr">{TARGET_KCAL} kcal · {TARGET_PROTEIN}g protein</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black font-display tracking-tight text-black uppercase">{t('meal.my_nutrition')}</h1>
         </div>
@@ -161,123 +104,126 @@ const MealPlan: React.FC = () => {
         </button>
       </div>
 
-      {/* Day selector — the diet is per day */}
-      <div className="mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar">
+      {/* Day tabs — real dates, so the log is per calendar day */}
+      <div className="mb-5 -mx-4 px-4 overflow-x-auto no-scrollbar">
         <div className="flex gap-2 min-w-max">
-          {dayKeys.map((dayKey, i) => {
-            const isSel = selectedDay === i;
-            const cheat = WEEK_PLAN[i].isCheat;
+          {weekDays.map((d, i) => {
+            const sel = selectedIdx === i;
+            const isD = dateKey(d) === dateKey(today);
             return (
               <button
-                key={dayKey}
-                onClick={() => setSelectedDay(i)}
-                className={`flex flex-col items-center px-4 py-2.5 rounded-2xl border transition-all min-w-[64px] ${
-                  isSel ? (cheat ? 'bg-pink-500 border-pink-500 text-white shadow-lg' : 'bg-black border-black text-white shadow-lg')
-                       : (cheat ? 'bg-pink-50 border-pink-100 text-pink-500' : 'bg-white border-neutral-100 text-neutral-400')
+                key={i}
+                onClick={() => setSelectedIdx(i)}
+                className={`flex flex-col items-center px-4 py-2.5 rounded-2xl border transition-all min-w-[60px] ${
+                  sel ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-neutral-100 text-neutral-400'
                 }`}
               >
-                <span className="text-[10px] font-black uppercase tracking-widest">{t(dayKey)}</span>
-                <span className="material-symbols-outlined text-[16px] mt-0.5">{cheat ? 'celebration' : 'restaurant'}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{t(dayKeys[i])}</span>
+                <span className={`text-base font-black mt-0.5 ${!sel && isD ? 'text-accent' : ''}`}>{d.getDate()}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Daily targets — compact strip */}
-      {!dayPlan.isCheat && (
-        <div className="grid grid-cols-4 gap-2 mb-6">
-          {targets.map(stat => (
-            <div key={stat.labelKey} className="bg-white p-3 rounded-2xl border border-neutral-100 text-center">
-              <p className="text-base font-black text-black leading-none">{stat.val}</p>
-              <p className="text-[8px] text-neutral-400 font-black uppercase tracking-widest mt-1">{t(stat.labelKey)}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Cheat day */}
-      {dayPlan.isCheat ? (
-        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-pink-500 to-rose-600 text-white p-8 text-center shadow-2xl">
-          <span className="material-symbols-outlined text-6xl">celebration</span>
-          <h2 className="text-3xl font-black font-display uppercase tracking-tight mt-3">
-            {lang === 'ar' ? 'يوم حر!' : 'Cheat Day!'}
-          </h2>
-          <p className="text-sm font-medium text-white/80 mt-2 max-w-sm mx-auto leading-relaxed">
-            {lang === 'ar'
-              ? 'استمتع بوجباتك المفضلة اليوم — باعتدال. عُد للخطة غداً.'
-              : 'Enjoy your favourite meals today — keep it reasonable. Back on the plan tomorrow.'}
+      {/* Daily totals */}
+      <div className="bg-white border border-neutral-100 rounded-3xl p-5 shadow-sm mb-5">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+            {isToday
+              ? (lang === 'ar' ? 'اليوم' : 'Today')
+              : selectedDate.toLocaleDateString(lang === 'ar' ? 'ar' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
           </p>
-          <span className="material-symbols-outlined absolute -bottom-8 -right-6 text-[140px] text-white/10 select-none">icecream</span>
+          <button
+            onClick={toggleCheat}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+              isCheat ? 'bg-pink-500 text-white shadow' : 'bg-neutral-50 text-neutral-400 hover:text-pink-500'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[14px]">celebration</span>
+            {lang === 'ar' ? 'يوم حر' : 'Cheat day'}
+          </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {dayPlan.meals.map(meal => (
-            <div key={meal.id} className="bg-white rounded-3xl border border-neutral-100 shadow-sm p-4 md:p-6 space-y-4">
-              <h3 className="text-lg font-black text-black font-display uppercase tracking-tight border-b border-neutral-50 pb-2">{meal.label}</h3>
-              {meal.items.map(item => (
-                <div key={item.id} className="space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{item.name}</h4>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {item.options.map(option => {
-                      const isSelected = (selections[selKey(meal.id, item.id)] || item.options[0]?.id) === option.id;
-                      return (
-                        <button
-                          key={option.id}
-                          onClick={() => handleSelectOption(meal.id, item.id, option.id)}
-                          className={`w-full text-start flex flex-col gap-2 p-4 rounded-2xl border-2 transition-all ${
-                            isSelected ? 'border-black bg-black text-white shadow-md' : 'border-neutral-100 bg-neutral-50 text-black'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="font-black uppercase tracking-tight text-sm">{option.name}</span>
-                            <span className={`material-symbols-outlined text-[18px] ${isSelected ? 'text-white filled' : 'text-neutral-300'}`}>
-                              {isSelected ? 'check_circle' : 'radio_button_unchecked'}
-                            </span>
-                          </div>
-                          <div className={`text-xs font-medium space-y-0.5 ${isSelected ? 'text-neutral-300' : 'text-neutral-500'}`}>
-                            {option.items.map((fi, idx) => (
-                              <div key={idx} className="flex justify-between gap-2">
-                                <span>{fi.name}</span>
-                                <span className="font-bold">{fi.amount}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+
+        {isCheat ? (
+          <div className="text-center py-4">
+            <span className="material-symbols-outlined text-4xl text-pink-500">celebration</span>
+            <p className="text-sm font-black uppercase tracking-tight text-black mt-2">{lang === 'ar' ? 'يوم حر — استمتع' : 'Cheat day — enjoy it'}</p>
+            <p className="text-xs font-medium text-neutral-400 mt-1">{lang === 'ar' ? 'عُد للخطة غداً.' : 'Back on the plan tomorrow.'}</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-end">
+                <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('meal.calories')}</span>
+                <span className="text-sm font-black text-black tabular-nums" dir="ltr">{kcal} / {TARGET_KCAL}</span>
+              </div>
+              <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
+                <div className="h-full bg-black rounded-full transition-all duration-500" style={{ width: `${pct(kcal, TARGET_KCAL)}%` }} />
+              </div>
             </div>
-          ))}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-end">
+                <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('meal.protein')}</span>
+                <span className="text-sm font-black text-black tabular-nums" dir="ltr">{protein}g / {TARGET_PROTEIN}g</span>
+              </div>
+              <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
+                <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${pct(protein, TARGET_PROTEIN)}%` }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Meals — tap to log */}
+      {!isCheat && (
+        <div className="space-y-3">
+          {PLAN.map(meal => {
+            const done = eaten.has(meal.id);
+            return (
+              <button
+                key={meal.id}
+                onClick={() => toggleMeal(meal.id)}
+                className={`w-full text-start flex items-start gap-3 p-4 rounded-3xl border-2 transition-all ${
+                  done ? 'border-green-500 bg-green-50' : 'border-neutral-100 bg-white hover:border-black'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[24px] mt-0.5 shrink-0 ${done ? 'text-green-600 filled' : 'text-neutral-300'}`}>
+                  {done ? 'check_circle' : 'radio_button_unchecked'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{meal.label}</p>
+                    <div className="flex gap-1.5 shrink-0">
+                      <span className="bg-neutral-100 text-neutral-600 text-[9px] font-black px-2 py-0.5 rounded-full tabular-nums" dir="ltr">{meal.kcal} kcal</span>
+                      <span className="bg-accent/10 text-accent text-[9px] font-black px-2 py-0.5 rounded-full tabular-nums" dir="ltr">{meal.protein}g P</span>
+                    </div>
+                  </div>
+                  <p className={`text-sm font-black uppercase tracking-tight mt-0.5 ${done ? 'text-green-800' : 'text-black'}`}>{meal.title}</p>
+                  <p className="text-[11px] font-medium text-neutral-400 mt-0.5">{meal.items.join(' · ')}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Grocery list modal — derived from the selected day's plan */}
+      {/* Grocery list */}
       {showGrocery && (
         <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-6 bg-black/70 backdrop-blur-sm" onClick={() => setShowGrocery(false)}>
           <div className="bg-white w-full md:max-w-md rounded-t-[2rem] md:rounded-3xl shadow-2xl flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-accent">shopping_basket</span>
-                <h3 className="text-lg font-black font-display uppercase">{t('meal.grocery_list')} · {t(dayKeys[selectedDay])}</h3>
+                <h3 className="text-lg font-black font-display uppercase">{t('meal.grocery_list')}</h3>
               </div>
               <button onClick={() => setShowGrocery(false)} className="w-9 h-9 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition-all"><span className="material-symbols-outlined">close</span></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-              {dayPlan.isCheat ? (
-                <p className="text-center text-neutral-400 text-xs font-black uppercase tracking-widest py-8">
-                  {lang === 'ar' ? 'يوم حر — لا قائمة مشتريات' : 'Cheat day — no grocery list'}
-                </p>
-              ) : buildGroceryList().map((g, i) => (
+              {Array.from(new Set(PLAN.flatMap(m => m.items))).map((name, i) => (
                 <label key={i} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100">
                   <input type="checkbox" className="w-5 h-5 rounded-md accent-black shrink-0" />
-                  <span className="flex-1 text-sm font-black uppercase text-black">{g.name}</span>
-                  <span className="text-xs font-bold text-neutral-400">{g.amounts}</span>
+                  <span className="flex-1 text-sm font-bold text-black">{name}</span>
                 </label>
               ))}
             </div>
