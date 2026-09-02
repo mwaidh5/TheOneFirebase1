@@ -211,7 +211,7 @@ const MealPlan: React.FC = () => {
                 <span className="text-sm font-black text-black tabular-nums" dir="ltr">{kcal} / {targetKcal}</span>
               </div>
               <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition duration-500 ${mode === 'off' ? 'bg-blue-600' : 'bg-black'}`} style={{ width: `${pct(kcal, targetKcal)}%` }} />
+                <div className={`h-full rounded-full transition-[width] duration-500 ${mode === 'off' ? 'bg-blue-600' : 'bg-black'}`} style={{ width: `${pct(kcal, targetKcal)}%` }} />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -220,7 +220,7 @@ const MealPlan: React.FC = () => {
                 <span className="text-sm font-black text-black tabular-nums" dir="ltr">{protein}g / {targetProtein}g</span>
               </div>
               <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full transition duration-500" style={{ width: `${pct(protein, targetProtein)}%` }} />
+                <div className="h-full bg-accent rounded-full transition-[width] duration-500" style={{ width: `${pct(protein, targetProtein)}%` }} />
               </div>
             </div>
           </div>

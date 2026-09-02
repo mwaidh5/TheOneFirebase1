@@ -393,7 +393,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
                     </div>
                     <div className="h-1.5 w-full bg-neutral-200 rounded-full overflow-hidden">
                        <div 
-                         className="h-full bg-black transition duration-700 ease-out" 
+                         className="h-full bg-black transition-[width] duration-700 ease-out" 
                          style={{ width: `${(quizStep / quizQuestions.length) * 100}%` }}
                        ></div>
                     </div>

@@ -132,7 +132,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
                     <span className="text-black">{athlete.progress}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-neutral-50 rounded-full overflow-hidden border border-neutral-100">
-                    <div className={`h-full rounded-full transition duration-1000 ${athlete.isCustomClient ? 'bg-accent' : 'bg-black'}`} style={{ width: `${athlete.progress}%` }}></div>
+                    <div className={`h-full rounded-full transition-[width] duration-1000 ${athlete.isCustomClient ? 'bg-accent' : 'bg-black'}`} style={{ width: `${athlete.progress}%` }}></div>
                   </div>
                 </div>
 

@@ -233,7 +233,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                       <span className="text-xs md:text-sm font-black text-black">{pct}%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-black h-full rounded-full transition duration-1000" style={{ width: `${pct}%` }}></div>
+                      <div className="bg-black h-full rounded-full transition-[width] duration-1000" style={{ width: `${pct}%` }}></div>
                     </div>
                   </div>
                 </div>
