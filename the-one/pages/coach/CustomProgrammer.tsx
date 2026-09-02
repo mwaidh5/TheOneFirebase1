@@ -33,7 +33,7 @@ const PremiumSelect: React.FC<{
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-white border rounded-xl p-3 flex items-center justify-between transition-all hover:border-black ${
+        className={`w-full bg-white border rounded-xl p-3 flex items-center justify-between transition hover:border-black ${
           isOpen ? 'border-black shadow-sm ring-2 ring-black/5' : 'border-neutral-100'
         }`}
       >
@@ -301,7 +301,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
 
            <button 
             onClick={handleSaveDraft}
-            className="px-8 py-5 bg-neutral-100 text-neutral-600 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-200 transition-all shadow-sm flex items-center gap-2"
+            className="px-8 py-5 bg-neutral-100 text-neutral-600 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-200 transition shadow-sm flex items-center gap-2"
            >
             <span className="material-symbols-outlined text-[18px]">save</span>
             Save Draft
@@ -309,7 +309,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
 
            <button 
             onClick={handlePublish}
-            className="px-10 py-5 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2"
+            className="px-10 py-5 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center gap-2"
            >
             <span className="material-symbols-outlined text-[18px]">done_all</span>
             Finish & Notify Athlete
@@ -325,7 +325,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
               
               <button 
                 onClick={() => setActiveTab('submissions')}
-                className={`w-full text-left px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeTab === 'submissions' ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50'}`}
+                className={`w-full text-left px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition flex items-center gap-3 ${activeTab === 'submissions' ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50'}`}
               >
                 <span className="material-symbols-outlined text-xl">reviews</span>
                 Athlete Answers
@@ -335,7 +335,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
 
               <button 
                 onClick={() => setActiveTab('workout')}
-                className={`w-full text-left px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeTab === 'workout' ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50'}`}
+                className={`w-full text-left px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition flex items-center gap-3 ${activeTab === 'workout' ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50'}`}
               >
                 <span className="material-symbols-outlined text-xl">fitness_center</span>
                 Build Workout
@@ -344,7 +344,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
               {hasMealPlan && (
                 <button 
                   onClick={() => setActiveTab('meal')}
-                  className={`w-full text-left px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeTab === 'meal' ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50'}`}
+                  className={`w-full text-left px-5 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition flex items-center gap-3 ${activeTab === 'meal' ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50'}`}
                 >
                   <span className="material-symbols-outlined text-xl">restaurant</span>
                   Meal Plan
@@ -362,7 +362,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                     <div key={week.id} className="space-y-2 text-left">
                        <button 
                           onClick={() => { setActiveWeekIdx(wIdx); setActiveDayIdx(0); }}
-                          className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeWeekIdx === wIdx ? 'bg-neutral-900 text-white shadow-md' : 'text-neutral-400 hover:bg-neutral-50'}`}
+                          className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeWeekIdx === wIdx ? 'bg-neutral-900 text-white shadow-md' : 'text-neutral-400 hover:bg-neutral-50'}`}
                        >
                           Week {week.weekNumber}
                        </button>
@@ -372,7 +372,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                                 <button 
                                   key={day.id} 
                                   onClick={() => setActiveDayIdx(dIdx)}
-                                  className={`w-full text-left px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:text-black'}`}
+                                  className={`w-full text-left px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-tight transition ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:text-black'}`}
                                 >
                                    Day {day.dayNumber}: {day.title}
                                 </button>
@@ -447,19 +447,19 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                    <div className="flex gap-4 flex-wrap">
                       <button
                         onClick={() => setIsAIOpen(true)}
-                        className="px-6 py-4 bg-gradient-to-r from-violet-600 to-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-accent/30 hover:shadow-lg transition-all flex items-center gap-2"
+                        className="px-6 py-4 bg-gradient-to-r from-violet-600 to-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-accent/30 hover:shadow-lg transition flex items-center gap-2"
                       >
                         <span className="material-symbols-outlined text-sm">auto_awesome</span>
                         AI Generate
                       </button>
                       <button 
                          onClick={() => setIsPickerOpen({ type: 'workout', activeIndex: 0 })}
-                         className="px-6 py-4 bg-neutral-50 text-neutral-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm flex items-center gap-2"
+                         className="px-6 py-4 bg-neutral-50 text-neutral-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition shadow-sm flex items-center gap-2"
                       >
                          <span className="material-symbols-outlined text-sm">auto_stories</span>
                          Blueprint
                       </button>
-                      <button onClick={addExercise} className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all shadow-xl flex items-center gap-2">
+                      <button onClick={addExercise} className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition shadow-xl flex items-center gap-2">
                         <span className="material-symbols-outlined text-lg">add</span>
                         Add Exercise
                       </button>
@@ -467,7 +467,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                 </div>
                 <div className="space-y-6">
                    {activeDay?.exercises.map((ex, exIdx) => (
-                      <div key={ex.id} className="p-8 rounded-[2.5rem] border border-neutral-100 bg-neutral-50 hover:border-black transition-all relative group text-left space-y-8">
+                      <div key={ex.id} className="p-8 rounded-[2.5rem] border border-neutral-100 bg-neutral-50 hover:border-black transition relative group text-left space-y-8">
                          <div className="absolute top-6 right-6 flex items-center gap-4">
                             <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: exIdx })} className="text-[10px] font-black uppercase text-accent hover:underline">Select From Library</button>
                             <button onClick={() => removeExercise(exIdx)} className="text-neutral-300 hover:text-red-500 transition-colors">
@@ -630,13 +630,13 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                          <div className="flex gap-4">
                              <button 
                                 onClick={() => setIsPickerOpen({ type: 'meal', activeIndex: null })}
-                                className="px-10 py-5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-xl"
+                                className="px-10 py-5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition shadow-xl"
                              >
                                 Import Template
                              </button>
                              <button 
                                 onClick={() => setSelectedMealPlan({ id: 'mp-'+Math.random(), name: 'Custom Plan', description: '', totalCalories: 0, meals: [], isPublic: false })}
-                                className="px-10 py-5 bg-white border border-neutral-200 text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-black transition-all shadow-sm"
+                                className="px-10 py-5 bg-white border border-neutral-200 text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-black transition shadow-sm"
                              >
                                 Create Empty
                              </button>
@@ -654,7 +654,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[80vh]">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                  <h3 className="text-2xl font-black font-display uppercase text-black">Exercise Library</h3>
-                 <button onClick={() => setIsPickerOpen({ ...isPickerOpen, activeIndex: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+                 <button onClick={() => setIsPickerOpen({ ...isPickerOpen, activeIndex: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                    <span className="material-symbols-outlined">close</span>
                  </button>
               </div>
@@ -666,7 +666,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                         updateExercise(isPickerOpen.activeIndex!, 'format', item.defaultFormat);
                         updateExercise(isPickerOpen.activeIndex!, 'description', item.description);
                         setIsPickerOpen({ ...isPickerOpen, activeIndex: null });
-                    }} className="w-full flex items-center justify-between p-6 bg-neutral-50 rounded-[2rem] border border-neutral-100 hover:border-black transition-all group">
+                    }} className="w-full flex items-center justify-between p-6 bg-neutral-50 rounded-[2rem] border border-neutral-100 hover:border-black transition group">
                        <div className="text-left space-y-1"><p className="text-lg font-black text-black uppercase tracking-tight">{item.name}</p><p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{item.defaultFormat}</p></div>
                        <span className="material-symbols-outlined text-neutral-300 group-hover:text-black">playlist_add</span>
                     </button>
@@ -681,7 +681,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[80vh]">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                  <h3 className="text-2xl font-black font-display uppercase text-black">Workout Blueprints</h3>
-                 <button onClick={() => setIsPickerOpen({ ...isPickerOpen, activeIndex: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+                 <button onClick={() => setIsPickerOpen({ ...isPickerOpen, activeIndex: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                    <span className="material-symbols-outlined">close</span>
                  </button>
               </div>
@@ -694,7 +694,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                         updatedWeeks[activeWeekIdx].days[activeDayIdx].exercises = [...updatedWeeks[activeWeekIdx].days[activeDayIdx].exercises, ...templateExs];
                         setWeeks(updatedWeeks);
                         setIsPickerOpen({ ...isPickerOpen, activeIndex: null });
-                    }} className="w-full flex items-center justify-between p-8 bg-neutral-50 rounded-[2rem] border border-neutral-100 hover:border-black transition-all group text-left">
+                    }} className="w-full flex items-center justify-between p-8 bg-neutral-50 rounded-[2rem] border border-neutral-100 hover:border-black transition group text-left">
                        <div><p className="text-xl font-black text-black uppercase tracking-tight">{wo.name}</p><p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{wo.category} Cycle</p></div>
                        <span className="material-symbols-outlined text-neutral-300 group-hover:text-black">playlist_add</span>
                     </button>
@@ -709,7 +709,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[80vh]">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                  <h3 className="text-2xl font-black font-display uppercase text-black">Meal Plans</h3>
-                 <button onClick={() => setIsPickerOpen({ ...isPickerOpen, type: 'exercise', activeIndex: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+                 <button onClick={() => setIsPickerOpen({ ...isPickerOpen, type: 'exercise', activeIndex: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                    <span className="material-symbols-outlined">close</span>
                  </button>
               </div>
@@ -719,7 +719,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
                     <button key={plan.id} onClick={() => {
                         setSelectedMealPlan(plan);
                         setIsPickerOpen({ ...isPickerOpen, type: 'exercise', activeIndex: null });
-                    }} className="w-full flex items-center justify-between p-8 bg-neutral-50 rounded-[2rem] border border-neutral-100 hover:border-black transition-all group text-left">
+                    }} className="w-full flex items-center justify-between p-8 bg-neutral-50 rounded-[2rem] border border-neutral-100 hover:border-black transition group text-left">
                        <div><p className="text-xl font-black text-black uppercase tracking-tight">{plan.name}</p><p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{plan.totalCalories} kcal</p></div>
                        <span className="material-symbols-outlined text-neutral-300 group-hover:text-black">playlist_add</span>
                     </button>

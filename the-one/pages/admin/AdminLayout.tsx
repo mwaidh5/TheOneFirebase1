@@ -103,15 +103,15 @@ const AdminLayout: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
-          <Link to="/admin" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin') ? 'filled text-accent' : ''}`}>dashboard</span>
             Overview
           </Link>
-          <Link to="/admin/custom-requests" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/custom-requests') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/custom-requests" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/custom-requests') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/custom-requests') ? 'filled text-accent' : ''}`}>edit_note</span>
             Custom Leads
           </Link>
-          <Link to="/admin/messages" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/messages') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/messages" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/messages') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/messages') ? 'filled text-accent' : ''}`}>chat_bubble</span>
             Inbox
           </Link>
@@ -119,15 +119,15 @@ const AdminLayout: React.FC = () => {
           <div className="pt-4 pb-2 px-6">
             <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Platform</p>
           </div>
-          <Link to="/admin/users" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/users') || isActive('/admin/users/new') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/users" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/users') || isActive('/admin/users/new') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/users') || isActive('/admin/users/new') ? 'filled text-accent' : ''}`}>group</span>
             Users
           </Link>
-          <Link to="/admin/courses" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/courses') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/courses" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/courses') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/courses') ? 'filled text-accent' : ''}`}>school</span>
             Courses
           </Link>
-          <Link to="/admin/diagnostics" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/diagnostics') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/diagnostics" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/diagnostics') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/diagnostics') ? 'filled text-accent' : ''}`}>fact_check</span>
             Diagnostic Logic
           </Link>
@@ -135,29 +135,29 @@ const AdminLayout: React.FC = () => {
           <div className="pt-4 pb-2 px-6">
             <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Library</p>
           </div>
-          <Link to="/admin/exercise-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/exercise-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/exercise-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/exercise-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/exercise-library') ? 'filled text-accent' : ''}`}>menu_book</span>
             Exercises
           </Link>
-          <Link to="/admin/workout-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/workout-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/workout-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/workout-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/workout-library') ? 'filled text-accent' : ''}`}>library_books</span>
             Workouts
           </Link>
-          <Link to="/admin/meal-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/meal-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/meal-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/meal-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/meal-library') ? 'filled text-accent' : ''}`}>restaurant_menu</span>
             Meal Plans
           </Link>
-          <Link to="/admin/media" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/media') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/media" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/media') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/media') ? 'filled text-accent' : ''}`}>perm_media</span>
             Media
           </Link>
 
           <div className="my-6 border-t border-neutral-100 mx-4"></div>
-          <Link to="/admin/settings" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/settings') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/settings" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/settings') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/settings') ? 'filled text-accent' : ''}`}>settings</span>
             Settings
           </Link>
-          <Link to="/admin/activity" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/admin/activity') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/admin/activity" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/admin/activity') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/admin/activity') ? 'filled text-accent' : ''}`}>receipt_long</span>
             Log History
           </Link>
@@ -168,7 +168,7 @@ const AdminLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-neutral-100 h-20 px-4 sm:px-10 flex items-center justify-between shrink-0">
            <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={() => navigate('/')} title="Back to app" className="w-9 h-9 rounded-xl bg-neutral-50 text-neutral-500 hover:text-black hover:bg-neutral-100 flex items-center justify-center transition-all">
+            <button onClick={() => navigate('/')} title="Back to app" className="w-9 h-9 rounded-xl bg-neutral-50 text-neutral-500 hover:text-black hover:bg-neutral-100 flex items-center justify-center transition">
                 <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </button>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-neutral-600">
@@ -181,7 +181,7 @@ const AdminLayout: React.FC = () => {
               <div className="relative" ref={notifRef}>
                 <button 
                     onClick={() => setIsNotifOpen(!isNotifOpen)}
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all relative ${isNotifOpen ? 'bg-black text-white' : 'bg-neutral-50 text-neutral-400 hover:text-black'}`}>
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center transition relative ${isNotifOpen ? 'bg-black text-white' : 'bg-neutral-50 text-neutral-400 hover:text-black'}`}>
                     <span className="material-symbols-outlined text-[20px]">notifications</span>
                     {unreadCount > 0 && (
                         <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>

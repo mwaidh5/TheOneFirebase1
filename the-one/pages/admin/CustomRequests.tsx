@@ -94,7 +94,7 @@ const AdminCustomRequests: React.FC = () => {
           </div>
           <button 
             onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-lg flex items-center gap-2"
+            className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition shadow-lg flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[16px]">person_add</span>
             Add Manual Lead
@@ -175,7 +175,7 @@ const AdminCustomRequests: React.FC = () => {
 
                       <button 
                         onClick={() => navigate(`/admin/custom-programmer/${req.id}`)}
-                        className="px-6 py-3 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all shadow-lg flex items-center gap-2"
+                        className="px-6 py-3 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition shadow-lg flex items-center gap-2"
                       >
                         <span className="material-symbols-outlined text-[16px]">design_services</span>
                         Submit Course
@@ -280,7 +280,7 @@ const AdminCustomRequests: React.FC = () => {
                                alert("Error creating lead.");
                            }
                        }}
-                       className="w-full py-5 bg-black text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-accent transition-all shadow-xl"
+                       className="w-full py-5 bg-black text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-accent transition shadow-xl"
                    >
                        Create & Grant Access
                    </button>
@@ -300,7 +300,7 @@ const AdminCustomRequests: React.FC = () => {
                </div>
                <button 
                 onClick={() => setInspectingReq(null)}
-                className="w-14 h-14 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm"
+                className="w-14 h-14 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm"
                >
                   <span className="material-symbols-outlined">close</span>
                </button>
@@ -309,13 +309,13 @@ const AdminCustomRequests: React.FC = () => {
             <div className="flex border-b border-neutral-100 bg-white">
               <button 
                 onClick={() => setActiveModalTab('INTAKE')}
-                className={`flex-1 py-6 text-center text-[10px] font-black uppercase tracking-widest transition-all border-b-4 ${activeModalTab === 'INTAKE' ? 'border-black text-black bg-neutral-50/50' : 'border-transparent text-neutral-300 hover:text-black'}`}
+                className={`flex-1 py-6 text-center text-[10px] font-black uppercase tracking-widest transition border-b-4 ${activeModalTab === 'INTAKE' ? 'border-black text-black bg-neutral-50/50' : 'border-transparent text-neutral-300 hover:text-black'}`}
               >
                 Inquiry Profile
               </button>
               <button 
                 onClick={() => setActiveModalTab('RESULTS')}
-                className={`flex-1 py-6 text-center text-[10px] font-black uppercase tracking-widest transition-all border-b-4 ${activeModalTab === 'RESULTS' ? 'border-black text-black bg-neutral-50/50' : 'border-transparent text-neutral-300 hover:text-black'}`}
+                className={`flex-1 py-6 text-center text-[10px] font-black uppercase tracking-widest transition border-b-4 ${activeModalTab === 'RESULTS' ? 'border-black text-black bg-neutral-50/50' : 'border-transparent text-neutral-300 hover:text-black'}`}
               >
                 Assigned Test Submissions ({inspectingReq.submissions?.length || 0})
               </button>

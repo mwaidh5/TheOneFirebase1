@@ -30,7 +30,7 @@ const Dropdown: React.FC<{
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-white border rounded-xl p-3.5 flex items-center justify-between transition-all hover:border-black ${
+        className={`w-full bg-white border rounded-xl p-3.5 flex items-center justify-between transition hover:border-black ${
           isOpen ? 'border-black ring-2 ring-black/5 shadow-sm' : 'border-neutral-100'
         }`}
       >
@@ -140,7 +140,7 @@ const CoachGlobalQuestions: React.FC = () => {
             <button 
               key={game.id} 
               onClick={() => setActiveGameId(game.id)}
-              className={`w-full text-left p-8 rounded-[2.5rem] border transition-all flex justify-between items-center ${activeGameId === game.id ? 'bg-black text-white border-black shadow-2xl' : 'bg-white border-neutral-100 hover:border-black hover:shadow-xl text-neutral-400 hover:text-black'}`}
+              className={`w-full text-left p-8 rounded-[2.5rem] border transition flex justify-between items-center ${activeGameId === game.id ? 'bg-black text-white border-black shadow-2xl' : 'bg-white border-neutral-100 hover:border-black hover:shadow-xl text-neutral-400 hover:text-black'}`}
             >
               <div className="flex items-center gap-4">
                 <span className={`material-symbols-outlined text-2xl ${activeGameId === game.id ? 'text-accent' : 'text-neutral-200'}`}>{game.icon}</span>
@@ -164,14 +164,14 @@ const CoachGlobalQuestions: React.FC = () => {
                       <h2 className="text-4xl font-black text-black uppercase font-display leading-none tracking-tight">Requirement Logic</h2>
                    </div>
                    <div className="flex gap-4">
-                      <button onClick={() => addTest(activeGame.id)} className="px-8 py-4 bg-neutral-50 text-black border border-neutral-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-sm">Add Test Block</button>
-                      <button onClick={saveMasterDiagnostics} className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-neutral-800 transition-all">Push to Catalog</button>
+                      <button onClick={() => addTest(activeGame.id)} className="px-8 py-4 bg-neutral-50 text-black border border-neutral-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition shadow-sm">Add Test Block</button>
+                      <button onClick={saveMasterDiagnostics} className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-neutral-800 transition">Push to Catalog</button>
                    </div>
                 </div>
 
                 <div className="space-y-8">
                    {activeGame.diagnostics?.map((test) => (
-                      <div key={test.id} className="p-10 bg-neutral-50 rounded-[3rem] border border-neutral-100 space-y-10 relative group shadow-sm hover:border-black transition-all">
+                      <div key={test.id} className="p-10 bg-neutral-50 rounded-[3rem] border border-neutral-100 space-y-10 relative group shadow-sm hover:border-black transition">
                          <button 
                            onClick={() => removeTest(activeGame.id, test.id)}
                            className="absolute top-8 right-8 text-neutral-300 hover:text-red-500 transition-colors"

@@ -29,7 +29,7 @@ const AdminCourses: React.FC<AdminCoursesProps> = ({ courses }) => {
           <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Training Programs</h1>
           <p className="text-neutral-400 font-medium">Create, edit, and publish training courses.</p>
         </div>
-        <Link to="/admin/courses/new" className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2">
+        <Link to="/admin/courses/new" className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center gap-2">
           <span className="material-symbols-outlined text-lg">add</span>
           New Course
         </Link>
@@ -41,10 +41,10 @@ const AdminCourses: React.FC<AdminCoursesProps> = ({ courses }) => {
             <div className="h-48 relative overflow-hidden">
               <img src={course.image} alt={course.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               <div className="absolute top-4 right-4 flex gap-2">
-                <Link to={`/admin/courses/edit/${course.id}`} className="bg-white/90 p-2 rounded-xl text-black hover:bg-white transition-all shadow-sm">
+                <Link to={`/admin/courses/edit/${course.id}`} className="bg-white/90 p-2 rounded-xl text-black hover:bg-white transition shadow-sm">
                   <span className="material-symbols-outlined text-lg">edit</span>
                 </Link>
-                <button onClick={() => handleDeleteCourse(course.id)} className="bg-red-500/90 p-2 rounded-xl text-white hover:bg-red-600 transition-all shadow-sm">
+                <button onClick={() => handleDeleteCourse(course.id)} className="bg-red-500/90 p-2 rounded-xl text-white hover:bg-red-600 transition shadow-sm">
                   <span className="material-symbols-outlined text-lg">delete</span>
                 </button>
               </div>

@@ -40,11 +40,11 @@ const AdminCustomWorkoutViewer: React.FC = () => {
         </div>
         
         <div className="flex gap-4">
-           <button onClick={() => navigate('/admin/messages?coachId=' + coach.id)} className="px-8 py-4 border border-neutral-100 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-neutral-50 transition-all flex items-center gap-2">
+           <button onClick={() => navigate('/admin/messages?coachId=' + coach.id)} className="px-8 py-4 border border-neutral-100 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-neutral-50 transition flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">chat</span>
               Message Coach
            </button>
-           <button className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-red-500 transition-all shadow-xl flex items-center gap-2">
+           <button className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-red-500 transition shadow-xl flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">warning</span>
               Flag for Revision
            </button>
@@ -61,7 +61,7 @@ const AdminCustomWorkoutViewer: React.FC = () => {
                     <button 
                       key={w}
                       onClick={() => setActiveWeek(w)}
-                      className={`w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeWeek === w ? 'bg-black text-white shadow-lg' : 'text-neutral-400 hover:bg-neutral-50'}`}
+                      className={`w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition ${activeWeek === w ? 'bg-black text-white shadow-lg' : 'text-neutral-400 hover:bg-neutral-50'}`}
                     >
                       Week {w}
                     </button>
@@ -100,7 +100,7 @@ const AdminCustomWorkoutViewer: React.FC = () => {
 
                        <div className="grid gap-4">
                           {day.exercises.map((ex, i) => (
-                             <div key={i} className="p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 flex flex-col md:flex-row justify-between items-center gap-8 group hover:bg-white hover:border-black transition-all">
+                             <div key={i} className="p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 flex flex-col md:flex-row justify-between items-center gap-8 group hover:bg-white hover:border-black transition">
                                 <div className="space-y-1">
                                    <p className="text-xl font-black text-black uppercase tracking-tight">{ex.name}</p>
                                    <p className="text-xs font-medium text-neutral-400 italic">"{ex.note}"</p>

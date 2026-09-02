@@ -104,7 +104,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
         </div>
         <button 
           onClick={handleSave}
-          className="px-10 py-5 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-accent transition-all shadow-xl disabled:opacity-50"
+          className="px-10 py-5 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-accent transition shadow-xl disabled:opacity-50"
           disabled={saveStatus === 'saving'}
         >
           {saveStatus === 'saving' ? 'Updating Ledger...' : saveStatus === 'saved' ? 'Success' : 'Authorize Changes'}
@@ -124,7 +124,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                   <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Site Logo</label>
                   <div 
                     onClick={() => openPicker('logo')}
-                    className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 flex items-center justify-center relative group cursor-pointer overflow-hidden transition-all hover:border-black"
+                    className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 flex items-center justify-center relative group cursor-pointer overflow-hidden transition hover:border-black"
                   >
                     {localSettings.logo ? <img src={localSettings.logo} className="max-w-[70%] max-h-[70%] object-contain" alt="Logo" /> : <span className="material-symbols-outlined text-4xl text-neutral-200">add_circle</span>}
                   </div>
@@ -133,7 +133,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                   <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Primary Hero Backdrop</label>
                   <div 
                     onClick={() => openPicker('heroImage')}
-                    className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 overflow-hidden relative group cursor-pointer transition-all hover:border-black"
+                    className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 overflow-hidden relative group cursor-pointer transition hover:border-black"
                   >
                     {localSettings.heroImage ? (
                         <img src={localSettings.heroImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Hero" />
@@ -150,7 +150,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                  type="text" 
                  value={localSettings.heroHeadline}
                  onChange={(e) => setLocalSettings({...localSettings, heroHeadline: e.target.value})}
-                 className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl py-5 px-8 text-sm font-black uppercase outline-none focus:ring-4 focus:ring-accent/10 transition-all"
+                 className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl py-5 px-8 text-sm font-black uppercase outline-none focus:ring-4 focus:ring-accent/10 transition"
                />
             </div>
           </section>
@@ -179,7 +179,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                <button 
                   onClick={purgeCache}
                   disabled={isPurging}
-                  className="w-full py-4 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2 border border-red-100"
+                  className="w-full py-4 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition flex items-center justify-center gap-2 border border-red-100"
                >
                   {isPurging ? (
                      <><div className="w-3 h-3 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></div> Flushing Data...</>
@@ -211,7 +211,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                 <h3 className="text-3xl font-black font-display uppercase tracking-tight">Gallery Logic</h3>
                 <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Select an internal asset to deploy.</p>
               </div>
-              <button onClick={() => setIsPickerOpen(false)} className="w-14 h-14 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+              <button onClick={() => setIsPickerOpen(false)} className="w-14 h-14 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -220,7 +220,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                 <div 
                   key={asset.id} 
                   onClick={() => selectFromLibrary(asset.data)}
-                  className="group relative aspect-square rounded-[2rem] overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-4 hover:ring-accent transition-all shadow-xl"
+                  className="group relative aspect-square rounded-[2rem] overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-4 hover:ring-accent transition shadow-xl"
                 >
                   <img src={asset.data} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={asset.name} />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[9px] font-black uppercase text-white bg-accent px-4 py-2 rounded-full">Apply</span></div>

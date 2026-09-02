@@ -212,7 +212,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
         <button 
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isUploading ? (
               <>
@@ -258,7 +258,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
             
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               {filteredAssets.map(asset => (
-                <div key={asset.id} className="group relative aspect-square rounded-3xl overflow-hidden border border-neutral-50 bg-neutral-50 hover:shadow-xl transition-all cursor-pointer shadow-sm">
+                <div key={asset.id} className="group relative aspect-square rounded-3xl overflow-hidden border border-neutral-50 bg-neutral-50 hover:shadow-xl transition cursor-pointer shadow-sm">
                   {asset.type === 'image' ? (
                     <img src={asset.data} alt={asset.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   ) : (
@@ -270,7 +270,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                   <div className="absolute top-4 left-4">
                     <span className="px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-black shadow-sm">{asset.category}</span>
                   </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-end p-4">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
                     <p className="text-[10px] font-black text-white uppercase truncate mb-2">{asset.name}</p>
                     <div className="flex gap-2">
                       {asset.type === 'image' && (
@@ -310,8 +310,8 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
               </div>
 
               <div className="flex p-1 bg-white/5 rounded-2xl mb-8">
-                <button onClick={() => setAiTab('generate')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${aiTab === 'generate' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>Create New</button>
-                <button onClick={() => setAiTab('edit')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${aiTab === 'edit' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>Smart Edit</button>
+                <button onClick={() => setAiTab('generate')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${aiTab === 'generate' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>Create New</button>
+                <button onClick={() => setAiTab('edit')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${aiTab === 'edit' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>Smart Edit</button>
               </div>
 
               {aiTab === 'edit' && (
@@ -341,7 +341,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder={aiTab === 'generate' ? "e.g., A cinematic wide shot of an athlete doing muscle ups." : "e.g., Remove the background and make it high-contrast black and white."}
-                  className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-sm font-medium focus:border-accent focus:ring-1 focus:ring-accent outline-none min-h-[150px] transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-sm font-medium focus:border-accent focus:ring-1 focus:ring-accent outline-none min-h-[150px] transition"
                 />
               </div>
 
@@ -349,7 +349,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                 <button 
                   onClick={runAiTask}
                   disabled={isAiLoading || !aiPrompt || (aiTab === 'edit' && !selectedImageForAi)}
-                  className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-sm transition-all shadow-xl flex items-center justify-center gap-4 ${isAiLoading ? 'bg-neutral-800 text-neutral-500' : 'bg-accent text-white hover:bg-blue-600'}`}
+                  className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-sm transition shadow-xl flex items-center justify-center gap-4 ${isAiLoading ? 'bg-neutral-800 text-neutral-500' : 'bg-accent text-white hover:bg-blue-600'}`}
                 >
                   {isAiLoading ? (
                     <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> AI Working...</>

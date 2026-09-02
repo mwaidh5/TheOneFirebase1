@@ -72,13 +72,13 @@ const AdminDashboard: React.FC = () => {
           <p className="text-neutral-400 font-medium">Monitoring platform performance and coaching quality.</p>
         </div>
         <div className="flex gap-4">
-          <Link to="/admin/activity" className="px-6 py-4 bg-white border border-neutral-200 text-black font-black text-[10px] rounded-xl hover:bg-neutral-50 transition-all shadow-sm uppercase tracking-widest flex items-center gap-2">
+          <Link to="/admin/activity" className="px-6 py-4 bg-white border border-neutral-200 text-black font-black text-[10px] rounded-xl hover:bg-neutral-50 transition shadow-sm uppercase tracking-widest flex items-center gap-2">
              <span className="material-symbols-outlined text-[18px]">history</span>
              Audit Log
           </Link>
           <button 
             onClick={() => setIsStatusOpen(true)}
-            className="px-6 py-4 bg-black text-white font-black text-[10px] rounded-xl hover:bg-neutral-800 shadow-xl transition-all flex items-center gap-2 uppercase tracking-widest"
+            className="px-6 py-4 bg-black text-white font-black text-[10px] rounded-xl hover:bg-neutral-800 shadow-xl transition flex items-center gap-2 uppercase tracking-widest"
           >
             <span className="material-symbols-outlined text-[18px]">emergency_share</span>
             Platform Status
@@ -93,7 +93,7 @@ const AdminDashboard: React.FC = () => {
           { label: 'Platform Revenue', val: `$${stats.revenue}`, trend: '', color: 'text-green-600', icon: 'payments' },
           { label: 'Cycle Leads', val: stats.leadsCount.toString(), sub: 'Pending Review', color: 'text-orange-600', icon: 'architecture' },
         ].map(stat => (
-          <div key={stat.label} className="bg-white rounded-[2.5rem] p-8 border border-neutral-100 shadow-sm hover:shadow-xl transition-all group">
+          <div key={stat.label} className="bg-white rounded-[2.5rem] p-8 border border-neutral-100 shadow-sm hover:shadow-xl transition group">
             <div className="flex items-center justify-between mb-8">
               <p className="text-neutral-400 text-[10px] font-black uppercase tracking-[0.2em]">{stat.label}</p>
               <div className={`w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform shadow-inner`}>
@@ -119,7 +119,7 @@ const AdminDashboard: React.FC = () => {
                  <h3 className="text-2xl font-black font-display uppercase tracking-tight">Command Center</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Link to="/admin/diagnostics" className="p-8 bg-neutral-50 rounded-[2.5rem] hover:bg-black hover:text-white transition-all group border border-neutral-100 relative overflow-hidden">
+                  <Link to="/admin/diagnostics" className="p-8 bg-neutral-50 rounded-[2.5rem] hover:bg-black hover:text-white transition group border border-neutral-100 relative overflow-hidden">
                       <div className="absolute top-4 right-4 w-10 h-10 bg-white group-hover:bg-white/20 rounded-full flex items-center justify-center transition-colors">
                           <span className="material-symbols-outlined text-purple-600 group-hover:text-white">arrow_outward</span>
                       </div>
@@ -129,7 +129,7 @@ const AdminDashboard: React.FC = () => {
                           Configure intake questions and assign Head Coaches for bespoke programs.
                       </p>
                   </Link>
-                  <Link to="/admin/courses" className="p-8 bg-neutral-50 rounded-[2.5rem] hover:bg-black hover:text-white transition-all group border border-neutral-100 relative overflow-hidden">
+                  <Link to="/admin/courses" className="p-8 bg-neutral-50 rounded-[2.5rem] hover:bg-black hover:text-white transition group border border-neutral-100 relative overflow-hidden">
                       <div className="absolute top-4 right-4 w-10 h-10 bg-white group-hover:bg-white/20 rounded-full flex items-center justify-center transition-colors">
                           <span className="material-symbols-outlined text-accent group-hover:text-white">arrow_outward</span>
                       </div>
@@ -167,7 +167,7 @@ const AdminDashboard: React.FC = () => {
                   };
                   const color = typeColors[ev.type] || 'text-accent';
                   return (
-                  <div key={ev.id || i} className="px-8 py-5 hover:bg-neutral-50 transition-all border-b border-neutral-50 last:border-0 relative group">
+                  <div key={ev.id || i} className="px-8 py-5 hover:bg-neutral-50 transition border-b border-neutral-50 last:border-0 relative group">
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md bg-neutral-50 ${color}`}>{ev.type || 'SYSTEM'}</span>
                         <span className="text-[8px] font-bold text-neutral-300 uppercase tracking-widest">• {ev.createdAt?.toDate ? formatDistanceToNow(ev.createdAt.toDate(), { addSuffix: true }) : 'Just now'}</span>
@@ -203,7 +203,7 @@ const AdminDashboard: React.FC = () => {
                  </div>
                  <button 
                   onClick={() => setIsStatusOpen(false)} 
-                  className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-red-500 hover:border-red-500 transition-all group"
+                  className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-red-500 hover:border-red-500 transition group"
                  >
                     <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
                  </button>
@@ -220,7 +220,7 @@ const AdminDashboard: React.FC = () => {
                     <button 
                       onClick={runSystemScan}
                       disabled={isScanning}
-                      className="px-5 py-2 bg-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all disabled:opacity-50"
+                      className="px-5 py-2 bg-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition disabled:opacity-50"
                     >
                       {isScanning ? 'Scanning...' : 'Refresh Pulse'}
                     </button>
@@ -228,7 +228,7 @@ const AdminDashboard: React.FC = () => {
 
                  <div className="grid gap-4">
                     {systemMetrics.map((m, i) => (
-                       <div key={m.name} className="flex items-center gap-6 p-5 bg-white/[0.02] hover:bg-white/5 rounded-2xl border border-white/5 transition-all group">
+                       <div key={m.name} className="flex items-center gap-6 p-5 bg-white/[0.02] hover:bg-white/5 rounded-2xl border border-white/5 transition group">
                           <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-accent shrink-0 group-hover:scale-110 transition-transform">
                              <span className="material-symbols-outlined text-2xl">{m.icon}</span>
                           </div>
@@ -239,7 +239,7 @@ const AdminDashboard: React.FC = () => {
                              </div>
                              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                 <div 
-                                   className={`h-full bg-accent transition-all duration-1000 ease-out ${isScanning ? 'w-0' : ''}`} 
+                                   className={`h-full bg-accent transition duration-1000 ease-out ${isScanning ? 'w-0' : ''}`} 
                                    style={{ width: isScanning ? '0%' : `${m.health}%` }}
                                 ></div>
                              </div>

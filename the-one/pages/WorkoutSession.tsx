@@ -295,7 +295,7 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
         </div>
         <div className="flex gap-1.5 items-center">
           {emomItems.map((_, i) => (
-            <div key={i} className={`rounded-full transition-all duration-300 ${
+            <div key={i} className={`rounded-full transition duration-300 ${
               i === exIdx ? 'w-4 h-2.5 bg-accent' : i < exIdx ? 'w-2.5 h-2.5 bg-green-500' : 'w-2.5 h-2.5 bg-neutral-700'
             }`} />
           ))}
@@ -346,7 +346,7 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
       <div className="px-4 pb-2">
         <button
           onClick={() => { if (isDone) { reset(); } else { setIsRunning(r => !r); } }}
-          className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] ${
+          className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition active:scale-[0.97] ${
             isDone ? 'bg-green-600 hover:bg-green-500 text-white'
             : isRunning ? 'bg-white/10 text-white border border-white/20 hover:bg-white/15'
             : 'bg-accent hover:bg-blue-500 text-white shadow-lg shadow-accent/30'
@@ -364,7 +364,7 @@ function EmomTimerBlock({ item }: { item: Exercise }) {
             <button
               key={opt}
               onClick={() => setTransitionSecs(opt)}
-              className={`px-2 py-1.5 rounded-lg text-[9px] font-black transition-all active:scale-90 min-w-[34px] ${
+              className={`px-2 py-1.5 rounded-lg text-[9px] font-black transition active:scale-90 min-w-[34px] ${
                 transitionSecs === opt ? 'bg-accent text-white' : 'bg-neutral-900 text-neutral-400 border border-neutral-800 hover:border-neutral-600'
               }`}
             >{opt === 0 ? 'Off' : `+${opt}s`}</button>
@@ -493,7 +493,7 @@ function ForTimeTimerBlock({ item }: { item: Exercise }) {
               <button
                 key={ft.id}
                 onClick={() => toggleMove(ft.id)}
-                className={`w-full flex items-center gap-2 rounded-xl px-3 py-2 border transition-all active:scale-[0.98] ${
+                className={`w-full flex items-center gap-2 rounded-xl px-3 py-2 border transition active:scale-[0.98] ${
                   done ? 'bg-green-500/10 border-green-500/40' : 'bg-neutral-900 border-neutral-800 hover:border-neutral-700'
                 }`}
               >
@@ -518,7 +518,7 @@ function ForTimeTimerBlock({ item }: { item: Exercise }) {
       <div className="px-4 pb-4 pt-1 flex gap-2">
         <button
           onClick={() => { if (isDone) { reset(); } else { setIsRunning(r => !r); } }}
-          className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] ${
+          className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition active:scale-[0.97] ${
             isDone ? 'bg-green-600 hover:bg-green-500 text-white'
             : isRunning ? 'bg-white/10 text-white border border-white/20 hover:bg-white/15'
             : 'bg-accent hover:bg-blue-500 text-white shadow-lg shadow-accent/30'
@@ -529,7 +529,7 @@ function ForTimeTimerBlock({ item }: { item: Exercise }) {
         {!isDone && (isRunning || elapsed > 0) && (
           <button
             onClick={finish}
-            className={`px-4 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.97] ${
+            className={`px-4 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition active:scale-[0.97] ${
               allMovesDone
                 ? 'bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-900/30'
                 : 'bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-600'
@@ -677,7 +677,7 @@ function AmrapBlock({ item, onRecord }: { item: Exercise; onRecord: (rounds: num
         <button
           onClick={() => { if (isDone) reset(); else setIsRunning(r => !r); }}
           disabled={capSecs <= 0}
-          className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] disabled:opacity-40 ${
+          className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition active:scale-[0.97] disabled:opacity-40 ${
             isDone ? 'bg-green-600 text-white'
             : isRunning ? 'bg-white/10 text-white border border-white/20'
             : 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
@@ -800,7 +800,7 @@ function HoldTimerBlock({ item, best, onRecord }: { item: Exercise; best: number
       <div className="px-4 pb-4 pt-1 flex gap-2">
         <button
           onClick={() => { if (recorded != null) { reset(); } else { setIsRunning(r => !r); } }}
-          className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all active:scale-[0.97] ${
+          className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition active:scale-[0.97] ${
             recorded != null ? 'bg-green-600 hover:bg-green-500 text-white'
             : isRunning ? 'bg-white/10 text-white border border-white/20 hover:bg-white/15'
             : 'bg-accent hover:bg-blue-500 text-white shadow-lg shadow-accent/30'
@@ -811,7 +811,7 @@ function HoldTimerBlock({ item, best, onRecord }: { item: Exercise; best: number
         {recorded == null && (isRunning || elapsed > 0) && (
           <button
             onClick={stopAndSave}
-            className="px-5 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.97] bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-900/30"
+            className="px-5 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition active:scale-[0.97] bg-green-500 hover:bg-green-400 text-white shadow-lg shadow-green-900/30"
           >
             Save Hold
           </button>
@@ -1445,7 +1445,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             : `border-neutral-100 shadow-sm ${activeRingClass}`;
 
     return (
-      <div key={item.id} className={`bg-white rounded-3xl border transition-all overflow-hidden ${cardBorderClass}`} style={{ position: 'relative' }}>
+      <div key={item.id} className={`bg-white rounded-3xl border transition overflow-hidden ${cardBorderClass}`} style={{ position: 'relative' }}>
         {/* Cardio left stripe */}
         {isCardio && !isDone && (
           <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-400 rounded-l-3xl"></div>
@@ -1471,7 +1471,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               {/* Check button */}
               <button
                 onClick={() => toggleExercise(item.id)}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-md shrink-0 border mt-1 ${isDone
+                className={`w-12 h-12 rounded-xl flex items-center justify-center transition shadow-md shrink-0 border mt-1 ${isDone
                   ? 'bg-green-500 border-green-500 text-white'
                   : isActive
                     ? 'bg-amber-400 border-amber-400 text-black hover:bg-amber-500'
@@ -1495,7 +1495,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
               {hasVideo && (
                 <button
                   onClick={() => setVideoPopupUrl(item.videoUrl!)}
-                  className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center hover:bg-accent transition-all shadow-lg shrink-0 mt-1"
+                  className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center hover:bg-accent transition shadow-lg shrink-0 mt-1"
                   title="Watch video demo"
                 >
                   <span className="material-symbols-outlined text-base">play_circle</span>
@@ -1684,7 +1684,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                         key={u}
                         type="button"
                         onClick={() => setUnit(item.id, u)}
-                        className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide transition-all min-w-[32px] min-h-[28px] ${getUnit(item.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400'}`}
+                        className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide transition min-w-[32px] min-h-[28px] ${getUnit(item.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400'}`}
                       >{u}</button>
                     ))}
                   </div>
@@ -1748,7 +1748,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         <div key={block.groupKey} className="relative">
           {/* Superset label */}
           <div className="flex items-center gap-2 mb-2 pl-1">
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] transition-all border ${
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] transition border ${
               isThisGroupActive ? 'bg-amber-100 text-amber-700 border-amber-300'
               : allDone ? 'bg-green-100 text-green-700 border-green-300'
               : 'bg-purple-100 text-purple-700 border-purple-200'
@@ -1791,7 +1791,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
           <div className="relative w-full max-w-3xl" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setVideoPopupUrl(null)}
-              className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition-all"
+              className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -1860,7 +1860,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             {course.hasMealPlan && view === 'weeks' && (
               <button
                 onClick={() => setView('meal')}
-                className="px-6 py-4 bg-white border border-neutral-200 rounded-2xl flex items-center gap-3 hover:border-black transition-all shadow-sm group"
+                className="px-6 py-4 bg-white border border-neutral-200 rounded-2xl flex items-center gap-3 hover:border-black transition shadow-sm group"
               >
                 <div className="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center text-white group-hover:bg-accent transition-colors">
                   <span className="material-symbols-outlined">restaurant</span>
@@ -1886,7 +1886,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                 <div
                   key={week.id}
                   onClick={() => { setSelectedWeek(week); setView('days'); }}
-                  className={`p-8 rounded-3xl border transition-all cursor-pointer group relative overflow-hidden flex flex-col gap-6 ${isFinished ? 'bg-green-50/30 border-green-200' : 'bg-white border-neutral-100 hover:border-black shadow-sm hover:shadow-xl'}`}
+                  className={`p-8 rounded-3xl border transition cursor-pointer group relative overflow-hidden flex flex-col gap-6 ${isFinished ? 'bg-green-50/30 border-green-200' : 'bg-white border-neutral-100 hover:border-black shadow-sm hover:shadow-xl'}`}
                 >
                   <div className="flex justify-between items-start">
                     <span className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black shadow-lg transition-colors ${isFinished ? 'bg-green-500 text-white' : 'bg-black text-white'}`}>
@@ -1904,7 +1904,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleWeekFinished(week.id); }}
-                    className={`mt-auto px-5 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isFinished ? 'bg-green-100 text-green-700' : 'bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white'}`}
+                    className={`mt-auto px-5 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition flex items-center justify-center gap-2 ${isFinished ? 'bg-green-100 text-green-700' : 'bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white'}`}
                   >
                     <span className="material-symbols-outlined text-sm">{isFinished ? 'check_circle' : 'circle'}</span>
                     {isFinished ? t('workout.week_finished') : t('workout.mark_finished')}
@@ -1957,7 +1957,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
         {view === 'days' && selectedWeek && (
           <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
             <div className="flex items-center gap-3">
-              <button onClick={() => setView('weeks')} className="w-10 h-10 rounded-lg bg-neutral-50 border border-neutral-100 flex items-center justify-center text-neutral-400 hover:text-black hover:bg-white transition-all">
+              <button onClick={() => setView('weeks')} className="w-10 h-10 rounded-lg bg-neutral-50 border border-neutral-100 flex items-center justify-center text-neutral-400 hover:text-black hover:bg-white transition">
                 <span className="material-symbols-outlined">arrow_back</span>
               </button>
               <h2 className="text-xl font-black uppercase text-black font-display tracking-tight">{t('workout.select_day')}</h2>
@@ -1969,7 +1969,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   <div
                     key={day.id}
                     onClick={() => { setSelectedDay(day); setView('exercises'); }}
-                    className={`flex items-center justify-between p-6 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${isDayDone ? 'bg-green-50/50 border-green-200' : 'bg-white border-neutral-100 hover:border-black shadow-sm'}`}
+                    className={`flex items-center justify-between p-6 rounded-2xl border transition cursor-pointer group relative overflow-hidden ${isDayDone ? 'bg-green-50/50 border-green-200' : 'bg-white border-neutral-100 hover:border-black shadow-sm'}`}
                   >
                     <div className="flex items-center gap-4 relative z-10">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black shadow-md transition-colors ${isDayDone ? 'bg-green-500 text-white' : 'bg-neutral-900 text-white'}`}>
@@ -2021,7 +2021,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     </div>
                     <button
                       onClick={() => toggleDayFinished(selectedDay.id)}
-                      className="shrink-0 px-3 py-2 bg-white border border-green-200 text-green-700 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all flex items-center gap-1"
+                      className="shrink-0 px-3 py-2 bg-white border border-green-200 text-green-700 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition flex items-center gap-1"
                     >
                       <span className="material-symbols-outlined text-xs">undo</span>
                       {t('common.undo')}
@@ -2030,7 +2030,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                 ) : (
                   <button
                     onClick={() => toggleDayFinished(selectedDay.id)}
-                    className="w-full py-5 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-neutral-800 transition-all shadow-2xl"
+                    className="w-full py-5 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-neutral-800 transition shadow-2xl"
                   >
                     <span className="material-symbols-outlined text-lg">task_alt</span>
                     {t('workout.finish_session')}
@@ -2044,7 +2044,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
             <div className="lg:col-span-4 space-y-5 order-1 lg:order-2">
 
               {/* ── Timer / Start card ──────────────────────────── */}
-              <div className={`p-6 rounded-3xl text-white shadow-2xl relative overflow-hidden transition-all duration-500 ${workoutStarted ? (isPaused ? 'bg-amber-900' : 'bg-neutral-900') : finalTime !== null ? 'bg-green-900' : 'bg-neutral-800'}`}>
+              <div className={`p-6 rounded-3xl text-white shadow-2xl relative overflow-hidden transition duration-500 ${workoutStarted ? (isPaused ? 'bg-amber-900' : 'bg-neutral-900') : finalTime !== null ? 'bg-green-900' : 'bg-neutral-800'}`}>
                 <div className="relative z-10 space-y-4">
                   {workoutStarted ? (
                     <>
@@ -2111,7 +2111,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                       <div className="font-black text-4xl tracking-tight text-white/20 tabular-nums">00:00:00</div>
                       <button
                         onClick={handleStartWorkout}
-                        className="w-full py-3.5 bg-accent hover:bg-blue-500 text-white rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent/30 mt-2"
+                        className="w-full py-3.5 bg-accent hover:bg-blue-500 text-white rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition shadow-lg shadow-accent/30 mt-2"
                       >
                         <span className="material-symbols-outlined text-lg">play_arrow</span>
                         {t('workout.start')}
@@ -2135,7 +2135,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     </div>
                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-white transition-all duration-1000"
+                        className="h-full bg-white transition duration-1000"
                         style={{ width: `${(selectedDay.exercises.filter(ex => completedExercises.has(ex.id)).length / (selectedDay.exercises.length || 1)) * 100}%` }}
                       ></div>
                     </div>
@@ -2177,7 +2177,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                 )}
                 <button
                   onClick={() => setIsLogModalOpen(false)}
-                  className="w-10 h-10 bg-white border border-neutral-100 rounded-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm group"
+                  className="w-10 h-10 bg-white border border-neutral-100 rounded-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm group"
                 >
                   <span className="material-symbols-outlined group-hover:rotate-90 transition-transform text-base">close</span>
                 </button>
@@ -2230,7 +2230,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                               <input
                                 type="text" inputMode="numeric" placeholder="MM:SS"
                                 style={{ fontSize: '16px' }}
-                                className="w-full bg-white border border-blue-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-blue-600 transition-all tabular-nums"
+                                className="w-full bg-white border border-blue-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-blue-600 transition tabular-nums"
                                 value={(logData.results[ex.id] as any)?.time || ''}
                                 onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [ex.id]: { ...(logData.results[ex.id] as any), time: e.target.value } } })}
                               />
@@ -2243,7 +2243,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                               <div className="flex items-center gap-0.5 bg-neutral-100 rounded p-0.5">
                                 {(['kg', 'lbs'] as const).map(u => (
                                   <button key={u} type="button" onClick={() => setUnit(ex.id, u)}
-                                    className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide transition-all min-w-[32px] min-h-[28px] ${getUnit(ex.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400'}`}
+                                    className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide transition min-w-[32px] min-h-[28px] ${getUnit(ex.id) === u ? 'bg-black text-white shadow-sm' : 'text-neutral-400'}`}
                                   >{u}</button>
                                 ))}
                               </div>
@@ -2251,7 +2251,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                             <input
                               type="text" inputMode="decimal" placeholder="e.g. 80"
                               style={{ fontSize: '16px' }}
-                              className="w-full bg-white border border-neutral-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-accent transition-all"
+                              className="w-full bg-white border border-neutral-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-accent transition"
                               value={(logData.results[ex.id] as any)?.weight || ''}
                               onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [ex.id]: { ...(logData.results[ex.id] as any), weight: e.target.value } } })}
                             />
@@ -2261,7 +2261,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                             <input
                               type="text" inputMode="numeric" placeholder="e.g. 8"
                               style={{ fontSize: '16px' }}
-                              className="w-full bg-white border border-neutral-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-accent transition-all"
+                              className="w-full bg-white border border-neutral-200 rounded-lg p-2 text-sm font-black uppercase outline-none focus:border-accent transition"
                               value={(logData.results[ex.id] as any)?.reps || ''}
                               onChange={(e) => setLogData({ ...logData, results: { ...logData.results, [ex.id]: { ...(logData.results[ex.id] as any), reps: e.target.value } } })}
                             />
@@ -2296,7 +2296,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm hover:bg-neutral-800 transition-all shadow-2xl flex items-center justify-center gap-3 disabled:opacity-50"
+                    className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm hover:bg-neutral-800 transition shadow-2xl flex items-center justify-center gap-3 disabled:opacity-50"
                   >
                     {isSubmitting
                       ? <><div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> {t('common.saving')}</>

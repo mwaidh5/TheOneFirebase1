@@ -32,7 +32,7 @@ const PaymentSettings: React.FC = () => {
         <button 
           onClick={handleSave}
           disabled={saveStatus === 'SAVING'}
-          className="px-10 py-5 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-3 disabled:opacity-50"
+          className="px-10 py-5 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center gap-3 disabled:opacity-50"
         >
           {saveStatus === 'SAVING' ? (
             <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -54,8 +54,8 @@ const PaymentSettings: React.FC = () => {
                 SindiPay Configuration
               </h2>
               <div className="flex p-1 bg-neutral-50 rounded-xl">
-                 <button onClick={() => setGateway({...gateway, mode: 'SANDBOX'})} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${gateway.mode === 'SANDBOX' ? 'bg-white text-black shadow-sm' : 'text-neutral-400 hover:text-black'}`}>Sandbox</button>
-                 <button onClick={() => setGateway({...gateway, mode: 'PRODUCTION'})} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${gateway.mode === 'PRODUCTION' ? 'bg-red-50 text-white shadow-lg' : 'text-neutral-400 hover:text-red-500'}`}>Live Mode</button>
+                 <button onClick={() => setGateway({...gateway, mode: 'SANDBOX'})} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition ${gateway.mode === 'SANDBOX' ? 'bg-white text-black shadow-sm' : 'text-neutral-400 hover:text-black'}`}>Sandbox</button>
+                 <button onClick={() => setGateway({...gateway, mode: 'PRODUCTION'})} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition ${gateway.mode === 'PRODUCTION' ? 'bg-red-50 text-white shadow-lg' : 'text-neutral-400 hover:text-red-500'}`}>Live Mode</button>
               </div>
             </div>
 
@@ -141,7 +141,7 @@ const PaymentSettings: React.FC = () => {
            <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-6">
               <h4 className="text-sm font-black uppercase text-black tracking-tight border-l-4 border-accent pl-4">Webhooks</h4>
               <div className="grid gap-3">
-                 <button className="w-full p-4 bg-neutral-50 rounded-xl text-left hover:bg-black hover:text-white transition-all group">
+                 <button className="w-full p-4 bg-neutral-50 rounded-xl text-left hover:bg-black hover:text-white transition group">
                     <p className="text-[10px] font-black uppercase text-neutral-400 group-hover:text-white/60">Callback URL</p>
                     <code className="text-[9px] font-mono mt-1 block">https://api.theone.com/sindi-callback</code>
                  </button>

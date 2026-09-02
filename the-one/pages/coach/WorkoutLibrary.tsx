@@ -199,12 +199,12 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
               placeholder="Search blueprints..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-black transition-all"
+              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-black transition"
             />
           </div>
           <button 
             onClick={startAdding}
-            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2"
+            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center gap-2"
           >
             <span className="material-symbols-outlined">add</span>
             New Blueprint
@@ -216,7 +216,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
         {displayWorkouts.map((wo) => {
           const isOwner = currentUser.role === UserRole.ADMIN || wo.creatorId === currentUser.id;
           return (
-            <div key={wo.id} className="bg-white rounded-[2.5rem] p-10 border border-neutral-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col h-full">
+            <div key={wo.id} className="bg-white rounded-[2.5rem] p-10 border border-neutral-100 shadow-sm hover:shadow-2xl transition group relative overflow-hidden flex flex-col h-full">
               <div className="flex justify-between items-start mb-8 relative z-10">
                 <div className="space-y-2">
                   <span className="text-[10px] font-black text-accent uppercase tracking-widest block">{wo.category} Cycle</span>
@@ -224,10 +224,10 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                 </div>
                 {isOwner && (
                   <div className="flex gap-2">
-                    <button onClick={() => startEditing(wo)} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-black hover:text-white transition-all shadow-sm">
+                    <button onClick={() => startEditing(wo)} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-black hover:text-white transition shadow-sm">
                       <span className="material-symbols-outlined text-xl">edit</span>
                     </button>
-                    <button onClick={() => removeWo(wo.id)} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                    <button onClick={() => removeWo(wo.id)} className="p-3 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition shadow-sm">
                       <span className="material-symbols-outlined text-xl">delete</span>
                     </button>
                   </div>
@@ -303,12 +303,12 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                  <div className="flex gap-2 shrink-0">
                     <button 
                       onClick={handleSave}
-                      className="px-4 md:px-10 py-3 md:py-5 bg-black text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2"
+                      className="px-4 md:px-10 py-3 md:py-5 bg-black text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-neutral-800 transition shadow-xl flex items-center gap-2"
                     >
                       <span className="material-symbols-outlined text-sm md:text-base">save</span>
                       <span className="hidden md:inline">Save Blueprint</span>
                     </button>
-                    <button onClick={() => setIsAdding(false)} className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                    <button onClick={() => setIsAdding(false)} className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm">
                         <span className="material-symbols-outlined text-sm md:text-base">close</span>
                     </button>
                  </div>
@@ -318,14 +318,14 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                  {/* NAVIGATION (Weeks & Days) */}
                  <div className="md:col-span-2 border-r border-neutral-100 bg-white overflow-hidden flex flex-col shrink-0">
                     <div className="p-3 md:p-6 flex md:flex-col overflow-x-auto md:overflow-y-auto no-scrollbar gap-2 border-b md:border-b-0 border-neutral-100">
-                       <button onClick={addWeek} className="hidden md:flex items-center justify-center p-2 mb-4 bg-accent/5 text-accent rounded-xl border border-accent/20 hover:bg-accent hover:text-white transition-all">
+                       <button onClick={addWeek} className="hidden md:flex items-center justify-center p-2 mb-4 bg-accent/5 text-accent rounded-xl border border-accent/20 hover:bg-accent hover:text-white transition">
                           <span className="material-symbols-outlined">add_circle</span>
                        </button>
                        {activeWo.weeks?.map((week, wIdx) => (
                           <button 
                             key={week.id} 
                             onClick={() => { setActiveWeekIdx(wIdx); setActiveDayIdx(0); }}
-                            className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeWeekIdx === wIdx ? 'bg-black text-white shadow-md' : 'text-neutral-400 bg-neutral-50 hover:bg-neutral-100'}`}
+                            className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition shrink-0 ${activeWeekIdx === wIdx ? 'bg-black text-white shadow-md' : 'text-neutral-400 bg-neutral-50 hover:bg-neutral-100'}`}
                           >
                             W{week.weekNumber}
                           </button>
@@ -341,7 +341,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                             <button 
                               key={day.id} 
                               onClick={() => setActiveDayIdx(dIdx)}
-                              className={`whitespace-nowrap px-3 py-1.5 rounded-md text-[8px] font-black uppercase tracking-tight transition-all shrink-0 ${activeDayIdx === dIdx ? 'text-white bg-accent shadow-sm' : 'text-neutral-400 bg-white border border-neutral-100'}`}
+                              className={`whitespace-nowrap px-3 py-1.5 rounded-md text-[8px] font-black uppercase tracking-tight transition shrink-0 ${activeDayIdx === dIdx ? 'text-white bg-accent shadow-sm' : 'text-neutral-400 bg-white border border-neutral-100'}`}
                             >
                                 D{day.dayNumber}
                             </button>
@@ -355,7 +355,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                             <button 
                                 key={day.id} 
                                 onClick={() => setActiveDayIdx(dIdx)}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:bg-neutral-50'}`}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase transition ${activeDayIdx === dIdx ? 'text-accent bg-accent/5' : 'text-neutral-400 hover:bg-neutral-50'}`}
                             >
                                 Day {day.dayNumber}
                             </button>
@@ -385,7 +385,7 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                              </div>
                              <button 
                                onClick={addExercise}
-                               className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-black text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all shadow-xl flex items-center justify-center gap-2"
+                               className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-black text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-accent transition shadow-xl flex items-center justify-center gap-2"
                              >
                                <span className="material-symbols-outlined text-base md:text-lg">add</span>
                                Add Exercise
@@ -393,12 +393,12 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                           </div>
                           <div className="space-y-4 md:space-y-6">
                              {activeDay.exercises.map((ex, exIdx) => (
-                                <div key={ex.id} className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] bg-white border border-neutral-100 shadow-sm relative group space-y-6 text-left transition-all hover:shadow-md">
+                                <div key={ex.id} className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] bg-white border border-neutral-100 shadow-sm relative group space-y-6 text-left transition hover:shadow-md">
                                      <div className="absolute top-4 md:top-6 right-4 md:right-6 flex items-center gap-2">
-                                        <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: exIdx })} className="p-2 text-accent hover:bg-accent/5 rounded-lg transition-all">
+                                        <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: exIdx })} className="p-2 text-accent hover:bg-accent/5 rounded-lg transition">
                                            <span className="material-symbols-outlined text-lg">category</span>
                                         </button>
-                                        <button onClick={() => removeExercise(exIdx)} className="p-2 text-neutral-300 hover:text-red-500 rounded-lg transition-all">
+                                        <button onClick={() => removeExercise(exIdx)} className="p-2 text-neutral-300 hover:text-red-500 rounded-lg transition">
                                            <span className="material-symbols-outlined text-lg">delete</span>
                                         </button>
                                      </div>
@@ -430,11 +430,11 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
                                         </div>
                                         <div className="space-y-4">
                                            <div className="grid grid-cols-2 gap-3">
-                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all ${ex.imageUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
+                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-2.5 rounded-xl transition ${ex.imageUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
                                                  <span className="material-symbols-outlined text-base">{ex.imageUrl ? 'check' : 'image'}</span>
                                                  <span className="text-[8px] font-black uppercase">Photo</span>
                                               </button>
-                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all ${ex.videoUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
+                                              <button onClick={() => setIsPickerOpen({ type: 'media', activeIndex: exIdx, activeField: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-2.5 rounded-xl transition ${ex.videoUrl ? 'bg-accent text-white' : 'bg-neutral-50 text-neutral-300'}`}>
                                                  <span className="material-symbols-outlined text-base">{ex.videoUrl ? 'check' : 'videocam'}</span>
                                                  <span className="text-[8px] font-black uppercase">Video</span>
                                               </button>
@@ -464,13 +464,13 @@ const CoachWorkoutLibrary: React.FC<WorkoutLibraryProps> = ({ library, currentUs
            <div className="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[80vh]">
               <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left">
                  <h3 className="text-xl font-black font-display uppercase text-black">Master Library</h3>
-                 <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+                 <button onClick={() => setIsPickerOpen({ type: 'exercise', activeIndex: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                    <span className="material-symbols-outlined">close</span>
                  </button>
               </div>
               <div className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar space-y-3">
                  {exerciseLibrary.map(item => (
-                    <button key={item.id} onClick={() => selectFromExerciseLibrary(item)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group">
+                    <button key={item.id} onClick={() => selectFromExerciseLibrary(item)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group">
                        <div className="text-left"><p className="text-sm font-black text-black uppercase tracking-tight">{item.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{item.defaultFormat}</p></div>
                        <span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span>
                     </button>

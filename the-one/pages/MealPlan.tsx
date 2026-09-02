@@ -149,7 +149,7 @@ const MealPlan: React.FC = () => {
               <button
                 key={i}
                 onClick={() => setSelectedIdx(i)}
-                className={`flex flex-col items-center px-4 py-2.5 rounded-2xl border transition-all min-w-[60px] ${
+                className={`flex flex-col items-center px-4 py-2.5 rounded-2xl border transition min-w-[60px] ${
                   sel ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-neutral-100 text-neutral-400'
                 }`}
               >
@@ -171,7 +171,7 @@ const MealPlan: React.FC = () => {
             <button
               key={m.id}
               onClick={() => chooseMode(m.id)}
-              className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${
+              className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition ${
                 mode === m.id ? m.on + ' shadow-lg' : 'bg-white border-neutral-100 text-neutral-400 hover:border-black'
               }`}
             >
@@ -211,7 +211,7 @@ const MealPlan: React.FC = () => {
                 <span className="text-sm font-black text-black tabular-nums" dir="ltr">{kcal} / {targetKcal}</span>
               </div>
               <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-500 ${mode === 'off' ? 'bg-blue-600' : 'bg-black'}`} style={{ width: `${pct(kcal, targetKcal)}%` }} />
+                <div className={`h-full rounded-full transition duration-500 ${mode === 'off' ? 'bg-blue-600' : 'bg-black'}`} style={{ width: `${pct(kcal, targetKcal)}%` }} />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -220,7 +220,7 @@ const MealPlan: React.FC = () => {
                 <span className="text-sm font-black text-black tabular-nums" dir="ltr">{protein}g / {targetProtein}g</span>
               </div>
               <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${pct(protein, targetProtein)}%` }} />
+                <div className="h-full bg-accent rounded-full transition duration-500" style={{ width: `${pct(protein, targetProtein)}%` }} />
               </div>
             </div>
           </div>
@@ -236,7 +236,7 @@ const MealPlan: React.FC = () => {
               <button
                 key={meal.id}
                 onClick={() => toggleMeal(meal.id)}
-                className={`w-full text-start flex items-start gap-3 p-4 rounded-3xl border-2 transition-all ${
+                className={`w-full text-start flex items-start gap-3 p-4 rounded-3xl border-2 transition ${
                   done ? 'border-green-500 bg-green-50' : 'border-neutral-100 bg-white hover:border-black'
                 }`}
               >
@@ -269,7 +269,7 @@ const MealPlan: React.FC = () => {
                 <span className="material-symbols-outlined text-accent">shopping_basket</span>
                 <h3 className="text-lg font-black font-display uppercase">{t('meal.grocery_list')}</h3>
               </div>
-              <button onClick={() => setShowGrocery(false)} className="w-9 h-9 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition-all"><span className="material-symbols-outlined">close</span></button>
+              <button onClick={() => setShowGrocery(false)} className="w-9 h-9 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition"><span className="material-symbols-outlined">close</span></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
               {mode === 'cheat' ? (

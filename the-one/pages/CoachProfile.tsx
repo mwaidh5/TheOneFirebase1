@@ -85,7 +85,7 @@ const CoachProfile: React.FC = () => {
             <h3 className="text-xl font-bold font-display uppercase mb-8">{t('coach_profile.courses_by', { name: coach.name.split(' ')[0] })}</h3>
             <div className="space-y-6">
               {COURSES.map(course => (
-                <Link key={course.id} to={`/courses/${course.id}`} className="group flex items-center gap-4 bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm hover:border-black transition-all">
+                <Link key={course.id} to={`/courses/${course.id}`} className="group flex items-center gap-4 bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm hover:border-black transition">
                   <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
                     <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
                   </div>

@@ -12,6 +12,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            // Touch devices fire a sticky :hover on tap. This gates every
+            // hover: utility behind @media (hover: hover) so the app never
+            // shows a stuck hover state after a finger press.
+            future: { hoverOnlyWhenSupported: true },
             darkMode: 'class',
             theme: {
                 extend: {
@@ -60,6 +64,36 @@
         .thin-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 999px; }
         .thin-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.35); }
         .thin-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,.25) transparent; }
+        /* ── Motion tokens ────────────────────────────────────────────
+           Built-in CSS easings are too weak for UI. These are the curves
+           the whole app animates on. */
+        :root {
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+            --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+            --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        /* Press feedback. This is a phone app first, where hover never fires,
+           so the press IS the affordance. Uses the independent `scale`
+           property, not `transform`, so it composes with translate/rotate
+           utilities instead of clobbering them. */
+        button, [role="button"], .press {
+            transition: scale 140ms var(--ease-out);
+        }
+        button:active:not(:disabled),
+        [role="button"]:active,
+        .press:active {
+            scale: 0.97;
+        }
+        /* Fewer and gentler, not zero: keep opacity and colour, drop travel. */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 120ms !important;
+                scroll-behavior: auto !important;
+            }
+            button:active:not(:disabled), [role="button"]:active, .press:active { scale: 1; }
+        }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1; }
         /* Arabic / RTL: swap body font to Cairo, keep ltr-locked things (timers, numbers) readable. */

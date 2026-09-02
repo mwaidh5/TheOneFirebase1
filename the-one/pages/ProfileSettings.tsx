@@ -265,7 +265,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
              <button 
                key={tab.id}
                onClick={() => setActiveTab(tab.id as any)}
-               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${activeTab === tab.id ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50 hover:text-black'}`}
+               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition ${activeTab === tab.id ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50 hover:text-black'}`}
              >
                <span className={`material-symbols-outlined text-[20px] ${activeTab === tab.id ? 'filled' : ''}`}>{tab.icon}</span>
                {tab.label}
@@ -317,7 +317,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                    <button 
                     type="submit" 
                     disabled={saving || isImpersonating}
-                    className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-neutral-800 transition-all shadow-lg disabled:opacity-50"
+                    className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-neutral-800 transition shadow-lg disabled:opacity-50"
                    >
                      {isImpersonating ? t('settings.disabled_impersonation') : (saving ? t('common.saving') : t('settings.commit_changes'))}
                    </button>
@@ -350,7 +350,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         <button 
                           onClick={() => setIsMfaSetupOpen(true)}
                           disabled={isImpersonating}
-                          className="px-8 py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
+                          className="px-8 py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition shadow-lg shadow-accent/20 disabled:opacity-50"
                         >
                           {t('settings.setup_protocol')}
                         </button>
@@ -358,7 +358,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         <button 
                           onClick={() => { if(!isImpersonating && window.confirm("Disable MFA protection?")) { setMfaEnabled(false); localStorage.removeItem(`mfa_enabled_${currentUser.id}`); } }}
                           disabled={isImpersonating}
-                          className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all disabled:opacity-50"
+                          className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition disabled:opacity-50"
                         >
                           {t('settings.deactivate')}
                         </button>
@@ -380,7 +380,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
 
                   <div className="space-y-4">
                      {devices.map((device, idx) => (
-                         <div key={device.id} className={`flex items-center justify-between p-6 rounded-2xl border transition-all ${device.isCurrent ? 'bg-neutral-50 border-neutral-200' : 'bg-white border-neutral-100 hover:border-black'}`}>
+                         <div key={device.id} className={`flex items-center justify-between p-6 rounded-2xl border transition ${device.isCurrent ? 'bg-neutral-50 border-neutral-200' : 'bg-white border-neutral-100 hover:border-black'}`}>
                             <div className="flex items-center gap-6">
                                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-neutral-400 shadow-sm border border-neutral-100">
                                   <span className="material-symbols-outlined">
@@ -402,7 +402,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                             <button 
                               onClick={() => revokeDevice(device.id)}
                               disabled={isImpersonating}
-                              className="w-10 h-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-sm group disabled:opacity-50"
+                              className="w-10 h-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition shadow-sm group disabled:opacity-50"
                               title="Revoke Access"
                             >
                                <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">delete</span>
@@ -475,7 +475,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                        <button
                          key={opt.code}
                          onClick={() => setLang(opt.code)}
-                         className={`flex items-center justify-between p-6 rounded-2xl border transition-all ${lang === opt.code ? 'bg-black text-white border-black shadow-xl' : 'bg-neutral-50 text-black border-neutral-100 hover:border-black'}`}
+                         className={`flex items-center justify-between p-6 rounded-2xl border transition ${lang === opt.code ? 'bg-black text-white border-black shadow-xl' : 'bg-neutral-50 text-black border-neutral-100 hover:border-black'}`}
                        >
                          <span className="font-black uppercase tracking-widest text-sm">{opt.label}</span>
                          <span className={`material-symbols-outlined ${lang === opt.code ? 'filled' : 'text-neutral-300'}`}>
@@ -499,7 +499,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                     <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{t('settings.security_setup')}</p>
                     <h3 className="text-3xl font-black font-display uppercase text-black leading-none">{t('settings.auth_link')}</h3>
                  </div>
-                 <button onClick={() => setIsMfaSetupOpen(false)} className="w-12 h-12 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm group">
+                 <button onClick={() => setIsMfaSetupOpen(false)} className="w-12 h-12 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm group">
                     <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
                  </button>
               </div>
@@ -539,7 +539,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                     </div>
                     <button
                       onClick={handleActivateMfa}
-                      className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-accent transition-all shadow-xl"
+                      className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-accent transition shadow-xl"
                     >
                       {t('settings.authorize')}
                     </button>

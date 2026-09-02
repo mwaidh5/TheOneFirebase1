@@ -12,7 +12,7 @@ const SupportCourseCatalog: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {COURSES.map(course => (
-          <div key={course.id} className="bg-white rounded-[2.5rem] border border-neutral-100 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col group">
+          <div key={course.id} className="bg-white rounded-[2.5rem] border border-neutral-100 overflow-hidden shadow-sm hover:shadow-xl transition flex flex-col group">
             <div className="h-48 relative overflow-hidden shrink-0">
                <img src={course.image} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" alt="" />
                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-[8px] font-black uppercase tracking-widest">{course.category}</div>

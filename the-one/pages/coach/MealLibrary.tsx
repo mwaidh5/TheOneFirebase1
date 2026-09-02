@@ -209,7 +209,7 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
         {displayPlans.map((plan) => {
           const isOwner = currentUser.role === UserRole.ADMIN || plan.creatorId === currentUser.id;
           return (
-            <div key={plan.id} className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 border border-neutral-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col h-full">
+            <div key={plan.id} className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 border border-neutral-100 shadow-sm hover:shadow-2xl transition group relative overflow-hidden flex flex-col h-full">
               <div className="flex justify-between items-start mb-6 md:mb-8 z-10 relative">
                 <div className="space-y-2">
                   <span className="text-[10px] font-black text-accent uppercase tracking-widest block">{plan.totalCalories} kcal</span>
@@ -292,7 +292,7 @@ const CoachMealLibrary: React.FC<MealLibraryProps> = ({ currentUser, mealPlanLib
                        <span className="material-symbols-outlined text-sm md:text-base">save</span>
                        <span className="hidden md:inline">Save Plan</span>
                     </button>
-                    <button onClick={() => setIsAdding(false)} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                    <button onClick={() => setIsAdding(false)} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition">
                         <span className="material-symbols-outlined text-sm md:text-base">close</span>
                     </button>
                  </div>

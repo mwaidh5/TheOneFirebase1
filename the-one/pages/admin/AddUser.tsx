@@ -66,7 +66,7 @@ const AdminAddUser: React.FC = () => {
                 value={formData.firstName}
                 onChange={e => setFormData({...formData, firstName: e.target.value})}
                 placeholder="John" 
-                className="w-full rounded-xl md:rounded-2xl border border-neutral-100 bg-neutral-50 p-4 md:p-5 text-black outline-none font-bold transition-all" 
+                className="w-full rounded-xl md:rounded-2xl border border-neutral-100 bg-neutral-50 p-4 md:p-5 text-black outline-none font-bold transition" 
               />
             </div>
             <div className="space-y-1">
@@ -76,7 +76,7 @@ const AdminAddUser: React.FC = () => {
                 value={formData.lastName}
                 onChange={e => setFormData({...formData, lastName: e.target.value})}
                 placeholder="Doe" 
-                className="w-full rounded-xl md:rounded-2xl border border-neutral-100 bg-neutral-50 p-4 md:p-5 text-black outline-none font-bold transition-all" 
+                className="w-full rounded-xl md:rounded-2xl border border-neutral-100 bg-neutral-50 p-4 md:p-5 text-black outline-none font-bold transition" 
               />
             </div>
           </div>
@@ -88,7 +88,7 @@ const AdminAddUser: React.FC = () => {
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
                 placeholder="athlete@example.com" 
-                className="w-full rounded-xl md:rounded-2xl border border-neutral-100 bg-neutral-50 p-4 md:p-5 text-black outline-none font-bold transition-all" 
+                className="w-full rounded-xl md:rounded-2xl border border-neutral-100 bg-neutral-50 p-4 md:p-5 text-black outline-none font-bold transition" 
             />
           </div>
 
@@ -121,7 +121,7 @@ const AdminAddUser: React.FC = () => {
           </div>
 
           <div className="pt-6">
-            <button type="submit" className="w-full py-4 md:py-6 bg-black text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-xs md:text-sm shadow-xl hover:bg-neutral-800 transition-all">
+            <button type="submit" className="w-full py-4 md:py-6 bg-black text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-xs md:text-sm shadow-xl hover:bg-neutral-800 transition">
               Save Profile
             </button>
           </div>

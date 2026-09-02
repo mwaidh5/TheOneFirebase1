@@ -241,7 +241,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                 <button 
                   type="submit"
                   disabled={isProcessing}
-                  className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-neutral-800 transition-all shadow-xl flex items-center justify-center gap-4 disabled:opacity-50"
+                  className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-neutral-800 transition shadow-xl flex items-center justify-center gap-4 disabled:opacity-50"
                 >
                   {isProcessing ? (
                     <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> {t('checkout.contacting')}</>
@@ -299,7 +299,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                   />
                   <button
                     onClick={applyCoupon}
-                    className="px-6 py-3 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all"
+                    className="px-6 py-3 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition"
                   >
                     {t('checkout.apply')}
                   </button>

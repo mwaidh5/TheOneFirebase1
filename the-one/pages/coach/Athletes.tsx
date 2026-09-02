@@ -83,9 +83,9 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
         <div className="flex gap-4">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
-            <input type="text" placeholder="Search athletes..." className="bg-white border border-neutral-100 rounded-2xl pl-12 pr-6 py-4 text-sm focus:border-black outline-none w-64 shadow-sm transition-all" />
+            <input type="text" placeholder="Search athletes..." className="bg-white border border-neutral-100 rounded-2xl pl-12 pr-6 py-4 text-sm focus:border-black outline-none w-64 shadow-sm transition" />
           </div>
-          <button className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-neutral-800 transition-all shadow-xl">
+          <button className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-neutral-800 transition shadow-xl">
             Assign Program
           </button>
         </div>
@@ -107,7 +107,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
             <div 
               key={athlete.id} 
               onClick={() => setSelectedAthlete(athlete)}
-              className={`bg-white rounded-[2.5rem] p-8 border shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden ${athlete.isCustomClient ? 'border-accent/30 ring-1 ring-accent/5' : 'border-neutral-100'}`}
+              className={`bg-white rounded-[2.5rem] p-8 border shadow-sm hover:shadow-2xl hover:-translate-y-1 transition cursor-pointer group relative overflow-hidden ${athlete.isCustomClient ? 'border-accent/30 ring-1 ring-accent/5' : 'border-neutral-100'}`}
             >
               {athlete.isCustomClient && (
                 <div className="absolute top-0 right-0 p-4">
@@ -132,7 +132,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
                     <span className="text-black">{athlete.progress}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-neutral-50 rounded-full overflow-hidden border border-neutral-100">
-                    <div className={`h-full rounded-full transition-all duration-1000 ${athlete.isCustomClient ? 'bg-accent' : 'bg-black'}`} style={{ width: `${athlete.progress}%` }}></div>
+                    <div className={`h-full rounded-full transition duration-1000 ${athlete.isCustomClient ? 'bg-accent' : 'bg-black'}`} style={{ width: `${athlete.progress}%` }}></div>
                   </div>
                 </div>
 
@@ -150,7 +150,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
                   
                   <button 
                     onClick={(e) => handleMessageAthlete(e, athlete.id)}
-                    className="w-10 h-10 rounded-xl bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white transition-all flex items-center justify-center group/msg shadow-sm"
+                    className="w-10 h-10 rounded-xl bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white transition flex items-center justify-center group/msg shadow-sm"
                   >
                     <span className="material-symbols-outlined text-[20px] filled">chat</span>
                   </button>
@@ -167,7 +167,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
             <button 
               onClick={() => setSelectedAthlete(null)}
-              className="absolute top-8 right-8 w-12 h-12 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition-all z-20 shadow-sm"
+              className="absolute top-8 right-8 w-12 h-12 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition z-20 shadow-sm"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -233,12 +233,12 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
                       handleMessageAthlete(e, selectedAthlete.id);
                       setSelectedAthlete(null);
                     }}
-                    className="flex-1 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-all shadow-xl flex items-center justify-center gap-3"
+                    className="flex-1 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition shadow-xl flex items-center justify-center gap-3"
                   >
                     <span className="material-symbols-outlined filled">chat</span>
                     Open Chat
                   </button>
-                  <button className="flex-1 py-5 border border-neutral-100 text-black rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-50 transition-all flex items-center justify-center gap-3">
+                  <button className="flex-1 py-5 border border-neutral-100 text-black rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-50 transition flex items-center justify-center gap-3">
                     <span className="material-symbols-outlined">assignment_ind</span>
                     Audit History
                   </button>
