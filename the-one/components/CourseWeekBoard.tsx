@@ -46,7 +46,7 @@ const DayCard: React.FC<{ day: DayProgram; weekId: string; onOpen: () => void; o
       ref={setNodeRef}
       style={style}
       onClick={onOpen}
-      className="group/card relative bg-white border border-neutral-200 rounded-2xl p-4 cursor-pointer hover:border-black hover:shadow-md transition-all select-none"
+      className="group/card relative bg-white border border-neutral-200 rounded-2xl p-4 cursor-pointer hover:border-black hover:shadow-md transition select-none"
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -65,10 +65,10 @@ const DayCard: React.FC<{ day: DayProgram; weekId: string; onOpen: () => void; o
           <span className="text-[8px] font-black uppercase tracking-widest text-accent">Day {day.dayNumber}</span>
         </div>
         <div className="flex gap-1 opacity-100 md:opacity-0 group-hover/card:opacity-100 transition-opacity">
-          <button onPointerDown={stop} onClick={(e) => { stop(e); onClone(); }} className="w-6 h-6 rounded-lg bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-accent hover:text-white transition-all" title="Clone day">
+          <button onPointerDown={stop} onClick={(e) => { stop(e); onClone(); }} className="w-6 h-6 rounded-lg bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-accent hover:text-white transition" title="Clone day">
             <span className="material-symbols-outlined text-[14px]">content_copy</span>
           </button>
-          <button onPointerDown={stop} onClick={(e) => { stop(e); onDelete(); }} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete day">
+          <button onPointerDown={stop} onClick={(e) => { stop(e); onDelete(); }} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition" title="Delete day">
             <span className="material-symbols-outlined text-[14px]">delete</span>
           </button>
         </div>
@@ -98,10 +98,10 @@ const WeekColumn: React.FC<{
       <div className="flex items-center justify-between px-2 mb-3">
         <h3 className="text-xs font-black uppercase tracking-widest text-black">Week {week.weekNumber}</h3>
         <div className="flex gap-1">
-          <button onClick={onClone} className="w-6 h-6 rounded-lg bg-accent/10 text-accent flex items-center justify-center hover:bg-accent hover:text-white transition-all" title="Duplicate week">
+          <button onClick={onClone} className="w-6 h-6 rounded-lg bg-accent/10 text-accent flex items-center justify-center hover:bg-accent hover:text-white transition" title="Duplicate week">
             <span className="material-symbols-outlined text-[14px]">content_copy</span>
           </button>
-          <button onClick={onDelete} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Delete week">
+          <button onClick={onDelete} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition" title="Delete week">
             <span className="material-symbols-outlined text-[14px]">delete</span>
           </button>
         </div>
@@ -258,8 +258,8 @@ const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: num
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${ex.imageUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">Photo</span></button>
-              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${ex.videoUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">Video</span></button>
+              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.imageUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">Photo</span></button>
+              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.videoUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">Video</span></button>
             </div>
             <textarea rows={2} value={ex.description} onChange={(e) => updateExercise(exIdx, 'description', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[10px] font-medium resize-none" placeholder="Coaching Notes..." />
           </div>
@@ -434,7 +434,7 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
           <h2 className="text-xl md:text-2xl font-black font-display uppercase tracking-tight text-black">Program Board</h2>
           <p className="text-[11px] font-medium text-neutral-400">Drag days between weeks · tap a day to edit</p>
         </div>
-        <button onClick={() => setIsAIOpen(true)} className="px-5 py-3 bg-gradient-to-r from-violet-600 to-accent text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg hover:shadow-accent/30 transition-all hover:-translate-y-0.5">
+        <button onClick={() => setIsAIOpen(true)} className="px-5 py-3 bg-gradient-to-r from-violet-600 to-accent text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg hover:shadow-accent/30 transition hover:-translate-y-0.5">
           <span className="material-symbols-outlined text-base">auto_awesome</span> AI Generate
         </button>
       </div>
@@ -478,7 +478,7 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
                 <span className="text-[9px] font-black uppercase text-accent">Week {weeks[selectedLoc.weekIdx].weekNumber} · Day {selectedDay.dayNumber}</span>
                 <input type="text" value={selectedDay.title} onChange={(e) => mutateSelectedDay((d) => ({ ...d, title: e.target.value }))} className="block w-full text-xl md:text-2xl font-black uppercase text-black bg-transparent outline-none mt-1" placeholder="Day title" />
               </div>
-              <button onClick={() => setSelectedDayId(null)} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center shrink-0 hover:bg-black hover:text-white transition-all"><span className="material-symbols-outlined">close</span></button>
+              <button onClick={() => setSelectedDayId(null)} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center shrink-0 hover:bg-black hover:text-white transition"><span className="material-symbols-outlined">close</span></button>
             </div>
 
             <div className="px-6 py-4 border-b border-neutral-100 flex gap-2 flex-wrap">
@@ -514,9 +514,9 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
             <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left"><h3 className="text-xl font-black uppercase text-black">{picker.type === 'exercise' ? 'Exercises' : 'Workouts'}</h3><button onClick={() => setPicker(null)} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
               {picker.type === 'exercise' ? exerciseLibrary.map((ex) => (
-                <button key={ex.id} onClick={() => { if (picker.exIdx != null) { updateExercise(picker.exIdx, 'name', ex.name); updateExercise(picker.exIdx, 'format', ex.defaultFormat as any); } setPicker(null); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group text-left"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{ex.defaultFormat}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                <button key={ex.id} onClick={() => { if (picker.exIdx != null) { updateExercise(picker.exIdx, 'name', ex.name); updateExercise(picker.exIdx, 'format', ex.defaultFormat as any); } setPicker(null); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{ex.defaultFormat}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
               )) : workoutLibrary.map((wo) => (
-                <button key={wo.id} onClick={() => applyBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition-all group text-left"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                <button key={wo.id} onClick={() => applyBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
               ))}
             </div>
           </div>
@@ -539,7 +539,7 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
             </div>
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 md:grid-cols-4 gap-4 no-scrollbar">
               {mediaLibrary.filter((a) => a.category === 'WORKOUT').map((asset) => (
-                <div key={asset.id} onClick={() => { if (picker.exIdx != null) updateExercise(picker.exIdx, picker.field as any, asset.data); setPicker(null); }} className="aspect-square rounded-2xl overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-2 hover:ring-accent transition-all relative group">
+                <div key={asset.id} onClick={() => { if (picker.exIdx != null) updateExercise(picker.exIdx, picker.field as any, asset.data); setPicker(null); }} className="aspect-square rounded-2xl overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-2 hover:ring-accent transition relative group">
                   {asset.type === 'video' || asset.data.includes('.mp4') ? (
                     <div className="w-full h-full flex items-center justify-center bg-neutral-900"><span className="material-symbols-outlined text-white text-3xl">videocam</span></div>
                   ) : (

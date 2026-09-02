@@ -206,7 +206,7 @@ const AppHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('home.app_quick')}</p>
           <div className="grid grid-cols-4 gap-3">
             {quickActions.map((a) => (
-              <Link key={a.to} to={a.to} className="flex flex-col items-center gap-2 bg-white rounded-2xl border border-neutral-100 py-4 hover:-translate-y-0.5 hover:shadow-md transition-all">
+              <Link key={a.to} to={a.to} className="flex flex-col items-center gap-2 bg-white rounded-2xl border border-neutral-100 py-4 hover:-translate-y-0.5 hover:shadow-md transition">
                 <span className={`w-11 h-11 rounded-xl ${a.bg} ${a.color} flex items-center justify-center`}>
                   <span className="material-symbols-outlined text-[22px]">{a.icon}</span>
                 </span>
@@ -226,7 +226,7 @@ const AppHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
           {featuredCourses.length > 0 ? (
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory theone-hide-scrollbar">
               {featuredCourses.map((course) => (
-                <Link key={course.id} to={`/courses/${course.id}`} className="snap-start shrink-0 w-64 bg-white rounded-3xl border border-neutral-100 overflow-hidden hover:shadow-xl transition-all">
+                <Link key={course.id} to={`/courses/${course.id}`} className="snap-start shrink-0 w-64 bg-white rounded-3xl border border-neutral-100 overflow-hidden hover:shadow-xl transition">
                   <div className="h-40 relative">
                     <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover" displayWidth={500} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

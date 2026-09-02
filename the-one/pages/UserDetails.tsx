@@ -100,7 +100,7 @@ const UserDetails: React.FC<Props> = ({ currentUser }) => {
             </div>
           ))}
         </div>
-        <button type="submit" disabled={saving} className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-neutral-800 transition-all disabled:opacity-50">
+        <button type="submit" disabled={saving} className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-neutral-800 transition disabled:opacity-50">
           {saving ? t('common.saving') : 'Save entry'}
         </button>
       </form>

@@ -276,7 +276,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
           <h1 className="text-5xl font-black tracking-tight text-black font-display uppercase">{t('profile.athlete_profile')}</h1>
           <p className="text-neutral-400 font-medium">{t('profile.path_sub')}</p>
         </div>
-        <Link to="/profile/settings" className="text-[10px] font-black uppercase tracking-widest text-black hover:bg-neutral-50 px-6 py-3 border border-neutral-100 rounded-xl transition-all flex items-center gap-3">
+        <Link to="/profile/settings" className="text-[10px] font-black uppercase tracking-widest text-black hover:bg-neutral-50 px-6 py-3 border border-neutral-100 rounded-xl transition flex items-center gap-3">
           <span className="material-symbols-outlined text-[18px]">settings</span>
           {t('profile.manage_account')}
         </Link>
@@ -294,7 +294,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                   <span className="material-symbols-outlined text-[64px] text-neutral-300">person</span>
                 )}
               </div>
-              <label className={`absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-2xl shadow-xl hover:bg-accent transition-all cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <label className={`absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-2xl shadow-xl hover:bg-accent transition cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
                 {isUploading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -345,11 +345,11 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 <div className="flex gap-2 bg-white/5 p-1 rounded-2xl">
                   <button
                     onClick={() => setActivityView('weekly')}
-                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${activityView === 'weekly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
+                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition ${activityView === 'weekly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
                   >{t('profile.weekly')}</button>
                   <button
                     onClick={() => setActivityView('monthly')}
-                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${activityView === 'monthly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
+                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition ${activityView === 'monthly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
                   >{t('profile.monthly')}</button>
                 </div>
               </div>
@@ -375,7 +375,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={() => activityView === 'weekly' ? setWeekOffset(w => w - 1) : setMonthOffset(m => m - 1)}
-                  className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                  className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_left</span>
                 </button>
@@ -383,7 +383,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 <button
                   onClick={() => activityView === 'weekly' ? setWeekOffset(w => Math.min(w + 1, 0)) : setMonthOffset(m => Math.min(m + 1, 0))}
                   disabled={isCurrentPeriod}
-                  className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_right</span>
                 </button>
@@ -453,7 +453,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                   const resultEntries = log.results ? Object.entries(log.results) : [];
 
                   return (
-                    <div key={log.id} className="bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden hover:shadow-md transition-all">
+                    <div key={log.id} className="bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden hover:shadow-md transition">
                       <div className="flex items-center gap-4 p-5">
                         <div className="w-12 h-12 bg-black text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg">
                           <span className="text-[8px] font-black uppercase tracking-widest text-white/50 leading-none">{dayAbbrev}</span>
@@ -507,7 +507,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 {allLogs.length > visibleCount && (
                   <button
                     onClick={() => setVisibleCount(c => c + 10)}
-                    className="w-full py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition-all border border-neutral-100"
+                    className="w-full py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100"
                   >
                     {t('profile.show_more_remaining', { n: allLogs.length - visibleCount })}
                   </button>
@@ -527,7 +527,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 {liftHistory.length > 0 && (
                   <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{liftHistory.length} {t('profile.entries')}</span>
                 )}
-                <div className="w-9 h-9 rounded-xl bg-neutral-100 group-hover:bg-neutral-200 flex items-center justify-center transition-all">
+                <div className="w-9 h-9 rounded-xl bg-neutral-100 group-hover:bg-neutral-200 flex items-center justify-center transition">
                   <span className={`material-symbols-outlined text-base text-neutral-500 transition-transform duration-300 ${liftHistoryOpen ? 'rotate-180' : ''}`}>expand_more</span>
                 </div>
               </div>
@@ -545,7 +545,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                     {liftHistory.slice(0, liftVisibleCount).map((entry: typeof liftHistory[0], idx: number) => {
                       const dateStr = entry.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                       return (
-                        <div key={`${entry.logId}_${entry.exerciseId}_${idx}`} className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4 flex items-center gap-4 hover:shadow-md transition-all">
+                        <div key={`${entry.logId}_${entry.exerciseId}_${idx}`} className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4 flex items-center gap-4 hover:shadow-md transition">
                           <div className="w-10 h-10 bg-neutral-900 text-white rounded-xl flex items-center justify-center shrink-0">
                             <span className="material-symbols-outlined text-sm">fitness_center</span>
                           </div>
@@ -566,14 +566,14 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                       {liftHistory.length > liftVisibleCount && (
                         <button
                           onClick={() => setLiftVisibleCount((c: number) => c + 10)}
-                          className="flex-1 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition-all border border-neutral-100"
+                          className="flex-1 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100"
                         >
                           {t('profile.show_more_remaining', { n: liftHistory.length - liftVisibleCount })}
                         </button>
                       )}
                       <button
                         onClick={() => { setLiftHistoryOpen(false); setLiftVisibleCount(5); }}
-                        className="px-6 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition-all border border-neutral-100 flex items-center gap-2"
+                        className="px-6 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100 flex items-center gap-2"
                       >
                         <span className="material-symbols-outlined text-sm">expand_less</span>
                         {t('profile.collapse')}
@@ -601,7 +601,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                   <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
                     <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">menu_book</span>
                     <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">{t('profile.no_active_programs')}<br />{t('profile.enroll_to_start')}</p>
-                    <Link to="/courses" className="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all">{t('profile.browse_courses')}</Link>
+                    <Link to="/courses" className="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition">{t('profile.browse_courses')}</Link>
                   </div>
                 );
               }
@@ -626,7 +626,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                     const progress = totalDays > 0 ? Math.min(100, Math.round((completedDayCount / totalDays) * 100)) : 0;
                     const coachAvatar = COACHES.find((c: { name: string; avatar?: string }) => c.name.includes(course.instructor.split(' ')[0]))?.avatar;
                     return (
-                      <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500">
+                      <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition duration-500">
                         {course.image ? (
                           <div className="relative h-56 overflow-hidden">
                             <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" />
@@ -653,16 +653,16 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                               <span className="text-sm font-black text-black">{progress}%</span>
                             </div>
                             <div className="w-full bg-neutral-50 rounded-full h-2 border border-neutral-100 overflow-hidden">
-                              <div className="bg-black h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
+                              <div className="bg-black h-full rounded-full transition duration-1000" style={{ width: `${progress}%` }} />
                             </div>
                           </div>
                           <div className="flex gap-4">
-                            <Link to={`/workout/${course.id}`} className="flex-[2] text-center bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-xl">
+                            <Link to={`/workout/${course.id}`} className="flex-[2] text-center bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition shadow-xl">
                               {t('profile.resume')}
                             </Link>
                             <button
                               onClick={() => handleMessageCoach(course.instructor)}
-                              className="flex-1 bg-neutral-50 text-black py-4 rounded-2xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center"
+                              className="flex-1 bg-neutral-50 text-black py-4 rounded-2xl hover:bg-accent hover:text-white transition border border-neutral-100 flex items-center justify-center"
                             >
                               <span className="material-symbols-outlined text-[20px] filled">chat</span>
                             </button>

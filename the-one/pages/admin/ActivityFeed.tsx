@@ -141,7 +141,7 @@ const AdminActivityFeed: React.FC = () => {
               placeholder="Search by title, athlete, email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-medium outline-none focus:border-black transition-all"
+              className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-medium outline-none focus:border-black transition"
             />
           </div>
           <div className="flex p-1 bg-neutral-50 border border-neutral-100 rounded-2xl shrink-0">
@@ -149,7 +149,7 @@ const AdminActivityFeed: React.FC = () => {
               <button
                 key={t}
                 onClick={() => setTimeframe(t)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${timeframe === t ? 'bg-black text-white shadow-lg' : 'text-neutral-400 hover:text-black'}`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${timeframe === t ? 'bg-black text-white shadow-lg' : 'text-neutral-400 hover:text-black'}`}
               >
                 {t}
               </button>
@@ -165,7 +165,7 @@ const AdminActivityFeed: React.FC = () => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition border flex items-center gap-1.5 ${
                   filter === f ? 'bg-black text-white border-black shadow-xl' : 'bg-neutral-50 text-neutral-400 border-neutral-100 hover:border-neutral-300'
                 }`}
               >
@@ -207,7 +207,7 @@ const AdminActivityFeed: React.FC = () => {
             return (
               <div
                 key={log.id}
-                className="group bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row sm:items-center gap-4 cursor-pointer"
+                className="group bg-white p-5 rounded-3xl border border-neutral-100 shadow-sm hover:shadow-lg transition flex flex-col sm:flex-row sm:items-center gap-4 cursor-pointer"
                 onClick={() => setSelectedLog(log)}
               >
                 {/* Type Icon */}
@@ -281,7 +281,7 @@ const AdminActivityFeed: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setSelectedLog(null)}
-                  className="w-10 h-10 bg-neutral-50 border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all group shrink-0"
+                  className="w-10 h-10 bg-neutral-50 border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition group shrink-0"
                 >
                   <span className="material-symbols-outlined group-hover:rotate-90 transition-transform text-sm">close</span>
                 </button>
@@ -348,7 +348,7 @@ const AdminActivityFeed: React.FC = () => {
               <div className="p-6 border-t border-neutral-100 flex justify-end">
                 <button
                   onClick={() => setSelectedLog(null)}
-                  className="px-8 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-xl"
+                  className="px-8 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition shadow-xl"
                 >
                   Close
                 </button>

@@ -79,7 +79,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
           <div className="w-10 h-1 bg-neutral-200 rounded-full mx-auto mb-1" />
           <button
             onClick={startOrResume}
-            className={`w-full flex items-center gap-4 p-4 rounded-2xl text-white shadow-lg transition-all active:scale-[0.98] ${isResume ? 'bg-accent shadow-accent/30' : 'bg-black'}`}
+            className={`w-full flex items-center gap-4 p-4 rounded-2xl text-white shadow-lg transition active:scale-[0.98] ${isResume ? 'bg-accent shadow-accent/30' : 'bg-black'}`}
           >
             <span className="material-symbols-outlined text-[26px] filled">{isResume ? 'play_arrow' : 'exercise'}</span>
             <span className="flex-1 text-start text-sm font-black uppercase tracking-widest">{isResume ? t('nav.resume') : t('nav.start')}</span>
@@ -87,7 +87,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
           </button>
           <button
             onClick={goNutrition}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-100 transition-all active:scale-[0.98]"
+            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-100 transition active:scale-[0.98]"
           >
             <span className="material-symbols-outlined text-[26px] filled">restaurant</span>
             <span className="flex-1 text-start text-sm font-black uppercase tracking-widest">{t('nav.nutrition')}</span>

@@ -431,7 +431,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
               <button
                 key={conv.id}
                 onClick={() => { setActiveThreadId(conv.id); setShowThreadList(false); }}
-                className={`w-full p-4 text-left rounded-2xl transition-all flex gap-4 items-center ${isActive ? 'bg-black text-white' : 'hover:bg-white text-neutral-500'}`}
+                className={`w-full p-4 text-left rounded-2xl transition flex gap-4 items-center ${isActive ? 'bg-black text-white' : 'hover:bg-white text-neutral-500'}`}
               >
                 <img src={recipient.avatar || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-xl object-cover shrink-0" alt="" />
                 <div className="flex-grow min-w-0">
@@ -488,7 +488,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
             </div>
 
             <form onSubmit={handleSendMessage} className="p-4 md:p-8 border-t border-neutral-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.05)] relative z-10">
-              <div className="flex items-center gap-2 md:gap-4 bg-neutral-50 p-1 md:p-2 rounded-2xl border border-neutral-200 focus-within:border-black transition-all">
+              <div className="flex items-center gap-2 md:gap-4 bg-neutral-50 p-1 md:p-2 rounded-2xl border border-neutral-200 focus-within:border-black transition">
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-black">
                   {isUploading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">attach_file</span>}
                 </button>
@@ -504,7 +504,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                     {inputText.length}/{MAX_MSG_LENGTH}
                   </span>
                 )}
-                <button type="submit" disabled={!inputText.trim() || inputText.length > MAX_MSG_LENGTH} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-sm md:text-base">send</span></button>
+                <button type="submit" disabled={!inputText.trim() || inputText.length > MAX_MSG_LENGTH} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20 transition"><span className="material-symbols-outlined text-sm md:text-base">send</span></button>
               </div>
             </form>
           </>

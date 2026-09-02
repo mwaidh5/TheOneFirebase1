@@ -52,7 +52,7 @@ const CoachProgramming: React.FC = () => {
           <h1 className="text-2xl md:text-4xl font-black font-display tracking-tight text-black uppercase">WOD Programming</h1>
           <p className="text-neutral-400 text-sm md:text-base font-medium">Design daily training sessions.</p>
         </div>
-        <button className="w-full md:w-auto px-6 md:px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-[10px] md:text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center justify-center gap-2">
+        <button className="w-full md:w-auto px-6 md:px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-[10px] md:text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center justify-center gap-2">
           <span className="material-symbols-outlined text-lg">calendar_add_on</span>
           Schedule
         </button>
@@ -71,7 +71,7 @@ const CoachProgramming: React.FC = () => {
 
             <div className="space-y-3 md:space-y-4">
               {wods.map((wod, i) => (
-                <div key={i} onClick={() => handleEditWod(i)} className="flex items-center gap-4 md:gap-8 p-4 md:p-6 bg-neutral-50 rounded-2xl md:rounded-3xl border border-neutral-100 hover:border-black transition-all group cursor-pointer">
+                <div key={i} onClick={() => handleEditWod(i)} className="flex items-center gap-4 md:gap-8 p-4 md:p-6 bg-neutral-50 rounded-2xl md:rounded-3xl border border-neutral-100 hover:border-black transition group cursor-pointer">
                   <div className="text-center w-12 md:w-16 shrink-0">
                     <p className="text-[8px] md:text-[10px] font-black text-neutral-400 uppercase tracking-widest">{wod.day}</p>
                     <p className="text-base md:text-xl font-black text-black leading-tight">{wod.date.split(' ').pop()}</p>
@@ -182,11 +182,11 @@ const CoachProgramming: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-6 md:p-12 no-scrollbar">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {WOD_TEMPLATES.map(tmpl => (
-                       <div key={tmpl.id} className="p-6 md:p-8 bg-white/5 rounded-2xl md:rounded-3xl border border-white/5 hover:border-accent transition-all group flex flex-col">
+                       <div key={tmpl.id} className="p-6 md:p-8 bg-white/5 rounded-2xl md:rounded-3xl border border-white/5 hover:border-accent transition group flex flex-col">
                           <h4 className="text-lg md:text-2xl font-black text-white uppercase tracking-tight mb-2 font-display">{tmpl.name}</h4>
                           <button 
                             onClick={() => deployTemplate(tmpl)}
-                            className="mt-4 md:mt-8 w-full py-3 md:py-4 bg-white text-black rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:text-white transition-all shadow-xl"
+                            className="mt-4 md:mt-8 w-full py-3 md:py-4 bg-white text-black rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:text-white transition shadow-xl"
                           >
                             Deploy
                           </button>

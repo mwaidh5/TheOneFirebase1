@@ -148,9 +148,9 @@ const SupportDiagnosticLogic: React.FC = () => {
         </div>
         <div className="flex gap-4">
             {disciplines.length === 0 && (
-                <button onClick={manualSeed} className="px-6 py-3 bg-neutral-100 text-neutral-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-200 transition-all">Initialize Defaults</button>
+                <button onClick={manualSeed} className="px-6 py-3 bg-neutral-100 text-neutral-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-200 transition">Initialize Defaults</button>
             )}
-            <button onClick={handleCreateDiscipline} className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-lg flex items-center gap-2">
+            <button onClick={handleCreateDiscipline} className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition shadow-lg flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">add</span> New Sport
             </button>
         </div>
@@ -174,14 +174,14 @@ const SupportDiagnosticLogic: React.FC = () => {
                 <div className="absolute top-10 right-10 flex gap-2">
                     <button 
                         onClick={() => handleDeleteDiscipline(discipline.id)}
-                        className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
+                        className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition"
                         title="Delete Sport"
                     >
                         <span className="material-symbols-outlined text-sm">delete</span>
                     </button>
                     <button 
                         onClick={() => { setActiveDiscipline(discipline); setIsEditing(true); }}
-                        className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all shadow-lg flex items-center gap-2"
+                        className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition shadow-lg flex items-center gap-2"
                     >
                         <span className="material-symbols-outlined text-sm">edit_note</span> Configure
                     </button>
@@ -271,7 +271,7 @@ const SupportDiagnosticLogic: React.FC = () => {
                           <h3 className="text-2xl font-black font-display uppercase text-black">Edit {activeDiscipline.name}</h3>
                           <p className="text-[10px] font-black uppercase text-neutral-400">Configure Intake Logic</p>
                       </div>
-                      <button onClick={() => { setIsEditing(false); setActiveDiscipline(null); }} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-all"><span className="material-symbols-outlined">close</span></button>
+                      <button onClick={() => { setIsEditing(false); setActiveDiscipline(null); }} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition"><span className="material-symbols-outlined">close</span></button>
                   </div>
                   
                   <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar text-left">
@@ -357,7 +357,7 @@ const SupportDiagnosticLogic: React.FC = () => {
 
                   <div className="p-8 border-t border-neutral-100 bg-neutral-50 flex gap-4">
                       <button onClick={() => { setIsEditing(false); setActiveDiscipline(null); }} className="flex-1 py-4 bg-white border border-neutral-200 rounded-xl font-black uppercase tracking-widest text-[10px]">Cancel</button>
-                      <button onClick={handleSave} className="flex-[2] py-4 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-neutral-800 transition-all shadow-xl">Save Configuration</button>
+                      <button onClick={handleSave} className="flex-[2] py-4 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-neutral-800 transition shadow-xl">Save Configuration</button>
                   </div>
               </div>
           </div>

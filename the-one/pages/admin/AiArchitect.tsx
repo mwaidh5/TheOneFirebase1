@@ -108,7 +108,7 @@ ALWAYS respond with a JSON object in this exact format (no extra text):
         <div className="hidden sm:flex gap-4">
           <button 
             onClick={handleFinalize}
-            className="px-6 py-4 bg-white border border-neutral-200 text-black font-black text-[10px] rounded-xl hover:bg-neutral-50 transition-all shadow-sm uppercase tracking-widest flex items-center gap-2"
+            className="px-6 py-4 bg-white border border-neutral-200 text-black font-black text-[10px] rounded-xl hover:bg-neutral-50 transition shadow-sm uppercase tracking-widest flex items-center gap-2"
           >
              <span className="material-symbols-outlined text-[18px]">logout</span>
              Commit & Sign Out
@@ -166,7 +166,7 @@ ALWAYS respond with a JSON object in this exact format (no extra text):
             <button 
               type="submit"
               disabled={isProcessing || !command}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-accent text-white flex items-center justify-center hover:bg-blue-600 transition-all disabled:opacity-50"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-accent text-white flex items-center justify-center hover:bg-blue-600 transition disabled:opacity-50"
             >
               <span className="material-symbols-outlined">send</span>
             </button>

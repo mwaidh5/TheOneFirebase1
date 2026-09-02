@@ -226,7 +226,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses 
             <button
               key={opt.value}
               onClick={() => setRoleFilter(opt.value as any)}
-              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shrink-0 border flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition shrink-0 border flex items-center gap-2 ${
                 roleFilter === opt.value ? 'bg-black text-white border-black shadow-md' : 'bg-neutral-50 text-neutral-400 border-neutral-50'
               }`}
             >
@@ -285,12 +285,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onImpersonate, courses 
                            <div className="flex justify-end gap-2 items-center relative action-menu-container">
                                 <button 
                                   onClick={() => handleImpersonateUser(user)}
-                                  className="px-3 py-2 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                                  className="px-3 py-2 bg-accent/10 hover:bg-accent hover:text-white text-accent rounded-lg text-[9px] font-black uppercase tracking-widest transition"
                                   title="Login as User"
                                 >
                                   Login
                                 </button>
-                                <button onClick={(e) => toggleMenu(user.id, e)} className="p-2 text-neutral-400 hover:text-black transition-all">
+                                <button onClick={(e) => toggleMenu(user.id, e)} className="p-2 text-neutral-400 hover:text-black transition">
                                     <span className="material-symbols-outlined">settings</span>
                                 </button>
                                 

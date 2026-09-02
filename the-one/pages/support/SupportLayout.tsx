@@ -20,14 +20,14 @@ const SupportLayout: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto no-scrollbar pb-10">
-          <Link to="/" className="flex items-center gap-3 px-5 py-3 mb-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-black hover:bg-neutral-50 transition-all">
+          <Link to="/" className="flex items-center gap-3 px-5 py-3 mb-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-black hover:bg-neutral-50 transition">
             <span className="material-symbols-outlined text-[18px]">arrow_back</span> Back to App
           </Link>
-          <Link to="/support" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/support') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/support" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/support') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/support') ? 'filled text-purple-600' : ''}`}>dashboard</span>
             Overview
           </Link>
-          <Link to="/support/messages" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/support/messages') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/support/messages" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/support/messages') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/support/messages') ? 'filled text-purple-600' : ''}`}>chat_bubble</span>
             Client Inbox
           </Link>
@@ -36,15 +36,15 @@ const SupportLayout: React.FC = () => {
             <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Resolver Tools</p>
           </div>
 
-          <Link to="/support/subscriptions" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/support/subscriptions') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/support/subscriptions" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/support/subscriptions') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/support/subscriptions') ? 'filled text-purple-600' : ''}`}>payments</span>
             Subscriptions
           </Link>
-          <Link to="/support/catalog" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/support/catalog') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/support/catalog" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/support/catalog') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/support/catalog') ? 'filled text-purple-600' : ''}`}>library_books</span>
             Course Catalog
           </Link>
-          <Link to="/support/diagnostics" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all text-sm font-bold ${isActive('/support/diagnostics') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
+          <Link to="/support/diagnostics" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/support/diagnostics') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/support/diagnostics') ? 'filled text-purple-600' : ''}`}>quiz</span>
             Diagnostic Logic
           </Link>

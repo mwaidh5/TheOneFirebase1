@@ -229,12 +229,12 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
               placeholder="Search exercises..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-black transition-all"
+              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-black transition"
             />
           </div>
           <button 
             onClick={startAdding}
-            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2"
+            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center gap-2"
           >
             <span className="material-symbols-outlined">add</span>
             New Exercise
@@ -246,20 +246,20 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
         {displayExercises.map((ex) => {
           const isOwner = currentUser.role === UserRole.ADMIN || ex.creatorId === currentUser.id;
           return (
-            <div key={ex.id} className="bg-white rounded-[2.5rem] p-8 border border-neutral-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col h-full">
+            <div key={ex.id} className="bg-white rounded-[2.5rem] p-8 border border-neutral-100 shadow-sm hover:shadow-2xl transition group relative overflow-hidden flex flex-col h-full">
               <div className="flex justify-between items-start mb-6">
                 <span className="px-3 py-1 bg-neutral-50 text-[10px] font-black uppercase tracking-widest rounded-lg border border-neutral-100">{ex.defaultFormat}</span>
                 {isOwner && (
                   <div className="flex gap-1">
                     <button 
                       onClick={() => startEditing(ex)}
-                      className="p-2 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-black hover:text-white transition-all shadow-sm"
+                      className="p-2 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-black hover:text-white transition shadow-sm"
                     >
                       <span className="material-symbols-outlined text-lg">edit</span>
                     </button>
                     <button 
                       onClick={() => removeEx(ex.id)}
-                      className="p-2 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                      className="p-2 bg-neutral-50 rounded-xl text-neutral-400 hover:bg-red-500 hover:text-white transition shadow-sm"
                     >
                       <span className="material-symbols-outlined text-lg">delete</span>
                     </button>
@@ -323,7 +323,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setIsAdding(false)} className="w-14 h-14 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+                <button onClick={() => setIsAdding(false)} className="w-14 h-14 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                   <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
@@ -361,7 +361,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
                          <div className="grid grid-cols-2 gap-4">
                            <button 
                              onClick={() => setIsMediaPickerOpen({ activeField: 'imageUrl' })}
-                             className={`flex flex-col items-center justify-center gap-2 p-8 rounded-3xl transition-all shadow-sm ${
+                             className={`flex flex-col items-center justify-center gap-2 p-8 rounded-3xl transition shadow-sm ${
                                newEx.imageUrl ? 'bg-accent text-white' : 'bg-neutral-50 border border-neutral-100 text-neutral-400 hover:border-black hover:text-black'
                              }`}
                            >
@@ -370,7 +370,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
                            </button>
                            <button 
                              onClick={() => setIsMediaPickerOpen({ activeField: 'videoUrl' })}
-                             className={`flex flex-col items-center justify-center gap-2 p-8 rounded-3xl transition-all shadow-sm ${
+                             className={`flex flex-col items-center justify-center gap-2 p-8 rounded-3xl transition shadow-sm ${
                                newEx.videoUrl ? 'bg-accent text-white' : 'bg-neutral-50 border border-neutral-100 text-neutral-400 hover:border-black hover:text-black'
                              }`}
                            >
@@ -395,7 +395,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
 
               <div className="p-12 bg-neutral-50 border-t border-neutral-100 flex gap-4">
                  <button onClick={() => setIsAdding(false)} className="flex-1 py-5 border border-neutral-200 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-white">Cancel</button>
-                 <button onClick={handleSave} className="flex-[2] py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-neutral-800 transition-all">
+                 <button onClick={handleSave} className="flex-[2] py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-neutral-800 transition">
                     {editingId ? 'Save Exercise Changes' : 'Save Exercise to Library'}
                  </button>
               </div>
@@ -415,12 +415,12 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
                  <div className="flex gap-4">
                     <button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all flex items-center gap-2 shadow-lg"
+                      className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition flex items-center gap-2 shadow-lg"
                     >
                       <span className="material-symbols-outlined text-[18px]">upload</span> New Upload
                       <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,video/mp4" />
                     </button>
-                    <button onClick={() => setIsMediaPickerOpen({ activeField: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                    <button onClick={() => setIsMediaPickerOpen({ activeField: null })} className="w-12 h-12 bg-white border border-neutral-100 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm">
                       <span className="material-symbols-outlined">close</span>
                     </button>
                  </div>
@@ -431,7 +431,7 @@ const CoachExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ library, current
                     <div 
                        key={asset.id}
                        onClick={() => selectAsset(asset)}
-                       className="group relative aspect-square rounded-[2rem] overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-4 hover:ring-accent transition-all shadow-sm"
+                       className="group relative aspect-square rounded-[2rem] overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-4 hover:ring-accent transition shadow-sm"
                     >
                        {asset.type === 'image' ? (
                           <img src={asset.data} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={asset.name} />

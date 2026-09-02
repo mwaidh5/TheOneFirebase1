@@ -40,7 +40,7 @@ const SupportSubscriptions: React.FC = () => {
             placeholder="Search Athlete or ID..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white border border-neutral-100 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-purple-600 transition-all"
+            className="w-full bg-white border border-neutral-100 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-purple-600 transition"
           />
         </div>
       </div>
@@ -86,7 +86,7 @@ const SupportSubscriptions: React.FC = () => {
                        </div>
                     </td>
                     <td className="px-8 py-6 text-right">
-                       <button className="px-4 py-2 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-all shadow-sm">
+                       <button className="px-4 py-2 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition shadow-sm">
                           Verify Payment
                        </button>
                     </td>

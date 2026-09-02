@@ -172,7 +172,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
           </div>
           <button
             onClick={() => navigate('/profile/courses')}
-            className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-all shadow-xl"
+            className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition shadow-xl"
           >
             {t('diag.go_to_my_courses')}
           </button>
@@ -212,7 +212,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
               <span className="text-accent">{Math.round(progress)}%</span>
             </div>
             <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
-              <div className="h-full bg-black transition-all duration-700" style={{ width: `${progress}%` }}></div>
+              <div className="h-full bg-black transition duration-700" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-black text-base shadow-lg shrink-0">
@@ -244,7 +244,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
 
                          {(test.inputType === 'VIDEO' || test.inputType === 'IMAGE') && (
                             <div className="aspect-video bg-neutral-900 rounded-[2rem] overflow-hidden relative border-8 border-neutral-50 shadow-inner group">
-                               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-100 group-hover:bg-black/20 transition-all cursor-pointer">
+                               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-100 group-hover:bg-black/20 transition cursor-pointer">
                                   {/* If demoVideoUrl exists, maybe show it? For now, mock */}
                                   <span className="material-symbols-outlined text-white text-5xl group-hover:scale-110 transition-transform">play_circle</span>
                                </div>
@@ -267,7 +267,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                   onChange={(e) => handleTextChange(test.id, e.target.value)}
                                   rows={6}
                                   placeholder={t('diag.type_here')}
-                                  className="w-full p-6 bg-neutral-50 border border-neutral-100 rounded-3xl text-sm font-medium focus:border-black focus:bg-white outline-none transition-all resize-none shadow-inner"
+                                  className="w-full p-6 bg-neutral-50 border border-neutral-100 rounded-3xl text-sm font-medium focus:border-black focus:bg-white outline-none transition resize-none shadow-inner"
                                />
                             </div>
                          ) : (
@@ -275,7 +275,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">{t('diag.upload_file')}</label>
                                <div 
                                   onClick={() => fileInputRefs.current[test.id]?.click()}
-                                  className={`aspect-square rounded-[3rem] border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:bg-neutral-50 ${submissions[test.id] ? 'border-accent bg-accent/5 shadow-xl shadow-accent/10' : 'border-neutral-200 bg-neutral-50 hover:border-black'}`}
+                                  className={`aspect-square rounded-[3rem] border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition hover:bg-neutral-50 ${submissions[test.id] ? 'border-accent bg-accent/5 shadow-xl shadow-accent/10' : 'border-neutral-200 bg-neutral-50 hover:border-black'}`}
                                >
                                   <input 
                                      type="file" 
@@ -319,14 +319,14 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                 type="button"
                 onClick={saveDraft}
                 disabled={isSubmitting}
-                className="flex-1 py-8 bg-neutral-100 text-neutral-500 rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-200 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+                className="flex-1 py-8 bg-neutral-100 text-neutral-500 rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-200 transition flex items-center justify-center gap-4 disabled:opacity-50"
              >
                 {t('diag.save_draft')}
              </button>
              <button 
                 type="submit"
                 disabled={!isAllFilled || isSubmitting}
-                className="flex-[2] py-8 bg-black text-white rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-800 transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-20 disabled:cursor-not-allowed group"
+                className="flex-[2] py-8 bg-black text-white rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-800 transition shadow-2xl flex items-center justify-center gap-4 disabled:opacity-20 disabled:cursor-not-allowed group"
              >
                 {isSubmitting ? (
                    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>

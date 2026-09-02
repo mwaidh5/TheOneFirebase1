@@ -172,7 +172,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
               Paste your program or describe changes — Claude will handle it precisely.
             </p>
           </div>
-          <button onClick={onClose} className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-all">
+          <button onClick={onClose} className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -214,7 +214,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={`Describe your program or edit in plain English...\n\nExamples:\n• "Week 1, Monday (Leg Day): Back Squat 5x5, rest 3 min..."\n• "Add a Saturday HIIT day to week 4 only"\n• "Change week 2 day 3 to a full upper body session"\n• "Add a deload week 5 with 60% intensity across all exercises"`}
                   rows={12}
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-5 text-sm font-medium resize-none outline-none focus:border-black transition-all leading-relaxed"
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-5 text-sm font-medium resize-none outline-none focus:border-black transition leading-relaxed"
                 />
                 <p className="text-[9px] text-neutral-300 font-medium">
                   {prompt.length} characters · Be as specific as you like
@@ -231,7 +231,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
-                className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-all shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 {isGenerating ? (
                   <>
@@ -324,13 +324,13 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
               <div className="flex gap-3">
                 <button
                   onClick={() => { setPreview(null); setMergeMode(false); setChangedWeekNums([]); }}
-                  className="flex-1 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all"
+                  className="flex-1 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition"
                 >
                   Regenerate
                 </button>
                 <button
                   onClick={handleApply}
-                  className="flex-1 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-accent transition-all shadow-xl flex items-center justify-center gap-2"
+                  className="flex-1 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-accent transition shadow-xl flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-lg">check_circle</span>
                   Apply to Builder

@@ -51,7 +51,7 @@ const AdminCoupons: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-accent transition-all shadow-xl flex items-center gap-2"
+          className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-accent transition shadow-xl flex items-center gap-2"
         >
           <span className="material-symbols-outlined text-lg">add_circle</span>
           Create Coupon
@@ -94,7 +94,7 @@ const AdminCoupons: React.FC = () => {
                     <td className="px-8 py-6 text-right">
                        <button 
                         onClick={() => setCoupons(coupons.filter(x => x.id !== c.id))}
-                        className="w-10 h-10 rounded-xl bg-neutral-50 text-neutral-300 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shadow-sm"
+                        className="w-10 h-10 rounded-xl bg-neutral-50 text-neutral-300 hover:bg-red-500 hover:text-white transition flex items-center justify-center shadow-sm"
                        >
                           <span className="material-symbols-outlined text-lg">delete</span>
                        </button>
@@ -110,7 +110,7 @@ const AdminCoupons: React.FC = () => {
            <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50">
                  <h3 className="text-2xl font-black font-display uppercase text-black">New Master Coupon</h3>
-                 <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition-all shadow-sm">
+                 <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                     <span className="material-symbols-outlined">close</span>
                  </button>
               </div>
@@ -160,7 +160,7 @@ const AdminCoupons: React.FC = () => {
                     />
                  </div>
 
-                 <button className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-all shadow-2xl">
+                 <button className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition shadow-2xl">
                     Deploy Promotional Logic
                  </button>
               </form>

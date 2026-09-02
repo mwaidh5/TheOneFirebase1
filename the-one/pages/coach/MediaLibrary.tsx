@@ -98,13 +98,13 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
               placeholder="Search gallery..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-black transition-all"
+              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-black transition"
             />
           </div>
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition-all shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-800 transition shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading ? (
                 <>
@@ -132,7 +132,7 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
             
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
               {displayAssets.map(asset => (
-                <div key={asset.id} className="group relative aspect-square rounded-3xl overflow-hidden border border-neutral-50 bg-neutral-50 hover:shadow-xl transition-all cursor-pointer shadow-sm">
+                <div key={asset.id} className="group relative aspect-square rounded-3xl overflow-hidden border border-neutral-50 bg-neutral-50 hover:shadow-xl transition cursor-pointer shadow-sm">
                   {asset.type === 'image' ? (
                     <img src={asset.data} alt={asset.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   ) : (
@@ -147,7 +147,7 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
                       <span className="px-2 py-1 bg-accent/20 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-accent shadow-sm">Global</span>
                     )}
                   </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-end p-4">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
                     <p className="text-[10px] font-black text-white uppercase truncate mb-2">{asset.name}</p>
                     <div className="flex gap-2">
                       {asset.creatorId === currentUser.id && (

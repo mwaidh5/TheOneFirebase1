@@ -92,10 +92,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ currentUser, courses }) => 
                   <div
                     key={idx}
                     onClick={() => handleCurriculumClick(idx)}
-                    className="flex items-center justify-between p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 group cursor-pointer hover:border-black hover:bg-white transition-all"
+                    className="flex items-center justify-between p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 group cursor-pointer hover:border-black hover:bg-white transition"
                   >
                     <div className="flex items-center gap-6">
-                      <span className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-sm font-black border border-neutral-100 shadow-sm group-hover:bg-black group-hover:text-white transition-all">{idx + 1}</span>
+                      <span className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-sm font-black border border-neutral-100 shadow-sm group-hover:bg-black group-hover:text-white transition">{idx + 1}</span>
                       <div className="text-left">
                         <p className="font-black text-black uppercase tracking-tight text-lg">{t('course_detail.phase_n', { n: idx + 1, title: week.days?.[0]?.title || t('course_detail.default_phase_title') })}</p>
                         <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">
@@ -140,18 +140,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ currentUser, courses }) => 
                     {!isOwned ? (
                         <button
                         onClick={() => navigate(`/checkout?courseId=${course.id}`)}
-                        className="block w-full text-center py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 transition-all shadow-2xl hover:-translate-y-1"
+                        className="block w-full text-center py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 transition shadow-2xl hover:-translate-y-1"
                         >
                         {t('course_detail.begin_enrollment')}
                         </button>
                     ) : (
                         <div className="space-y-4 animate-in zoom-in-95 duration-300">
-                        <Link to={`/workout/${course.id}`} className="block w-full text-center py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 transition-all shadow-2xl">
+                        <Link to={`/workout/${course.id}`} className="block w-full text-center py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 transition shadow-2xl">
                             {t('course_detail.go_to_hub')}
                         </Link>
                         <button
                             onClick={() => coach && navigate(`/profile/messages?coachId=${coach.id}`)}
-                            className="block w-full text-center py-6 bg-accent text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-blue-600 transition-all shadow-lg flex items-center justify-center gap-3"
+                            className="block w-full text-center py-6 bg-accent text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-blue-600 transition shadow-lg flex items-center justify-center gap-3"
                         >
                             <span className="material-symbols-outlined filled text-lg">chat</span>
                             {t('course_detail.message_coach')}

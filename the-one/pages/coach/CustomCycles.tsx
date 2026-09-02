@@ -22,7 +22,7 @@ const CoachCustomCycles: React.FC = () => {
           const isFinished = req.status === 'COMPLETED';
 
           return (
-            <div key={req.id} className={`bg-white rounded-[2.5rem] p-10 border transition-all group relative overflow-hidden flex flex-col ${isPendingReview ? 'border-accent shadow-accent/5 ring-1 ring-accent/10' : 'border-neutral-100 shadow-sm hover:shadow-2xl'}`}>
+            <div key={req.id} className={`bg-white rounded-[2.5rem] p-10 border transition group relative overflow-hidden flex flex-col ${isPendingReview ? 'border-accent shadow-accent/5 ring-1 ring-accent/10' : 'border-neutral-100 shadow-sm hover:shadow-2xl'}`}>
               
               <div className="flex justify-between items-start mb-8 relative z-10">
                 <div className="space-y-1">
@@ -59,7 +59,7 @@ const CoachCustomCycles: React.FC = () => {
                  </div>
                  <button 
                   onClick={() => navigate(`/coach/programmer/${req.id}`)}
-                  className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 ${isPendingReview ? 'bg-accent text-white hover:bg-blue-600' : 'bg-black text-white hover:bg-neutral-800'}`}
+                  className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition shadow-xl flex items-center gap-2 ${isPendingReview ? 'bg-accent text-white hover:bg-blue-600' : 'bg-black text-white hover:bg-neutral-800'}`}
                  >
                    <span className="material-symbols-outlined text-[18px]">{isPendingReview ? 'visibility' : 'edit_square'}</span>
                    {isPendingReview ? 'Review & Build' : 'Edit Workout'}

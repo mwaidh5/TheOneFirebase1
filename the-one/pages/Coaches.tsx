@@ -20,7 +20,7 @@ const Coaches: React.FC = () => {
         {COACHES.map(coach => (
           <Link key={coach.id} to={`/coaches/${coach.id}`} className="group flex flex-col gap-10">
             {/* Massive Image Container */}
-            <div className="relative overflow-hidden rounded-[3.5rem] aspect-[3/4] shadow-2xl transition-all group-hover:shadow-[0_40px_100px_rgba(0,0,0,0.2)]">
+            <div className="relative overflow-hidden rounded-[3.5rem] aspect-[3/4] shadow-2xl transition group-hover:shadow-[0_40px_100px_rgba(0,0,0,0.2)]">
               <img src={coach.avatar} alt={coach.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
               
@@ -99,7 +99,7 @@ const Coaches: React.FC = () => {
           </div>
 
           <div className="relative z-10 shrink-0">
-             <Link to="/custom-course" className="h-24 px-12 bg-white text-black rounded-[2.5rem] flex items-center justify-center gap-4 font-black uppercase tracking-[0.2em] text-sm hover:bg-accent hover:text-white transition-all shadow-2xl hover:-translate-y-2">
+             <Link to="/custom-course" className="h-24 px-12 bg-white text-black rounded-[2.5rem] flex items-center justify-center gap-4 font-black uppercase tracking-[0.2em] text-sm hover:bg-accent hover:text-white transition shadow-2xl hover:-translate-y-2">
                 {t('coaches.purchase_custom')}
                 <span className="material-symbols-outlined text-2xl">arrow_forward</span>
              </Link>

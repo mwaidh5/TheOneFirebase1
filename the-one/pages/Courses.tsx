@@ -99,7 +99,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
               <button
                 onClick={() => setShowFilters(false)}
                 aria-label="Close filters"
-                className="lg:hidden w-8 h-8 rounded-xl bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-black hover:text-white transition-all"
+                className="lg:hidden w-8 h-8 rounded-xl bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-black hover:text-white transition"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
@@ -118,7 +118,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
                             type="checkbox"
                             checked={checked}
                             onChange={() => setSelectedLevels(prev => toggleIn(prev, levelVal))}
-                            className="peer h-5 w-5 rounded-lg border-neutral-200 text-black focus:ring-black cursor-pointer appearance-none border checked:bg-black transition-all"
+                            className="peer h-5 w-5 rounded-lg border-neutral-200 text-black focus:ring-black cursor-pointer appearance-none border checked:bg-black transition"
                           />
                           <span className="material-symbols-outlined absolute text-[14px] text-white opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
                         </div>
@@ -138,7 +138,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
                       <button
                         key={sport}
                         onClick={() => setSelectedSports(prev => toggleIn(prev, sport))}
-                        className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-all ${on ? 'bg-black text-white border-black shadow' : 'bg-neutral-50 text-neutral-500 border-neutral-100 hover:border-black'}`}
+                        className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border transition ${on ? 'bg-black text-white border-black shadow' : 'bg-neutral-50 text-neutral-500 border-neutral-100 hover:border-black'}`}
                       >
                         {sport}
                       </button>
@@ -160,7 +160,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
 
           <div 
             onClick={() => setIsQuizOpen(true)}
-            className="bg-black rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl group cursor-pointer active:scale-[0.98] transition-all"
+            className="bg-black rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl group cursor-pointer active:scale-[0.98] transition"
           >
              <div className="relative z-10 space-y-4">
                <h4 className="text-xl font-black font-display uppercase tracking-tight">{t('courses.need_help_choosing')}</h4>
@@ -198,7 +198,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
             </div>
             <button
               onClick={() => setShowFilters(s => !s)}
-              className={`lg:hidden shrink-0 flex items-center gap-1.5 px-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all ${showFilters || activeFilterCount > 0 ? 'bg-black text-white border-black' : 'bg-white text-neutral-500 border-neutral-200'}`}
+              className={`lg:hidden shrink-0 flex items-center gap-1.5 px-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition ${showFilters || activeFilterCount > 0 ? 'bg-black text-white border-black' : 'bg-white text-neutral-500 border-neutral-200'}`}
             >
               <span className="material-symbols-outlined text-[18px]">tune</span>
               {activeFilterCount > 0 && <span className="bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">{activeFilterCount}</span>}
@@ -217,7 +217,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
           {visibleCourses.map(course => {
             const isOwned = ownedCourseIds.includes(course.id);
             return (
-              <Link key={course.id} to={`/courses/${course.id}`} className="group bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col">
+              <Link key={course.id} to={`/courses/${course.id}`} className="group bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm hover:shadow-2xl transition duration-500 flex flex-col">
                 <div className="relative h-72 overflow-hidden shrink-0">
                   <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" displayWidth={600} />
                   <div className="absolute top-6 left-6 flex gap-2">
@@ -252,7 +252,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
 
         {/* Bespoke Architecture Section (Custom Course) */}
         <div className="pt-8">
-          <Link to="/custom-course" className="group block bg-neutral-950 rounded-[3rem] p-12 md:p-16 text-white relative overflow-hidden shadow-2xl hover:shadow-[0_20px_100px_rgba(19,127,236,0.2)] transition-all duration-700">
+          <Link to="/custom-course" className="group block bg-neutral-950 rounded-[3rem] p-12 md:p-16 text-white relative overflow-hidden shadow-2xl hover:shadow-[0_20px_100px_rgba(19,127,236,0.2)] transition duration-700">
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               <div className="lg:col-span-8 space-y-8">
                 <div className="space-y-4">
@@ -312,7 +312,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
                  </div>
                  <button 
                   onClick={resetQuiz} 
-                  className="w-14 h-14 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm group"
+                  className="w-14 h-14 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm group"
                  >
                     <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
                  </button>
@@ -331,9 +331,9 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
                          <button
                            key={opt.value}
                            onClick={() => handleAnswer(opt.value)}
-                           className="group p-10 rounded-[2.5rem] border-2 border-neutral-100 bg-neutral-50/50 hover:bg-white hover:border-black hover:shadow-2xl transition-all text-left flex flex-col gap-6"
+                           className="group p-10 rounded-[2.5rem] border-2 border-neutral-100 bg-neutral-50/50 hover:bg-white hover:border-black hover:shadow-2xl transition text-left flex flex-col gap-6"
                          >
-                            <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-lg group-hover:bg-black group-hover:text-white transition-all">
+                            <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-lg group-hover:bg-black group-hover:text-white transition">
                                <span className="material-symbols-outlined text-3xl">{opt.icon}</span>
                             </div>
                             <span className="text-lg font-black uppercase tracking-widest text-black">{opt.label}</span>
@@ -367,7 +367,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
                           <Link 
                             to={`/courses/${getRecommendation().id}`} 
                             onClick={resetQuiz}
-                            className="block w-full py-5 bg-white text-black text-center rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-accent hover:text-white transition-all shadow-xl"
+                            className="block w-full py-5 bg-white text-black text-center rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-accent hover:text-white transition shadow-xl"
                           >
                             {t('courses.explore_program')}
                           </Link>
@@ -393,7 +393,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, currentUser }) => {
                     </div>
                     <div className="h-1.5 w-full bg-neutral-200 rounded-full overflow-hidden">
                        <div 
-                         className="h-full bg-black transition-all duration-700 ease-out" 
+                         className="h-full bg-black transition duration-700 ease-out" 
                          style={{ width: `${(quizStep / quizQuestions.length) * 100}%` }}
                        ></div>
                     </div>

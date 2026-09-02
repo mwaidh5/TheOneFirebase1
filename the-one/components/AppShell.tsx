@@ -51,7 +51,7 @@ const AppShell: React.FC<AppShellProps> = ({
       </div>
       <button
         onClick={stopImpersonating}
-        className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl"
+        className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition shadow-xl"
       >
         Exit Session
       </button>
@@ -115,7 +115,7 @@ const AppShell: React.FC<AppShellProps> = ({
           <button
             onClick={goBack}
             aria-label="Back"
-            className="fixed left-4 z-[120] w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-sm flex items-center justify-center text-black hover:bg-black hover:text-white transition-all"
+            className="fixed left-4 z-[120] w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-sm flex items-center justify-center text-black hover:bg-black hover:text-white transition"
             style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
           >
             <span className="material-symbols-outlined">arrow_back</span>

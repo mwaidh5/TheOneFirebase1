@@ -109,7 +109,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-black font-display uppercase">{t('mycourses.title')}</h1>
           <p className="text-neutral-400 font-medium max-w-xl">{t('mycourses.subtitle')}</p>
         </div>
-        <Link to="/courses" className="w-fit px-8 py-4 bg-neutral-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2">
+        <Link to="/courses" className="w-fit px-8 py-4 bg-neutral-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-xl flex items-center gap-2">
           <span className="material-symbols-outlined text-lg">explore</span>
           {t('mycourses.browse_all')}
         </Link>
@@ -132,7 +132,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
             </div>
             <Link
               to={`/workout/${heroCourse.id}?week=${heroNext.weekNumber}&day=${heroNext.dayId}`}
-              className="shrink-0 px-8 py-4 bg-accent text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-accent/30 flex items-center justify-center gap-2"
+              className="shrink-0 px-8 py-4 bg-accent text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition shadow-lg shadow-accent/30 flex items-center justify-center gap-2"
             >
               {t('mycourses.continue')}
               <span className="material-symbols-outlined text-lg">arrow_forward</span>
@@ -153,7 +153,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                  <p className="text-xs text-neutral-500 font-medium leading-relaxed">{t('mycourses.diag_required_sub')}</p>
               </div>
            </div>
-           <Link to="/profile/courses" className="whitespace-nowrap px-8 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
+           <Link to="/profile/courses" className="whitespace-nowrap px-8 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition shadow-lg">
               {t('mycourses.view_requests')}
            </Link>
         </div>
@@ -165,7 +165,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
               <h2 className="text-2xl font-black text-black uppercase tracking-tight mb-8">{t('mycourses.pending_custom')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
                   {pendingRequests.map(req => (
-                      <div key={req.id} className="bg-neutral-50 rounded-[2.5rem] overflow-hidden border border-neutral-100 p-8 flex flex-col justify-between h-full relative group shadow-sm hover:shadow-xl transition-all">
+                      <div key={req.id} className="bg-neutral-50 rounded-[2.5rem] overflow-hidden border border-neutral-100 p-8 flex flex-col justify-between h-full relative group shadow-sm hover:shadow-xl transition">
                           <div className="space-y-4">
                               <div className="flex justify-between items-start">
                                   <span className="bg-purple-600 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">{t('mycourses.bespoke')}</span>
@@ -187,7 +187,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
 
                           <div className="mt-8 pt-6 border-t border-neutral-200/50">
                               {req.status === 'DIAGNOSTIC' ? (
-                                  <Link to={`/athlete/diagnostic/${req.id}`} className="w-full bg-black text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all text-center shadow-lg block">
+                                  <Link to={`/athlete/diagnostic/${req.id}`} className="w-full bg-black text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition text-center shadow-lg block">
                                       {t('mycourses.resume_intake')}
                                   </Link>
                               ) : (
@@ -208,7 +208,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
           {activeCourses.map(course => {
             const { totalDays, completedDays, pct, nextSession } = courseStats(course);
             return (
-            <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition-all duration-500 flex flex-col relative">
+            <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm group hover:shadow-2xl transition duration-500 flex flex-col relative">
               <div className="relative h-56 md:h-64 overflow-hidden shrink-0">
                 <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" displayWidth={600} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
@@ -233,7 +233,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                       <span className="text-xs md:text-sm font-black text-black">{pct}%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-black h-full rounded-full transition-all duration-1000" style={{ width: `${pct}%` }}></div>
+                      <div className="bg-black h-full rounded-full transition duration-1000" style={{ width: `${pct}%` }}></div>
                     </div>
                   </div>
                 </div>
@@ -241,13 +241,13 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                 <div className="mt-auto pt-4 md:pt-6 flex gap-3">
                    <Link
                      to={nextSession ? `/workout/${course.id}?week=${nextSession.weekNumber}&day=${nextSession.dayId}` : `/workout/${course.id}`}
-                     className="flex-1 bg-black text-white py-3.5 md:py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all text-center shadow-lg"
+                     className="flex-1 bg-black text-white py-3.5 md:py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition text-center shadow-lg"
                    >
                       {t('mycourses.resume')}
                    </Link>
                    <button 
                      onClick={() => handleMessageCoach(course.instructor)}
-                     className="px-4 py-3.5 md:py-4 bg-neutral-50 text-neutral-400 rounded-xl hover:bg-accent hover:text-white transition-all border border-neutral-100 flex items-center justify-center group"
+                     className="px-4 py-3.5 md:py-4 bg-neutral-50 text-neutral-400 rounded-xl hover:bg-accent hover:text-white transition border border-neutral-100 flex items-center justify-center group"
                    >
                      <span className="material-symbols-outlined text-[18px] filled">chat</span>
                    </button>
@@ -266,7 +266,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
             <h2 className="text-xl md:text-2xl font-black uppercase text-neutral-400 tracking-tight">{t('mycourses.no_enrollments')}</h2>
             <p className="text-neutral-400 font-medium max-w-sm px-6">{t('mycourses.empty_explain')}</p>
           </div>
-          <Link to="/courses" className="px-10 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-neutral-800 transition-all">
+          <Link to="/courses" className="px-10 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-neutral-800 transition">
             {t('mycourses.empty_cta')}
           </Link>
         </div>
@@ -283,7 +283,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
             {finishedCourses.map(course => {
               const { totalDays } = courseStats(course);
               return (
-                <Link key={course.id} to={`/workout/${course.id}`} className="group bg-white rounded-3xl overflow-hidden border border-neutral-100 shadow-sm hover:shadow-xl transition-all flex items-center gap-4 p-4">
+                <Link key={course.id} to={`/workout/${course.id}`} className="group bg-white rounded-3xl overflow-hidden border border-neutral-100 shadow-sm hover:shadow-xl transition flex items-center gap-4 p-4">
                   <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 relative">
                     <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover" displayWidth={160} />
                     <div className="absolute inset-0 bg-green-600/30" />

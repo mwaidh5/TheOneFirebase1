@@ -231,7 +231,7 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
           </div>
           <Link
             to={`/athlete/diagnostic/${pendingDiagnostic.id}`}
-            className="px-6 py-2 bg-white text-accent rounded-full font-black uppercase tracking-widest text-[10px] hover:bg-neutral-100 transition-all shadow-lg"
+            className="px-6 py-2 bg-white text-accent rounded-full font-black uppercase tracking-widest text-[10px] hover:bg-neutral-100 transition shadow-lg"
           >
             {t('home.diagnostic_start')}
           </Link>
@@ -269,11 +269,11 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             {heroSublineText}
           </p>
           <div className="flex flex-wrap gap-4 mt-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-700">
-            <Link to="/courses" className="flex items-center justify-center rounded-2xl h-16 px-10 bg-white text-black hover:bg-accent hover:text-white transition-all text-sm font-black uppercase tracking-widest shadow-2xl hover:-translate-y-1 group">
+            <Link to="/courses" className="flex items-center justify-center rounded-2xl h-16 px-10 bg-white text-black hover:bg-accent hover:text-white transition text-sm font-black uppercase tracking-widest shadow-2xl hover:-translate-y-1 group">
               {t('home.hero_cta_view')}
               <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">arrow_forward</span>
             </Link>
-            <Link to="/coaches" className="flex items-center justify-center rounded-2xl h-16 px-10 border border-white/30 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 transition-all text-sm font-black uppercase tracking-widest">
+            <Link to="/coaches" className="flex items-center justify-center rounded-2xl h-16 px-10 border border-white/30 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 transition text-sm font-black uppercase tracking-widest">
               {t('home.hero_cta_meet')}
             </Link>
           </div>
@@ -321,7 +321,7 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             {chapters.map((chapter, i) => (
               <div
                 key={i}
-                className={`group bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden flex flex-col transition-all duration-700 hover:shadow-2xl hover:-translate-y-1 ${missionReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+                className={`group bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden flex flex-col transition duration-700 hover:shadow-2xl hover:-translate-y-1 ${missionReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
                 style={{ transitionDelay: `${i * 120}ms` }}
               >
                 {/* Top: chapter label + giant stat */}
@@ -372,7 +372,7 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
           {stats.map((stat, i) => (
             <div
               key={i}
-              className={`text-left transition-all duration-700 ${statsReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              className={`text-left transition duration-700 ${statsReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               style={{ transitionDelay: `${i * 100}ms` }}
             >
               <div className="text-6xl md:text-8xl font-black font-display text-white tracking-tighter leading-none">
@@ -410,7 +410,7 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             {ecosystemCards.map((card, i) => (
               <div
                 key={i}
-                className={`snap-center w-[80vw] md:w-[460px] flex-shrink-0 bg-neutral-50 p-10 md:p-12 rounded-[2.5rem] border border-neutral-100 hover:border-accent/30 hover:shadow-2xl transition-all duration-700 group ${featuresReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+                className={`snap-center w-[80vw] md:w-[460px] flex-shrink-0 bg-neutral-50 p-10 md:p-12 rounded-[2.5rem] border border-neutral-100 hover:border-accent/30 hover:shadow-2xl transition duration-700 group ${featuresReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
                 style={{ transitionDelay: `${i * 120}ms` }}
               >
                 <div className="flex items-start justify-between mb-10">
@@ -446,7 +446,7 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
                 <Link
                   key={course.id}
                   to={`/courses/${course.id}`}
-                  className={`group flex flex-col rounded-[2.5rem] border border-neutral-100 bg-white overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-700 ${coursesReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'}`}
+                  className={`group flex flex-col rounded-[2.5rem] border border-neutral-100 bg-white overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition duration-700 ${coursesReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'}`}
                   style={{ transitionDelay: `${i * 150}ms` }}
                 >
                   <div className="h-80 overflow-hidden relative">
@@ -455,7 +455,7 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
                     <div className="absolute top-6 left-6">
                       <span className="bg-white/90 backdrop-blur-md text-black text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-sm">{course.category}</span>
                     </div>
-                    <div className="absolute bottom-6 right-6 w-12 h-12 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                    <div className="absolute bottom-6 right-6 w-12 h-12 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition duration-500">
                       <span className="material-symbols-outlined text-black">arrow_forward</span>
                     </div>
                   </div>
@@ -491,14 +491,14 @@ const MarketingHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
             className="absolute -bottom-24 -right-24 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] will-change-transform"
             style={{ transform: `translate3d(${-scrollY * 0.03}px, ${-scrollY * 0.02}px, 0)` }}
           />
-          <div className={`relative z-10 space-y-10 max-w-3xl transition-all duration-1000 ${ctaReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+          <div className={`relative z-10 space-y-10 max-w-3xl transition duration-1000 ${ctaReveal.shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <span className="inline-block px-4 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-md text-[10px] font-black tracking-[0.3em] uppercase text-white">{t('home.join_movement')}</span>
             <h2 className="text-5xl md:text-8xl font-black tracking-tight font-display uppercase leading-[0.9] text-white">
               {t('home.ready_l1')} <br /><span className="text-accent">{t('home.ready_l2')}</span>
             </h2>
             <p className="text-xl text-neutral-400 font-medium">{t('home.cta_sub')}</p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center pt-4">
-              <Link to="/courses" className="flex items-center justify-center rounded-2xl h-16 px-12 bg-white text-black hover:bg-accent hover:text-white text-sm font-black uppercase tracking-widest transition-all shadow-xl hover:-translate-y-1 group">
+              <Link to="/courses" className="flex items-center justify-center rounded-2xl h-16 px-12 bg-white text-black hover:bg-accent hover:text-white text-sm font-black uppercase tracking-widest transition shadow-xl hover:-translate-y-1 group">
                 {t('home.start_today')}
                 <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </Link>

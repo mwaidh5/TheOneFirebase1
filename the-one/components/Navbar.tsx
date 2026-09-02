@@ -122,7 +122,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
               </div>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 hover:ring-2 hover:ring-black transition-all relative"
+                className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 hover:ring-2 hover:ring-black transition relative"
               >
                 <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
                 {unreadCount > 0 && (

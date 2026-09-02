@@ -54,7 +54,7 @@ const AdminOrders: React.FC = () => {
             <span className="material-symbols-outlined text-neutral-400 text-lg">calendar_today</span>
             <span className="text-xs font-bold uppercase tracking-widest text-black">Last 30 Days</span>
           </div>
-          <button className="px-6 py-3 bg-black text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-neutral-800 transition-all shadow-xl">
+          <button className="px-6 py-3 bg-black text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-neutral-800 transition shadow-xl">
             Export CSV
           </button>
         </div>
@@ -68,14 +68,14 @@ const AdminOrders: React.FC = () => {
             placeholder="Search by name, email, phone or ID..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-neutral-50 border border-neutral-100 rounded-xl py-3 pl-12 pr-4 text-sm font-medium outline-none focus:border-black transition-all"
+            className="w-full bg-neutral-50 border border-neutral-100 rounded-xl py-3 pl-12 pr-4 text-sm font-medium outline-none focus:border-black transition"
           />
         </div>
         <div className="flex gap-4 w-full md:w-auto">
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-neutral-50 border border-neutral-100 rounded-xl py-3 px-4 text-xs font-black uppercase tracking-widest outline-none cursor-pointer focus:border-black transition-all"
+            className="bg-neutral-50 border border-neutral-100 rounded-xl py-3 px-4 text-xs font-black uppercase tracking-widest outline-none cursor-pointer focus:border-black transition"
           >
             <option>All Status</option>
             <option>Completed</option>
@@ -129,7 +129,7 @@ const AdminOrders: React.FC = () => {
                   <div className="flex justify-end gap-2 relative">
                     <button 
                       onClick={() => setViewingProgress(order)}
-                      className="px-4 py-2 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition-all flex items-center gap-2"
+                      className="px-4 py-2 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition flex items-center gap-2"
                     >
                       <span className="material-symbols-outlined text-[16px]">monitoring</span>
                       Progress
@@ -137,7 +137,7 @@ const AdminOrders: React.FC = () => {
                     <div className="relative">
                       <button 
                         onClick={() => toggleMenu(order.id)}
-                        className={`p-2 rounded-xl transition-all ${activeMenuId === order.id ? 'bg-black text-white' : 'text-neutral-300 hover:text-black hover:bg-neutral-100'}`}
+                        className={`p-2 rounded-xl transition ${activeMenuId === order.id ? 'bg-black text-white' : 'text-neutral-300 hover:text-black hover:bg-neutral-100'}`}
                       >
                         <span className="material-symbols-outlined">more_vert</span>
                       </button>
@@ -147,17 +147,17 @@ const AdminOrders: React.FC = () => {
                           ref={menuRef}
                           className="absolute right-0 top-full mt-2 w-48 bg-white border border-neutral-100 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
                         >
-                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-neutral-600 hover:bg-neutral-50 hover:text-black transition-all">
+                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-neutral-600 hover:bg-neutral-50 hover:text-black transition">
                             <span className="material-symbols-outlined text-[18px]">receipt</span> View Invoice
                           </button>
-                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-neutral-600 hover:bg-neutral-50 hover:text-black transition-all">
+                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-neutral-600 hover:bg-neutral-50 hover:text-black transition">
                             <span className="material-symbols-outlined text-[18px]">mail</span> Send Reminder
                           </button>
-                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-neutral-600 hover:bg-neutral-50 hover:text-black transition-all text-left">
+                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-neutral-600 hover:bg-neutral-50 hover:text-black transition text-left">
                             <span className="material-symbols-outlined text-[18px]">call</span> Call Customer
                           </button>
                           <div className="h-px bg-neutral-50 my-1"></div>
-                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all">
+                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition">
                             <span className="material-symbols-outlined text-[18px]">undo</span> Refund Order
                           </button>
                         </div>
@@ -177,7 +177,7 @@ const AdminOrders: React.FC = () => {
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative p-12 space-y-10 text-left">
             <button 
               onClick={() => setViewingProgress(null)}
-              className="absolute top-8 right-8 w-12 h-12 rounded-full bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition-all"
+              className="absolute top-8 right-8 w-12 h-12 rounded-full bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition"
             >
               <span className="material-symbols-outlined">close</span>
             </button>

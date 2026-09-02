@@ -84,7 +84,7 @@ const CustomCourse: React.FC<CustomCourseProps> = ({ currentUser }) => {
                 <button
                 key={sport.id}
                 onClick={() => handleSelect(sport.id)}
-                className="group p-8 rounded-[2.5rem] border border-neutral-100 bg-neutral-50 hover:bg-black hover:border-black transition-all text-left flex flex-col justify-between h-full shadow-sm hover:shadow-2xl hover:-translate-y-1"
+                className="group p-8 rounded-[2.5rem] border border-neutral-100 bg-neutral-50 hover:bg-black hover:border-black transition text-left flex flex-col justify-between h-full shadow-sm hover:shadow-2xl hover:-translate-y-1"
                 >
                 <div className="space-y-6">
                     <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-md group-hover:bg-neutral-800 transition-colors">
@@ -132,7 +132,7 @@ const CustomCourse: React.FC<CustomCourseProps> = ({ currentUser }) => {
               </div>
               <button 
                 onClick={handleContactSupport}
-                className="mt-8 px-8 py-3 bg-white text-black rounded-xl font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all"
+                className="mt-8 px-8 py-3 bg-white text-black rounded-xl font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition"
               >
                 Contact Support
               </button>

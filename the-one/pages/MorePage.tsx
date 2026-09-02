@@ -64,7 +64,7 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
       {open[id] && (
         <div className="divide-y divide-neutral-50 border-t border-neutral-50 animate-in fade-in duration-200">
           {rows.map((r) => (
-            <Link key={r.to} to={r.to} className="flex items-center gap-3 ps-6 pe-4 py-3 hover:bg-neutral-50 transition-colors">
+            <Link key={r.to} to={r.to} className="press flex items-center gap-3 ps-6 pe-4 py-3 hover:bg-neutral-50 transition-colors">
               <span className={`material-symbols-outlined text-[19px] ${r.accent ? 'text-accent filled' : 'text-neutral-400'}`}>{r.icon}</span>
               <span className={`flex-1 text-[13px] font-bold ${r.accent ? 'text-accent uppercase tracking-wide' : 'text-black'}`}>{r.label}</span>
               <span className="material-symbols-outlined text-neutral-300 text-[18px]">chevron_right</span>
@@ -79,7 +79,7 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-6 space-y-3 animate-in fade-in duration-300">
       {/* Profile header */}
-      <Link to="/profile" className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-neutral-100 hover:border-black transition-all">
+      <Link to="/profile" className="press flex items-center gap-3 p-4 bg-white rounded-2xl border border-neutral-100 hover:border-black transition">
         <img src={currentUser.avatar} alt="" className="w-12 h-12 rounded-2xl object-cover border border-neutral-200" />
         <div className="flex-1 min-w-0">
           <p className="text-base font-black uppercase text-black leading-tight truncate">{currentUser.firstName} {currentUser.lastName}</p>
@@ -90,7 +90,7 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
 
       {/* Role dashboard stays one tap away (not buried in a group) */}
       {rolePanel && (
-        <Link to={rolePanel.to} className="flex items-center gap-3 px-4 py-3.5 bg-accent text-white rounded-2xl shadow-lg shadow-accent/20">
+        <Link to={rolePanel.to} className="press flex items-center gap-3 px-4 py-3.5 bg-accent text-white rounded-2xl shadow-lg shadow-accent/20">
           <span className="material-symbols-outlined text-[20px] filled">{rolePanel.icon}</span>
           <span className="flex-1 text-xs font-black uppercase tracking-widest">{rolePanel.label}</span>
           <span className="material-symbols-outlined text-[20px]">chevron_right</span>
@@ -112,7 +112,7 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
                 <button
                   key={code}
                   onClick={() => setLang(code)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${lang === code ? 'bg-black text-white' : 'text-neutral-400'}`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition ${lang === code ? 'bg-black text-white' : 'text-neutral-400'}`}
                 >
                   {code === 'en' ? 'EN' : 'ع'}
                 </button>
@@ -125,7 +125,7 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
       {/* Logout */}
       <button
         onClick={() => { onLogout(); navigate('/login'); }}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-xs hover:bg-red-500 hover:text-white transition-all"
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-xs hover:bg-red-500 hover:text-white transition"
       >
         <span className="material-symbols-outlined text-[20px]">logout</span>
         {t('nav.logout')}
