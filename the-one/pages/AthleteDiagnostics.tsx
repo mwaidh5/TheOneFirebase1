@@ -212,7 +212,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
               <span className="text-accent">{Math.round(progress)}%</span>
             </div>
             <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
-              <div className="h-full bg-black transition duration-700" style={{ width: `${progress}%` }}></div>
+              <div className="h-full bg-black transition-[width] duration-700" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-black text-base shadow-lg shrink-0">

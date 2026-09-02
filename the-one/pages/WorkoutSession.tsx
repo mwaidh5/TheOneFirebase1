@@ -2135,7 +2135,7 @@ const WorkoutSession: React.FC<WorkoutSessionProps> = ({ courses = [], currentUs
                     </div>
                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-white transition duration-1000"
+                        className="h-full bg-white transition-[width] duration-1000"
                         style={{ width: `${(selectedDay.exercises.filter(ex => completedExercises.has(ex.id)).length / (selectedDay.exercises.length || 1)) * 100}%` }}
                       ></div>
                     </div>

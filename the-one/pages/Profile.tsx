@@ -653,7 +653,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                               <span className="text-sm font-black text-black">{progress}%</span>
                             </div>
                             <div className="w-full bg-neutral-50 rounded-full h-2 border border-neutral-100 overflow-hidden">
-                              <div className="bg-black h-full rounded-full transition duration-1000" style={{ width: `${progress}%` }} />
+                              <div className="bg-black h-full rounded-full transition-[width] duration-1000" style={{ width: `${progress}%` }} />
                             </div>
                           </div>
                           <div className="flex gap-4">
