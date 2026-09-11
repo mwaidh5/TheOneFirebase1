@@ -145,9 +145,13 @@ function normalizeExerciseName(name: string): string {
 }
 
 // ─── EMOM Timer helpers ────────────────────────────────────────────────────────
-function parseEmomSeconds(timeStr: string): number {
-  if (!timeStr) return 30;
-  const s = timeStr.trim().toLowerCase();
+// Accepts "30s", "1:30", "45" or a bare number. Firestore stores some `time`
+// values as numbers, and calling .trim() on one was crashing the whole
+// workout screen to white the moment a timed exercise rendered.
+function parseEmomSeconds(timeStr: string | number | undefined | null): number {
+  if (timeStr === undefined || timeStr === null || timeStr === '') return 30;
+  if (typeof timeStr === 'number') return Math.max(1, Math.round(timeStr));
+  const s = String(timeStr).trim().toLowerCase();
   if (s.endsWith('s')) return Math.max(1, parseInt(s) || 30);
   if (s.includes(':')) {
     const [m, sec] = s.split(':').map(Number);
