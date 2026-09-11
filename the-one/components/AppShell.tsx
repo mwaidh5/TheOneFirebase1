@@ -4,6 +4,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import LanguageToggle from './LanguageToggle';
+import ErrorBoundary from './ErrorBoundary';
 import { Capacitor } from '@capacitor/core';
 import { User } from '../types';
 
@@ -66,7 +67,7 @@ const AppShell: React.FC<AppShellProps> = ({
         <div className={originalAdmin ? 'mt-12' : ''}>
           <Navbar isLoggedIn={isLoggedIn} currentUser={currentUser} onLogout={onLogout} logo={logo} />
         </div>
-        <main className="flex-grow flex flex-col">{children}</main>
+        <main className="flex-grow flex flex-col"><ErrorBoundary key={path}>{children}</ErrorBoundary></main>
         <Footer logo={logo} />
       </div>
     );
@@ -107,7 +108,7 @@ const AppShell: React.FC<AppShellProps> = ({
           paddingBottom: showBottomNav ? 'calc(6.5rem + env(safe-area-inset-bottom))' : undefined,
         }}
       >
-        {children}
+        <ErrorBoundary key={path}>{children}</ErrorBoundary>
       </main>
 
       {isAuth && (
