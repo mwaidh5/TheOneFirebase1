@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useT } from '../i18n/I18nContext';
 import type { TranslationKey } from '../i18n/translations';
+import type { User } from '../types';
+import FoodLogSheet from '../components/FoodLogSheet';
+import {
+  useNutritionLog, useCustomFoods, SLOTS, dateKey,
+  type DayMode, type MealSlot, type LogEntry,
+} from '../hooks/useNutritionLog';
 
 // ── The daily plans ──────────────────────────────────────────────────────────
 // Each day is one of three modes, chosen on the day itself (not scheduled):
@@ -32,37 +38,26 @@ const OFF_PLAN: Meal[] = [
   { id: 'off_dinner', label: 'Dinner', title: 'Fish / beef / chicken + lentils + salad', items: ['Fish, beef or chicken 200g', 'Lentils — small portion', 'Salad'], kcal: 520, protein: 50 },
 ];
 
-type DayMode = 'training' | 'off' | 'cheat';
-
 const planFor = (mode: DayMode): Meal[] => (mode === 'off' ? OFF_PLAN : TRAINING_PLAN);
 const sumKcal = (p: Meal[]) => p.reduce((s, m) => s + m.kcal, 0);
 const sumProtein = (p: Meal[]) => p.reduce((s, m) => s + m.protein, 0);
 
-const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const eatenKey = (d: Date) => `theone_meals_${dateKey(d)}`;
-const modeStoreKey = (d: Date) => `theone_daymode_${dateKey(d)}`;
-const legacyCheatKey = (d: Date) => `theone_cheat_${dateKey(d)}`;
-
-const readSet = (k: string): Set<string> => {
-  try {
-    const raw = localStorage.getItem(k);
-    return raw ? new Set<string>(JSON.parse(raw) as string[]) : new Set<string>();
-  } catch { return new Set<string>(); }
+// Last few foods logged on any day — handy for the things eaten daily.
+const RECENTS_KEY = 'theone_recent_foods';
+const readRecents = (): LogEntry[] => {
+  try { return JSON.parse(localStorage.getItem(RECENTS_KEY) || '[]') as LogEntry[]; } catch { return []; }
 };
-
-const readMode = (d: Date): DayMode => {
+const pushRecent = (e: LogEntry) => {
   try {
-    const m = localStorage.getItem(modeStoreKey(d));
-    if (m === 'training' || m === 'off' || m === 'cheat') return m;
-    // Days marked cheat before the mode switch existed.
-    if (localStorage.getItem(legacyCheatKey(d)) === '1') return 'cheat';
+    const next = [e, ...readRecents().filter(r => r.name !== e.name)].slice(0, 20);
+    localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
   } catch {}
-  return 'training';
 };
 
-const MealPlan: React.FC = () => {
+const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
   const { t, lang } = useT();
   const ar = lang === 'ar';
+  const uid = currentUser?.id;
 
   // Sunday-first week (the Iraqi week) so the tabs line up with real dates.
   const today = new Date();
@@ -78,38 +73,27 @@ const MealPlan: React.FC = () => {
   const [selectedIdx, setSelectedIdx] = useState(today.getDay());
   const selectedDate = weekDays[selectedIdx];
 
-  const [eaten, setEaten] = useState<Set<string>>(() => readSet(eatenKey(weekDays[today.getDay()])));
-  const [mode, setMode] = useState<DayMode>(() => readMode(weekDays[today.getDay()]));
+  const { mode, setMode, planEaten, togglePlanMeal, entries, addEntry, removeEntry } = useNutritionLog(uid, selectedDate);
+  const { foods: customFoods, saveFood } = useCustomFoods(uid);
+
   const [showGrocery, setShowGrocery] = useState(false);
-
-  // Reload the log + the day's mode whenever the selected day changes.
-  useEffect(() => {
-    setEaten(readSet(eatenKey(selectedDate)));
-    setMode(readMode(selectedDate));
-  }, [selectedIdx]);
-
-  const persist = (next: Set<string>) => {
-    setEaten(next);
-    try { localStorage.setItem(eatenKey(selectedDate), JSON.stringify(Array.from(next))); } catch {}
-  };
-
-  const toggleMeal = (id: string) => {
-    const next = new Set<string>(eaten);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    persist(next);
-  };
-
-  const chooseMode = (m: DayMode) => {
-    setMode(m);
-    try { localStorage.setItem(modeStoreKey(selectedDate), m); } catch {}
-  };
+  const [logSlot, setLogSlot] = useState<MealSlot | null>(null);
+  const [recents, setRecents] = useState<LogEntry[]>(() => readRecents());
 
   const plan = planFor(mode);
   const targetKcal = sumKcal(plan);
   const targetProtein = sumProtein(plan);
-  const kcal = plan.filter(m => eaten.has(m.id)).reduce((s, m) => s + m.kcal, 0);
-  const protein = plan.filter(m => eaten.has(m.id)).reduce((s, m) => s + m.protein, 0);
+
+  // What's been eaten = ticked plan meals + anything logged by hand/photo.
+  const planKcal = plan.filter(m => planEaten.has(m.id)).reduce((s, m) => s + m.kcal, 0);
+  const planProtein = plan.filter(m => planEaten.has(m.id)).reduce((s, m) => s + m.protein, 0);
+  const loggedKcal = entries.reduce((s, e) => s + e.kcal, 0);
+  const loggedProtein = entries.reduce((s, e) => s + e.protein, 0);
+  const kcal = planKcal + Math.round(loggedKcal);
+  const protein = planProtein + Math.round(loggedProtein);
   const pct = (v: number, target: number) => (target > 0 ? Math.min(100, Math.round((v / target) * 100)) : 0);
+
+  const handleAdd = (e: LogEntry) => { addEntry(e); pushRecent(e); setRecents(readRecents()); };
 
   const dayKeys: TranslationKey[] = ['meal.day_sun', 'meal.day_mon', 'meal.day_tue', 'meal.day_wed', 'meal.day_thu', 'meal.day_fri', 'meal.day_sat'];
   const isToday = dateKey(selectedDate) === dateKey(today);
@@ -170,7 +154,7 @@ const MealPlan: React.FC = () => {
           {MODES.map(m => (
             <button
               key={m.id}
-              onClick={() => chooseMode(m.id)}
+              onClick={() => setMode(m.id)}
               className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition ${
                 mode === m.id ? m.on + ' shadow-lg' : 'bg-white border-neutral-100 text-neutral-400 hover:border-black'
               }`}
@@ -223,19 +207,78 @@ const MealPlan: React.FC = () => {
                 <div className="h-full bg-accent rounded-full transition-[width] duration-500" style={{ width: `${pct(protein, targetProtein)}%` }} />
               </div>
             </div>
+            {entries.length > 0 && (
+              <p className="text-[10px] font-bold text-neutral-400 text-center pt-1" dir="ltr">
+                {planKcal} kcal plan · {Math.round(loggedKcal)} kcal logged
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {/* Meals — tap to log */}
+      {/* Log anything — search, barcode, photo, or your own foods */}
+      <button
+        onClick={() => setLogSlot('snack')}
+        className="w-full mb-5 flex items-center justify-center gap-2 py-4 rounded-2xl bg-accent text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-accent/20"
+      >
+        <span className="material-symbols-outlined text-[20px]">add</span>
+        {ar ? 'سجّل طعاماً' : 'Log food'}
+      </button>
+
+      {/* What was actually logged today, grouped by meal */}
+      {entries.length > 0 && (
+        <div className="space-y-4 mb-6">
+          {SLOTS.map(s => {
+            const rows = entries.filter(e => e.slot === s.id);
+            if (rows.length === 0) return null;
+            const slotKcal = Math.round(rows.reduce((a, e) => a + e.kcal, 0));
+            return (
+              <div key={s.id} className="space-y-2">
+                <div className="flex items-center justify-between ms-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px] text-neutral-400">{s.icon}</span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{ar ? s.ar : s.en}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-neutral-400 tabular-nums" dir="ltr">{slotKcal} kcal</span>
+                    <button onClick={() => setLogSlot(s.id)} className="w-6 h-6 rounded-lg bg-neutral-100 text-neutral-500 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[15px]">add</span>
+                    </button>
+                  </div>
+                </div>
+                {rows.map(e => (
+                  <div key={e.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-neutral-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-black truncate">{e.name}</p>
+                      <p className="text-[11px] font-medium text-neutral-400" dir="ltr">
+                        {e.grams}g · {e.kcal} kcal · {e.protein}g P
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => removeEntry(e.id)}
+                      aria-label={ar ? 'احذف' : 'Remove'}
+                      className="w-8 h-8 rounded-lg bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">delete</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* The plan itself — tap to tick off */}
       {mode !== 'cheat' && (
         <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'خطة اليوم' : 'Today’s plan'}</p>
           {plan.map(meal => {
-            const done = eaten.has(meal.id);
+            const done = planEaten.has(meal.id);
             return (
               <button
                 key={meal.id}
-                onClick={() => toggleMeal(meal.id)}
+                onClick={() => togglePlanMeal(meal.id)}
                 className={`w-full text-start flex items-start gap-3 p-4 rounded-3xl border-2 transition ${
                   done ? 'border-green-500 bg-green-50' : 'border-neutral-100 bg-white hover:border-black'
                 }`}
@@ -258,6 +301,19 @@ const MealPlan: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Food logging sheet */}
+      {logSlot && (
+        <FoodLogSheet
+          slot={logSlot}
+          customFoods={customFoods}
+          recents={recents}
+          ar={ar}
+          onAdd={handleAdd}
+          onSaveCustom={saveFood}
+          onClose={() => setLogSlot(null)}
+        />
       )}
 
       {/* Grocery list — for whichever plan this day is on */}

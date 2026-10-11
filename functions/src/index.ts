@@ -199,3 +199,6 @@ export const generateCourseWithClaude = onCall(
     }
   }
 );
+
+// Food search / barcode lookup (Open Food Facts proxy)
+export { searchFoodDb, lookupFoodBarcode } from './foodSearch';
