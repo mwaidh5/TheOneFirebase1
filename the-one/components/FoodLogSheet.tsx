@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { searchFoods, lookupBarcode, macrosFor, type Food } from '../utils/foodDb';
 import { analyzePlate, fileToBase64, type GuessedFood } from '../utils/foodVision';
 import { SLOTS, type LogEntry, type MealSlot } from '../hooks/useNutritionLog';
+import BarcodeScanner from './BarcodeScanner';
 
 type Tab = 'search' | 'barcode' | 'photo' | 'custom';
 
@@ -31,6 +32,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
   // barcode
   const [code, setCode] = useState('');
   const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
   // photo
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -297,8 +299,15 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
 
           {tab === 'barcode' && (
             <div className="space-y-3">
-              <p className="text-[11px] font-medium text-neutral-500">
-                {ar ? 'اكتب الرقم تحت الباركود على العبوة.' : 'Type the number printed under the barcode.'}
+              <button
+                onClick={() => { setNotFoundCode(null); setError(null); setScanning(true); }}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-black text-white text-[11px] font-black uppercase tracking-widest"
+              >
+                <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+                {ar ? 'امسح بالكاميرا' : 'Scan with camera'}
+              </button>
+              <p className="text-[11px] font-medium text-neutral-500 text-center">
+                {ar ? 'أو اكتب الرقم تحت الباركود.' : 'Or type the number printed under the barcode.'}
               </p>
               <div className="flex gap-2">
                 <input
@@ -474,6 +483,14 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
           </div>
         )}
       </div>
+
+      {scanning && (
+        <BarcodeScanner
+          ar={ar}
+          onClose={() => setScanning(false)}
+          onDetect={(c) => { setScanning(false); setCode(c); runBarcode(c); }}
+        />
+      )}
 
       {/* Portion step — sits above the sheet once a food is chosen */}
       {chosen && (
