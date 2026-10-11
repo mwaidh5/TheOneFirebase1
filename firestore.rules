@@ -58,6 +58,16 @@ service cloud.firestore {
       match /hold_prs/{prId} {
         allow read, write: if isOwner(userId) || isAdmin() || isCoach();
       }
+
+      // One doc per calendar day: day mode, ticked plan meals, logged foods
+      match /nutrition_log/{dayId} {
+        allow read, write: if isOwner(userId) || isAdmin() || isCoach();
+      }
+
+      // The athlete's own foods (name, macros, optional barcode)
+      match /custom_foods/{foodId} {
+        allow read, write: if isOwner(userId) || isAdmin() || isCoach();
+      }
     }
 
     // 2. Courses Collection
