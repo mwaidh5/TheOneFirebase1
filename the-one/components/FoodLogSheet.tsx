@@ -36,6 +36,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
   const [scanning, setScanning] = useState(false);
   // photo
   const fileRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [guesses, setGuesses] = useState<GuessedFood[] | null>(null);
   const [picked, setPicked] = useState<Set<number>>(new Set());
@@ -275,14 +276,20 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
 
           {tab === 'search' && (
             <>
-              <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-100 rounded-2xl px-3 focus-within:border-black transition">
-                <span className="material-symbols-outlined text-neutral-400 text-[20px]">search</span>
+              {/* No autoFocus: focusing an input inside a fixed bottom sheet while iOS
+                  opens the keyboard misplaces the caret. The user taps to type, and the
+                  whole bar (icon + padding) is the tap target. */}
+              <div
+                onClick={() => searchRef.current?.focus()}
+                className="flex items-center gap-2 bg-neutral-50 border border-neutral-100 rounded-2xl px-3 cursor-text focus-within:border-black transition"
+              >
+                <span className="material-symbols-outlined text-neutral-400 text-[20px] shrink-0">search</span>
                 <input
-                  autoFocus
+                  ref={searchRef}
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   placeholder={ar ? 'ابحث عن طعام…' : 'Search foods…'}
-                  className="w-full bg-transparent outline-none py-3 text-sm font-medium"
+                  className="flex-1 min-w-0 bg-transparent outline-none py-3 text-sm font-medium"
                 />
                 {busy && <span className="w-4 h-4 border-2 border-neutral-300 border-t-black rounded-full animate-spin shrink-0" />}
               </div>
@@ -355,14 +362,13 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
               </p>
               <div className="flex gap-2">
                 <input
-                  autoFocus
                   value={code}
                   onChange={e => setCode(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') runBarcode(); }}
                   inputMode="numeric"
                   placeholder="e.g. 3017624010701"
                   dir="ltr"
-                  className="flex-1 bg-neutral-50 border border-neutral-100 rounded-2xl px-4 py-3 text-sm font-bold tabular-nums outline-none focus:border-black transition"
+                  className="flex-1 min-w-0 bg-neutral-50 border border-neutral-100 rounded-2xl px-4 py-3 text-sm font-bold tabular-nums outline-none focus:border-black transition"
                 />
                 <button onClick={() => runBarcode()} disabled={busy} className="px-5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40">
                   {busy ? '…' : (ar ? 'ابحث' : 'Find')}
