@@ -19,7 +19,7 @@ interface Props {
 
 const uid = () => `e${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
 
-const blankCustom = { name: '', brand: '', barcode: '', kcal: '', protein: '', carbs: '', fat: '' };
+const blankCustom = { name: '', brand: '', barcode: '', kcal: '', protein: '', carbs: '', fat: '', unitName: '', unitGrams: '' };
 
 const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, onSaveCustom, onClose }) => {
   const [tab, setTab] = useState<Tab>('search');
@@ -145,10 +145,17 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
     if (!name) { setError(ar ? 'أدخل اسم الطعام.' : 'Give the food a name.'); return; }
     setBusy(true); setError(null);
     try {
+      // An optional portion of their own — "1 piece of my kubba = 80 g" — so it
+      // can be logged by the piece instead of weighed every time.
+      const unitGrams = parseFloat(form.unitGrams) || 0;
+      const units = unitGrams > 0
+        ? [{ label: form.unitName.trim() || (ar ? 'حبة' : 'piece'), grams: unitGrams }, { label: 'g', ar: 'غرام', grams: 1 }]
+        : undefined;
       const food = await onSaveCustom({
         name,
         brand: form.brand.trim() || undefined,
         barcode: form.barcode.replace(/\D/g, '') || undefined,
+        units,
         per100: {
           kcal: Math.round(parseFloat(form.kcal) || 0),
           protein: parseFloat(form.protein) || 0,
@@ -500,6 +507,19 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
                 {field(ar ? 'كارب' : 'Carbs', 'carbs', '0', true)}
                 {field(ar ? 'دهون' : 'Fat', 'fat', '0', true)}
               </div>
+
+              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 pt-1">
+                {ar ? 'وحدة خاصة (اختياري)' : 'Your own portion (optional)'}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {field(ar ? 'اسم الوحدة' : 'Portion name', 'unitName', ar ? 'حبة' : 'piece')}
+                {field(ar ? 'وزنها بالغرام' : 'Weighs (g)', 'unitGrams', '80', true)}
+              </div>
+              <p className="text-[10px] font-medium text-neutral-400">
+                {ar
+                  ? 'لتسجّله كـ «١ حبة» بدل وزنه كل مرة.'
+                  : 'Lets you log it as “1 piece” instead of weighing it every time.'}
+              </p>
             </div>
           )}
         </div>
