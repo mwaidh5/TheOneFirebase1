@@ -7,6 +7,7 @@ import {
   useNutritionLog, useCustomFoods, SLOTS, dateKey,
   type DayMode, type MealSlot, type LogEntry,
 } from '../hooks/useNutritionLog';
+import { useGroceryList, planItemKey, customItemKey } from '../hooks/useGroceryList';
 
 // ── The daily plans ──────────────────────────────────────────────────────────
 // Each day is one of three modes, chosen on the day itself (not scheduled):
@@ -77,6 +78,8 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
   const { foods: customFoods, saveFood } = useCustomFoods(uid);
 
   const [showGrocery, setShowGrocery] = useState(false);
+  const grocery = useGroceryList(uid);
+  const [newGrocery, setNewGrocery] = useState('');
   const [logSlot, setLogSlot] = useState<MealSlot | null>(null);
   const [recents, setRecents] = useState<LogEntry[]>(() => readRecents());
 
@@ -92,6 +95,16 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
   const kcal = planKcal + Math.round(loggedKcal);
   const protein = planProtein + Math.round(loggedProtein);
   const pct = (v: number, target: number) => (target > 0 ? Math.min(100, Math.round((v / target) * 100)) : 0);
+
+  // Grocery list: the day's plan items (none on cheat days) + the athlete's own.
+  const planGrocery = mode === 'cheat' ? [] : Array.from(new Set(plan.flatMap(m => m.items)));
+  const groceryTicked = planGrocery.filter(n => grocery.checked.has(planItemKey(n))).length
+    + grocery.custom.filter(i => grocery.checked.has(customItemKey(i.id))).length;
+  const submitGrocery = () => {
+    if (!newGrocery.trim()) return;
+    grocery.addItem(newGrocery);
+    setNewGrocery('');
+  };
 
   const handleAdd = (e: LogEntry) => { addEntry(e); pushRecent(e); setRecents(readRecents()); };
 
@@ -330,18 +343,79 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
               </div>
               <button onClick={() => setShowGrocery(false)} className="w-9 h-9 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition"><span className="material-symbols-outlined">close</span></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-              {mode === 'cheat' ? (
-                <p className="text-center text-neutral-400 text-xs font-black uppercase tracking-widest py-8">
-                  {ar ? 'يوم حر — لا قائمة مشتريات' : 'Cheat day — no grocery list'}
-                </p>
-              ) : Array.from(new Set(plan.flatMap(m => m.items))).map((name, i) => (
-                <label key={i} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100">
-                  <input type="checkbox" className="w-5 h-5 rounded-md accent-black shrink-0" />
-                  <span className="flex-1 text-sm font-bold text-black">{name}</span>
-                </label>
-              ))}
+            <div className="px-4 pt-4 flex items-center gap-2">
+              <input
+                value={newGrocery}
+                onChange={(e) => setNewGrocery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitGrocery(); } }}
+                placeholder={ar ? 'أضف غرضاً… مثل موز' : 'Add an item… e.g. Bananas'}
+                enterKeyHint="done"
+                className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-neutral-50 border border-neutral-100 text-sm font-bold text-black placeholder:text-neutral-400 placeholder:font-medium outline-none focus:border-black transition"
+              />
+              <button
+                onClick={submitGrocery}
+                disabled={!newGrocery.trim()}
+                aria-label={ar ? 'إضافة' : 'Add'}
+                className="shrink-0 w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-30 transition"
+              >
+                <span className="material-symbols-outlined">add</span>
+              </button>
             </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+              {mode === 'cheat' && (
+                <p className="text-center text-neutral-400 text-xs font-black uppercase tracking-widest py-4">
+                  {ar ? 'يوم حر — لا قائمة من الخطة' : 'Cheat day — no plan items'}
+                </p>
+              )}
+              {planGrocery.map((name) => {
+                const key = planItemKey(name);
+                const on = grocery.checked.has(key);
+                return (
+                  <label key={key} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <input type="checkbox" checked={on} onChange={() => grocery.toggle(key)} className="w-5 h-5 rounded-md accent-black shrink-0" />
+                    <span className={`flex-1 text-sm font-bold ${on ? 'text-neutral-400 line-through' : 'text-black'}`}>{name}</span>
+                  </label>
+                );
+              })}
+              {grocery.custom.length > 0 && (
+                <p className="pt-3 px-1 text-[10px] font-black uppercase tracking-widest text-neutral-400">{ar ? 'أغراضي' : 'My items'}</p>
+              )}
+              {grocery.custom.map((item) => {
+                const key = customItemKey(item.id);
+                const on = grocery.checked.has(key);
+                return (
+                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-neutral-200">
+                    <label className="flex-1 min-w-0 flex items-center gap-3">
+                      <input type="checkbox" checked={on} onChange={() => grocery.toggle(key)} className="w-5 h-5 rounded-md accent-black shrink-0" />
+                      <span className={`flex-1 min-w-0 break-words text-sm font-bold ${on ? 'text-neutral-400 line-through' : 'text-black'}`}>{item.name}</span>
+                    </label>
+                    <button
+                      onClick={() => grocery.removeItem(item.id)}
+                      aria-label={ar ? 'حذف' : 'Remove'}
+                      className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:bg-red-50 hover:text-red-500 transition"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                  </div>
+                );
+              })}
+              {mode === 'cheat' && grocery.custom.length === 0 && (
+                <p className="text-center text-neutral-400 text-xs font-medium py-2">
+                  {ar ? 'ما زال بإمكانك إضافة أغراضك أعلاه' : 'You can still add your own items above'}
+                </p>
+              )}
+            </div>
+            {groceryTicked > 0 && (
+              <div className="px-4 pb-4 pt-2 border-t border-neutral-100">
+                <button
+                  onClick={grocery.clearTicked}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-neutral-50 text-[11px] font-black uppercase tracking-widest text-neutral-600 hover:bg-black hover:text-white transition"
+                >
+                  <span className="material-symbols-outlined text-[18px]">done_all</span>
+                  {ar ? `مسح المشترى (${groceryTicked})` : `Clear ticked (${groceryTicked})`}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
