@@ -1,20 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { WeekProgram } from '../types';
 import { jsonrepair } from 'jsonrepair';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
+import { AI_PROTOCOL, applyAiResult, hasProgram, slimWeeks, streamProgress, type AiResult } from '../utils/aiProgram';
 
 interface AICourseGeneratorProps {
   onGenerated: (weeks: WeekProgram[]) => void;
   onClose: () => void;
   context?: 'course' | 'custom';
   currentWeeks?: WeekProgram[];
-}
-
-interface ClaudeResponse {
-  mode: 'replace' | 'merge';
-  weeks: WeekProgram[];
 }
 
 const EXAMPLE_PROMPT = `Week 1:
@@ -39,20 +35,6 @@ Add a Saturday cardio day to week 4 only.
 Change week 2 day 3 to focus on shoulders.
 Add week 5 with a deload structure.`;
 
-function mergeWeeks(current: WeekProgram[], patches: WeekProgram[]): WeekProgram[] {
-  const result = current.map(w => ({ ...w }));
-  for (const patch of patches) {
-    const idx = result.findIndex(w => w.weekNumber === patch.weekNumber);
-    if (idx >= 0) {
-      result[idx] = patch;
-    } else {
-      result.push(patch);
-    }
-  }
-  return result.sort((a, b) => a.weekNumber - b.weekNumber);
-}
-
-
 const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
   onGenerated,
   onClose,
@@ -66,24 +48,35 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
   const [changedWeekNums, setChangedWeekNums] = useState<number[]>([]);
   const [error, setError] = useState('');
   const [showExample, setShowExample] = useState(false);
+  // Live progress while Claude streams the program.
+  const [progress, setProgress] = useState<{ exercises: number; week: number | null }>({ exercises: 0, week: null });
+  const [startedAt, setStartedAt] = useState(0);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!isGenerating) return;
+    const t = setInterval(() => tick(n => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [isGenerating]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
     setError('');
     setPreview(null);
+    setProgress({ exercises: 0, week: null });
+    setStartedAt(Date.now());
 
     try {
       const functions = getFunctions(getApp(), 'me-central1');
-      const generateCourse = httpsCallable<
-        { text: string; context: 'course' | 'custom'; currentWeeks?: WeekProgram[] },
-        { text: string }
-      >(functions, 'generateCourseWithClaude', { timeout: 540000 });
+      type Input = { text: string; context: 'course' | 'custom'; currentWeeks?: unknown[]; protocol: number };
+      const generateCourse = httpsCallable<Input, { text: string }>(functions, 'generateCourseWithClaude', { timeout: 540000 });
 
-      const input: { text: string; context: 'course' | 'custom'; currentWeeks?: WeekProgram[] } = {
+      // Ids and video URLs stay here; the model only needs the training content.
+      const input: Input = {
         text: prompt,
         context: context as 'course' | 'custom',
-        currentWeeks,
+        currentWeeks: hasProgram(currentWeeks) ? slimWeeks(currentWeeks) : undefined,
+        protocol: AI_PROTOCOL,
       };
 
       let accumulated = '';
@@ -93,7 +86,10 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
         const streamResult = await generateCourse.stream(input);
         for await (const chunk of streamResult.stream) {
           const c = chunk as { delta?: string };
-          if (c.delta) accumulated += c.delta;
+          if (c.delta) {
+            accumulated += c.delta;
+            setProgress(streamProgress(accumulated));
+          }
         }
         const final = await streamResult.data;
         finalText = final.text || accumulated;
@@ -112,7 +108,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
         rawText = rawText.replace(/^```/, '').replace(/```$/, '').trim();
       }
 
-      let parsed: ClaudeResponse;
+      let parsed: AiResult;
       try {
         parsed = JSON.parse(rawText);
       } catch {
@@ -124,18 +120,10 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
         throw new Error('Claude returned an empty or invalid program.');
       }
 
-      const isMerge = parsed.mode === 'merge' && currentWeeks && currentWeeks.length > 0;
-
-      if (isMerge) {
-        const merged = mergeWeeks(currentWeeks!, parsed.weeks);
-        setMergeMode(true);
-        setChangedWeekNums(parsed.weeks.map(w => w.weekNumber));
-        setPreview(merged);
-      } else {
-        setMergeMode(false);
-        setChangedWeekNums([]);
-        setPreview(parsed.weeks);
-      }
+      const result = applyAiResult(currentWeeks, parsed);
+      setMergeMode(result.merged);
+      setChangedWeekNums(result.merged ? result.changed : []);
+      setPreview(result.weeks);
     } catch (err: any) {
       console.error('AI generation error:', err);
       setError(err.message ?? 'Unknown error occurred.');
@@ -236,7 +224,10 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                 {isGenerating ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    Generating with Claude...
+                    {progress.exercises > 0
+                      ? `Writing${progress.week ? ` week ${progress.week}` : ''} · ${progress.exercises} exercise${progress.exercises === 1 ? '' : 's'}`
+                      : 'Generating with Claude'}
+                    <span className="text-white/40 tabular-nums">{Math.max(0, Math.round((Date.now() - startedAt) / 1000))}s</span>
                   </>
                 ) : (
                   <>

@@ -31,8 +31,17 @@ interface RequestData {
   text: string;
   context: 'course' | 'custom';
   currentWeeks?: WeekProgram[];
+  /**
+   * 2 = the client sends a slimmed program (no ids or media) and applies
+   * day-level patches. App builds from before this send nothing and get the
+   * original whole-week prompt, so they keep working.
+   */
+  protocol?: number;
 }
 
+const COURSE_MODEL = 'claude-sonnet-5-5';
+
+/** Original prompt: whole weeks with ids. Kept for app builds that predate protocol 2. */
 const STATIC_SYSTEM_PROMPT = `You are an elite strength & conditioning coach.
 
 Convert workout instructions into a structured JSON response.
@@ -69,6 +78,39 @@ interface Exercise { id: string; name: string; format: string; sets?: number; re
 interface DayProgram { id: string; dayNumber: number; title: string; exercises: Exercise[]; }
 interface WeekProgram { id: string; weekNumber: number; days: DayProgram[]; }`;
 
+/**
+ * Protocol 2: no ids, and edits come back as only the days that changed.
+ * Output length is what an edit waits on (thinking is off), so not re-writing
+ * untouched days and ids is the speed-up.
+ */
+const SYSTEM_PROMPT_V2 = `You are an elite strength & conditioning coach. Turn workout instructions into a structured training program.
+
+Reply with one minified JSON object and nothing else (no markdown, no commentary):
+{"mode":"replace"|"merge","weeks":[...]}
+
+WHEN THE USER MESSAGE INCLUDES A CURRENT PROGRAM
+- "merge" for targeted changes (add a day to week 4, change week 2 day 3, add week 5, swap an exercise). Return only what changed:
+  - For each week you touch: {"weekNumber":N,"days":[...]} with only the days you added or changed. Each returned day is complete (all its exercises, in order). Days you leave out stay exactly as they are.
+  - If the change removes or renumbers days in a week, return that week with "fullWeek":true and all of its days.
+  - A new week is returned whole.
+- "replace" only for a brand-new program or a full overhaul; return every week.
+- Anything you were not asked to change stays identical: same names, sets, reps, rest, notes, supersetId.
+WHEN THERE IS NO CURRENT PROGRAM: always "replace".
+
+FIELDS
+- No "id" fields; the app assigns them.
+- "format": one of REGULAR, EMOM, SUPER_SET, CIRCUIT, DROP_SET, AMRAP, FOR_TIME, HIIT, CARDIO, MAX_EFFORT. REGULAR for standard sets x reps; AMRAP when reps say AMRAP; MAX_EFFORT for 1RM/3RM tests.
+- "sets" is a number. "reps" and "rest" are strings ("10", "5-8", "AMRAP"; "90s", "3 min").
+- Exercises done as a superset share the same "supersetId" (a group label such as "A" or "B") and have format SUPER_SET.
+- "description": a short coaching note, at most 12 words. No double quotes or newlines inside strings.
+- Rest or recovery days: "title":"Rest Day" and an empty exercises array.
+- Omit fields that do not apply.
+
+SCHEMA
+Exercise {name, format, sets?, reps?, rest?, weight?, description?, durationMinutes?, rounds?, distance?, time?, workInterval?, restInterval?, supersetId?, emomItems?: {name, time}[], forTimeItems?: {name, reps}[]}
+Day {dayNumber, title, exercises: Exercise[]}
+Week {weekNumber, days: Day[], fullWeek?}`;
+
 function buildUserMessage(data: RequestData): string {
   const contextNote = data.context === 'custom'
     ? 'This is a bespoke program for a specific athlete. Be precise with coaching notes.'
@@ -81,7 +123,7 @@ function buildUserMessage(data: RequestData): string {
   );
 
   const currentProgramSection = hasExisting
-    ? `\n\nCURRENT PROGRAM STATE (JSON):\n${JSON.stringify(data.currentWeeks, null, 2)}`
+    ? `\n\nCURRENT PROGRAM (JSON):\n${JSON.stringify(data.currentWeeks)}`
     : '';
 
   return `${contextNote}${currentProgramSection}\n\nINSTRUCTION:\n${data.text}\n\nReturn the JSON object:`;
@@ -99,11 +141,19 @@ async function streamAnthropic(
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'server-side-fallback-2026-07-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8192,
+      model: COURSE_MODEL,
+      // Room for a long multi-week program; 8k used to cut big courses off mid-JSON.
+      max_tokens: 64000,
       stream: true,
+      // Converting a program into JSON needs no deliberation, and thinking
+      // tokens are pure wait before the first exercise streams.
+      thinking: { type: 'between_tools' },
+      output_config: { effort: 'medium' },
+      // If a safety classifier declines, Anthropic re-runs on a fallback model.
+      fallbacks: 'default',
       system: [
         {
           type: 'text',
@@ -137,18 +187,25 @@ async function streamAnthropic(
       if (!line.startsWith('data: ')) continue;
       const payload = line.slice(6).trim();
       if (!payload || payload === '[DONE]') continue;
+      let event: any;
       try {
-        const event = JSON.parse(payload);
-        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-          const delta = event.delta.text as string;
-          full += delta;
-          onDelta(delta);
-        } else if (event.type === 'message_start' && event.message?.usage) {
-          const u = event.message.usage;
-          console.log('Cache hit:', u.cache_read_input_tokens ?? 0, 'cache write:', u.cache_creation_input_tokens ?? 0);
-        }
+        event = JSON.parse(payload);
       } catch {
-        // ignore partial parse errors
+        continue; // partial line
+      }
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        const delta = event.delta.text as string;
+        full += delta;
+        onDelta(delta);
+      } else if (event.type === 'message_start' && event.message?.usage) {
+        const u = event.message.usage;
+        console.log('Input tokens:', u.input_tokens, 'cache read:', u.cache_read_input_tokens ?? 0);
+      } else if (event.type === 'message_delta') {
+        console.log('Stop:', event.delta?.stop_reason, 'output tokens:', event.usage?.output_tokens);
+        if (event.delta?.stop_reason === 'max_tokens') throw new Error('The program was too long to finish in one go — split it into fewer weeks.');
+        if (event.delta?.stop_reason === 'refusal') throw new Error('Claude declined this request.');
+      } else if (event.type === 'error') {
+        throw new Error(`Anthropic stream error: ${event.error?.message ?? 'unknown'}`);
       }
     }
   }
@@ -184,7 +241,7 @@ export const generateCourseWithClaude = onCall(
     try {
       const text = await streamAnthropic(
         apiKey,
-        STATIC_SYSTEM_PROMPT,
+        data.protocol === 2 ? SYSTEM_PROMPT_V2 : STATIC_SYSTEM_PROMPT,
         userMessage,
         (delta) => {
           if (canStream && response) {
@@ -202,3 +259,6 @@ export const generateCourseWithClaude = onCall(
 
 // Food search / barcode lookup (Open Food Facts proxy)
 export { searchFoodDb, lookupFoodBarcode } from './foodSearch';
+
+// Meal photo -> foods + macros (Claude Haiku)
+export { analyzeFoodPhoto } from './foodPhoto';

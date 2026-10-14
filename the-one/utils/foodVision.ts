@@ -1,8 +1,8 @@
-// Photo → food estimate, via the Firebase AI (Gemini) that the app already uses.
-// Flash rather than Pro: this is image recognition with a small JSON answer, so
-// it is the faster and cheaper of the two and the quality difference is noise.
-import { getGenerativeModel } from 'firebase/ai';
-import { aiService } from '../firebase';
+// Photo → food estimate. The analyzeFoodPhoto function sends the photo to
+// Claude Haiku server-side (the prompt and schema live there) and returns the
+// items; this file shrinks the photo first and cleans up the numbers.
+import { getApp } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export interface GuessedFood {
   name: string;
@@ -16,32 +16,6 @@ export interface GuessedFood {
   confidence: 'high' | 'medium' | 'low';
 }
 
-const visionModel = getGenerativeModel(aiService, {
-  model: 'gemini-2.5-flash',
-  generationConfig: {
-    responseMimeType: 'application/json',
-    temperature: 0.2,
-    maxOutputTokens: 2048,
-  },
-});
-
-const PROMPT = `You are a nutrition assistant looking at a photo of a meal.
-
-List each distinct food item you can see on the plate. For each one estimate the
-portion in grams and its macros for that portion (not per 100g): kcal, protein,
-carbs, fat and dietary fibre ("fiber", in grams; 0 for meat, fish, eggs, dairy
-and oils).
-
-Rules:
-- Only list food you can actually see. Never invent items.
-- Estimate portions from visual cues (plate size, utensils, relative volume).
-- Give "confidence": "high" if the food and portion are both clear, "medium" if
-  the food is clear but the portion is a guess, "low" if even the food is unsure.
-- If the image contains no food at all, return an empty array.
-
-Respond with JSON only, in exactly this shape:
-{"items":[{"name":"Grilled chicken breast","grams":180,"kcal":297,"protein":56,"carbs":0,"fat":6.5,"fiber":0,"confidence":"high"}]}`;
-
 const clampNum = (v: unknown, max: number): number => {
   const n = typeof v === 'number' ? v : parseFloat(String(v ?? ''));
   if (!Number.isFinite(n) || n < 0) return 0;
@@ -50,20 +24,20 @@ const clampNum = (v: unknown, max: number): number => {
 
 /** Identify the foods in a meal photo. `base64` must be the raw data, no data: prefix. */
 export async function analyzePlate(base64: string, mimeType: string): Promise<GuessedFood[]> {
-  const result = await visionModel.generateContent([
-    { inlineData: { data: base64, mimeType } },
-    { text: PROMPT },
-  ]);
-
-  const raw = result.response.text();
-  let parsed: { items?: unknown[] };
+  const call = httpsCallable<{ image: string; mimeType: string }, { items?: unknown[] }>(
+    getFunctions(getApp(), 'me-central1'), 'analyzeFoodPhoto', { timeout: 60000 },
+  );
+  let items: unknown[];
   try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error('Could not read the result — try another photo.');
+    const { data } = await call({ image: base64, mimeType });
+    items = Array.isArray(data?.items) ? data.items : [];
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? '';
+    if (code.endsWith('unauthenticated')) throw new Error('Sign in again to scan food.');
+    if (code.endsWith('resource-exhausted')) throw new Error('The food scanner is busy — try again in a moment.');
+    throw new Error((e as Error).message || 'Could not analyse that photo.');
   }
 
-  const items = Array.isArray(parsed.items) ? parsed.items : [];
   return items
     .map((it): GuessedFood | null => {
       const o = it as Record<string, unknown>;
@@ -84,8 +58,34 @@ export async function analyzePlate(base64: string, mimeType: string): Promise<Gu
     .filter((f): f is GuessedFood => f !== null);
 }
 
-/** Read a File (camera capture or picked image) into base64 for the model. */
-export function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+const MAX_SIDE = 1280;
+
+/**
+ * Read a File (camera capture or picked image) into base64 for the model,
+ * downscaled to at most 1280 px on the long side as a JPEG. Falls back to the
+ * original bytes if the browser can't decode it.
+ */
+export async function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('no canvas');
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const url = canvas.toDataURL('image/jpeg', 0.82);
+    return { base64: url.slice(url.indexOf(',') + 1), mimeType: 'image/jpeg' };
+  } catch {
+    return readRaw(file);
+  }
+}
+
+function readRaw(file: File): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Could not read that image.'));
