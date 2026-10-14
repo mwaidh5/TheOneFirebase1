@@ -13,8 +13,15 @@ export interface Macros {
   fat: number;
 }
 
+/** A way to measure a portion: 1 piece, 1 scoop, 1 ml… and its weight in grams. */
+export interface Unit {
+  label: string;
+  ar?: string;
+  grams: number;
+}
+
 export interface Food {
-  id: string;                 // "off:<barcode>" or "custom:<docId>"
+  id: string;                 // "off:<barcode>", "custom:<docId>" or "common:<id>"
   name: string;
   brand?: string;
   barcode?: string;
@@ -22,7 +29,30 @@ export interface Food {
   servingGrams?: number;      // product's own serving, when it declares one
   servingLabel?: string;      // e.g. "1 bar (40 g)"
   imageUrl?: string;
-  source: 'off' | 'custom';
+  /** Portions this food can be logged in. Falls back to grams/serving. */
+  units?: Unit[];
+  source: 'off' | 'custom' | 'common';
+}
+
+const GRAM: Unit = { label: 'g', ar: 'غرام', grams: 1 };
+
+/**
+ * The portions a food can be logged in. Packaged products rarely declare
+ * anything but a serving, so they get serving + grams; generic foods carry
+ * their own natural units (1 egg, 1 scoop, 1 slice).
+ */
+export function unitsFor(food: Food): Unit[] {
+  if (food.units?.length) {
+    return food.units.some(u => u.grams === 1 && u.label === 'g')
+      ? food.units
+      : [...food.units, GRAM];
+  }
+  const out: Unit[] = [];
+  if (food.servingGrams && food.servingGrams > 0) {
+    out.push({ label: food.servingLabel || 'serving', ar: 'حصة', grams: food.servingGrams });
+  }
+  out.push(GRAM);
+  return out;
 }
 
 

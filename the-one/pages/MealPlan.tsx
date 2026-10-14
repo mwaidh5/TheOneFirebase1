@@ -251,7 +251,10 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-black truncate">{e.name}</p>
                       <p className="text-[11px] font-medium text-neutral-400" dir="ltr">
-                        {e.grams}g · {e.kcal} kcal · {e.protein}g P
+                        {e.qty && e.unitLabel && e.unitLabel !== 'g'
+                          ? `${e.qty} ${e.unitLabel} (${e.grams}g)`
+                          : `${e.grams}g`}
+                        {' · '}{e.kcal} kcal · {e.protein}g P
                       </p>
                     </div>
                     <button
