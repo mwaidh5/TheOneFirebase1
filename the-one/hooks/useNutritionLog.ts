@@ -13,6 +13,9 @@ export interface LogEntry extends Macros {
   brand?: string;
   slot: MealSlot;
   grams: number;
+  /** What was actually picked — "2 × egg" — so the log doesn't read "100 g". */
+  qty?: number;
+  unitLabel?: string;
   loggedAt: number;
 }
 

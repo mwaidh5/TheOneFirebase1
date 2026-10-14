@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { searchFoods, lookupBarcode, macrosFor, type Food } from '../utils/foodDb';
+import { searchFoods, lookupBarcode, macrosFor, unitsFor, type Food, type Unit } from '../utils/foodDb';
+import { searchCommonFoods } from '../utils/commonFoods';
 import { analyzePlate, fileToBase64, type GuessedFood } from '../utils/foodVision';
 import { SLOTS, type LogEntry, type MealSlot } from '../hooks/useNutritionLog';
 import BarcodeScanner from './BarcodeScanner';
@@ -42,7 +43,19 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
   const [form, setForm] = useState(blankCustom);
   // portion step
   const [chosen, setChosen] = useState<Food | null>(null);
-  const [grams, setGrams] = useState('100');
+  const [qty, setQty] = useState('1');
+  const [unitIdx, setUnitIdx] = useState(0);
+
+  // Opening a food picks its most natural portion: 1 egg, 1 scoop, 1 serving —
+  // and only falls back to 100 g when the food has no real unit of its own.
+  const pick = (food: Food) => {
+    const units = unitsFor(food);
+    const natural = units.findIndex(u => u.grams !== 1);
+    const idx = natural >= 0 ? natural : units.length - 1;
+    setUnitIdx(idx);
+    setQty(units[idx].grams === 1 ? '100' : '1');
+    setChosen(food);
+  };
 
   // Debounced search; the in-flight request is aborted when the query moves on.
   useEffect(() => {
@@ -61,18 +74,32 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
     return () => { clearTimeout(id); ctrl.abort(); };
   }, [query, tab, ar]);
 
+  const commonMatches = searchCommonFoods(query, ar);
   const localMatches = query.trim().length >= 2
     ? customFoods.filter(f => `${f.name} ${f.brand ?? ''}`.toLowerCase().includes(query.trim().toLowerCase()))
     : [];
 
-  const commit = (name: string, brand: string | undefined, foodId: string, g: number, m: { kcal: number; protein: number; carbs: number; fat: number }) => {
-    onAdd({ id: uid(), foodId, name, brand, slot: targetSlot, grams: g, ...m, loggedAt: Date.now() });
+  const commit = (
+    name: string, brand: string | undefined, foodId: string, g: number,
+    m: { kcal: number; protein: number; carbs: number; fat: number },
+    portion?: { qty: number; unitLabel: string },
+  ) => {
+    onAdd({ id: uid(), foodId, name, brand, slot: targetSlot, grams: g, ...m, ...portion, loggedAt: Date.now() });
   };
 
   const addChosen = () => {
     if (!chosen) return;
-    const g = Math.max(1, parseFloat(grams) || 0);
-    commit(chosen.name, chosen.brand, chosen.id, g, macrosFor(chosen, g));
+    const units = unitsFor(chosen);
+    const unit = units[Math.min(unitIdx, units.length - 1)];
+    const n = Math.max(0.01, parseFloat(qty) || 0);
+    const g = Math.max(1, Math.round(n * unit.grams));
+    const NO_PLURAL = ['g', 'ml', 'tbsp', 'tsp'];
+    const label = ar
+      ? (unit.ar ?? unit.label)
+      : n !== 1 && !NO_PLURAL.includes(unit.label) && !unit.label.endsWith('s')
+        ? `${unit.label}s`
+        : unit.label;
+    commit(chosen.name, chosen.brand, chosen.id, g, macrosFor(chosen, g), { qty: n, unitLabel: label });
     onClose();
   };
 
@@ -82,9 +109,9 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
     setBusy(true); setError(null); setNotFoundCode(null);
     try {
       const mine = customFoods.find(f => f.barcode === c);
-      if (mine) { setChosen(mine); setGrams(String(mine.servingGrams ?? 100)); return; }
+      if (mine) { pick(mine); return; }
       const found = await lookupBarcode(c);
-      if (found) { setChosen(found); setGrams(String(found.servingGrams ?? 100)); }
+      if (found) { pick(found); }
       else setNotFoundCode(c);
     } catch {
       setError(ar ? 'تعذّر البحث عن الباركود.' : 'Barcode lookup failed.');
@@ -130,8 +157,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
         },
       });
       setForm(blankCustom);
-      setChosen(food);
-      setGrams('100');
+      pick(food);
     } catch {
       setError(ar ? 'تعذّر الحفظ.' : 'Could not save that food.');
     } finally { setBusy(false); }
@@ -145,7 +171,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
 
   const Row: React.FC<{ food: Food; mine?: boolean }> = ({ food, mine }) => (
     <button
-      onClick={() => { setChosen(food); setGrams(String(food.servingGrams ?? 100)); }}
+      onClick={() => pick(food)}
       className="w-full text-start flex items-center gap-3 p-3 rounded-2xl border border-neutral-100 bg-white hover:border-black transition"
     >
       {food.imageUrl
@@ -156,7 +182,11 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-black truncate">{food.name}</p>
         <p className="text-[11px] text-neutral-400 font-medium truncate">
-          {mine ? (ar ? 'طعامي' : 'My food') : food.brand || (ar ? 'عام' : 'Generic')}
+          {mine
+            ? (ar ? 'طعامي' : 'My food')
+            : food.source === 'common'
+              ? (ar ? 'طعام عام' : 'Common food')
+              : food.brand || (ar ? 'منتج' : 'Product')}
           {' · '}<span dir="ltr">{food.per100.kcal} kcal / 100g</span>
         </p>
       </div>
@@ -256,7 +286,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
                   {recents.slice(0, 6).map(r => (
                     <button
                       key={r.id}
-                      onClick={() => { commit(r.name, r.brand, r.foodId, r.grams, { kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat }); onClose(); }}
+                      onClick={() => { commit(r.name, r.brand, r.foodId, r.grams, { kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat }, r.qty && r.unitLabel ? { qty: r.qty, unitLabel: r.unitLabel } : undefined); onClose(); }}
                       className="w-full text-start flex items-center gap-3 p-3 rounded-2xl border border-neutral-100 bg-white hover:border-black transition"
                     >
                       <span className="w-9 h-9 rounded-xl bg-neutral-50 flex items-center justify-center shrink-0">
@@ -264,11 +294,18 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
                       </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-black truncate">{r.name}</p>
-                        <p className="text-[11px] text-neutral-400 font-medium" dir="ltr">{r.grams}g · {r.kcal} kcal</p>
+                        <p className="text-[11px] text-neutral-400 font-medium" dir="ltr">{r.qty && r.unitLabel && r.unitLabel !== 'g' ? `${r.qty} ${r.unitLabel}` : `${r.grams}g`} · {r.kcal} kcal</p>
                       </div>
                       <span className="material-symbols-outlined text-neutral-300 text-[20px]">replay</span>
                     </button>
                   ))}
+                </div>
+              )}
+
+              {commonMatches.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'أطعمة شائعة' : 'Common foods'}</p>
+                  {commonMatches.map(f => <Row key={f.id} food={f} />)}
                 </div>
               )}
 
@@ -286,7 +323,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
                 </div>
               )}
 
-              {!busy && query.trim().length >= 2 && results.length === 0 && localMatches.length === 0 && (
+              {!busy && query.trim().length >= 2 && results.length === 0 && localMatches.length === 0 && commonMatches.length === 0 && (
                 <div className="text-center py-8 space-y-3">
                   <p className="text-xs font-bold text-neutral-400">{ar ? 'لا نتائج.' : 'Nothing found.'}</p>
                   <button onClick={() => { setForm({ ...blankCustom, name: query.trim() }); setTab('custom'); }} className="px-4 py-2.5 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest">
@@ -506,29 +543,57 @@ const FoodLogSheet: React.FC<Props> = ({ slot, customFoods, recents, ar, onAdd, 
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                value={grams}
-                onChange={e => setGrams(e.target.value)}
-                inputMode="decimal"
-                dir="ltr"
-                className="w-24 bg-neutral-50 border border-neutral-100 rounded-xl px-3 py-2.5 text-base font-black tabular-nums outline-none focus:border-black transition"
-              />
-              <span className="text-xs font-black uppercase tracking-widest text-neutral-400">{ar ? 'غرام' : 'grams'}</span>
-              <div className="flex gap-1.5 ms-auto">
-                {chosen.servingGrams && (
-                  <button onClick={() => setGrams(String(chosen.servingGrams))} className="px-2.5 py-1.5 rounded-lg bg-neutral-100 text-[9px] font-black uppercase tracking-widest">
-                    {ar ? 'حصة' : 'Serving'}
-                  </button>
-                )}
-                {[100, 150, 200].map(g => (
-                  <button key={g} onClick={() => setGrams(String(g))} className="px-2.5 py-1.5 rounded-lg bg-neutral-100 text-[9px] font-black tabular-nums">{g}</button>
-                ))}
-              </div>
-            </div>
+            {(() => {
+              const units = unitsFor(chosen);
+              const safeIdx = Math.min(unitIdx, units.length - 1);
+              return (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={qty}
+                      onChange={e => setQty(e.target.value)}
+                      inputMode="decimal"
+                      dir="ltr"
+                      aria-label={ar ? 'الكمية' : 'Quantity'}
+                      className="w-20 bg-neutral-50 border border-neutral-100 rounded-xl px-3 py-2.5 text-base font-black tabular-nums outline-none focus:border-black transition"
+                    />
+                    <select
+                      value={safeIdx}
+                      onChange={e => setUnitIdx(Number(e.target.value))}
+                      aria-label={ar ? 'الوحدة' : 'Unit'}
+                      className="flex-1 bg-neutral-50 border border-neutral-100 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-black transition"
+                    >
+                      {units.map((u, i) => (
+                        <option key={u.label + i} value={i}>
+                          {(ar ? (u.ar ?? u.label) : u.label) + (u.grams !== 1 ? ` (${u.grams} g)` : '')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[0.5, 1, 2, 3].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setQty(String(n))}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-black tabular-nums transition ${
+                          parseFloat(qty) === n ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-500'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <span className="flex-1 flex items-center justify-center text-[10px] font-black text-neutral-400 tabular-nums" dir="ltr">
+                      = {Math.max(1, Math.round((parseFloat(qty) || 0) * units[safeIdx].grams))} g
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {(() => {
-              const m = macrosFor(chosen, Math.max(1, parseFloat(grams) || 0));
+              const us = unitsFor(chosen);
+              const u = us[Math.min(unitIdx, us.length - 1)];
+              const m = macrosFor(chosen, Math.max(1, Math.round((parseFloat(qty) || 0) * u.grams)));
               return (
                 <div className="grid grid-cols-4 gap-2">
                   {[
