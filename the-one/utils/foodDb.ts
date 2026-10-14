@@ -51,7 +51,9 @@ export function unitsFor(food: Food): Unit[] {
   }
   const out: Unit[] = [];
   if (food.servingGrams && food.servingGrams > 0) {
-    out.push({ label: food.servingLabel || 'serving', ar: 'حصة', grams: food.servingGrams });
+    // Always 'serving': OFF's own serving text ("30 g", "1 bar (40 g)") reads badly
+    // after a quantity ("1 30 g"); the grams are shown next to it anyway.
+    out.push({ label: 'serving', ar: 'حصة', grams: food.servingGrams });
   }
   out.push(GRAM);
   return out;
@@ -74,7 +76,56 @@ export async function searchFoods(query: string, _signal?: AbortSignal): Promise
   const fns = getFunctions(getApp(), 'me-central1');
   const call = httpsCallable<{ query: string }, { foods: Food[] }>(fns, 'searchFoodDb', { timeout: 20000 });
   const { data } = await call({ query: q });
-  return (data?.foods ?? []).filter(f => f && f.name);
+  return rankFoods((data?.foods ?? []).filter(f => f && f.name), q);
+}
+
+/**
+ * Drop entries whose label can't be right, then order what's left so the
+ * food you meant comes first.
+ *
+ * Plausibility: nothing exceeds 900 kcal/100 g (pure fat), and the stated
+ * calories should roughly match the label's own macros (4/4/9). Entries that
+ * fail are almost always kJ typed into the kcal field — "Saudi Dates,
+ * 1,830 kcal/100 g".
+ *
+ * Ranking: in English the main noun is the last word ("pitted DATES",
+ * "date SYRUP"), in Arabic the first ("تمر سعودي"). A result whose main noun is
+ * the word searched for beats one that merely contains it, then shorter (more
+ * generic) names win.
+ */
+export function rankFoods(foods: Food[], query: string): Food[] {
+  const q = query.trim().toLowerCase();
+  const arabic = /[\u0600-\u06FF]/.test(q);
+  const isWord = (w: string) => w === q || w === q + 's' || w === q + 'es' || (q.endsWith('s') && w === q.slice(0, -1));
+
+  const plausible = foods.filter(f => {
+    const { kcal, protein, carbs, fat } = f.per100;
+    if (kcal > 900) return false;
+    const fromMacros = 4 * protein + 4 * carbs + 9 * fat;
+    if (fromMacros > 0 && (kcal > fromMacros * 2 + 50 || kcal < fromMacros * 0.5 - 50)) return false;
+    return true;
+  });
+
+  const seen = new Set<string>();
+  const unique = plausible.filter(f => {
+    const k = `${f.name.toLowerCase().trim()}|${(f.brand ?? '').toLowerCase().trim()}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  const score = (f: Food) => {
+    const words = f.name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+    const head = arabic ? words[0] : words[words.length - 1];
+    if (head && isWord(head)) return 0;
+    if (words.some(isWord)) return 1;
+    if (words.some(w => w.startsWith(q))) return 2;
+    return 3;
+  };
+  return unique
+    .map((f, i) => ({ f, i, s: score(f) }))
+    .sort((a, b) => a.s - b.s || a.f.name.length - b.f.name.length || a.i - b.i)
+    .map(x => x.f);
 }
 
 /**
