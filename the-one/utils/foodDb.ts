@@ -11,6 +11,8 @@ export interface Macros {
   protein: number;
   carbs: number;
   fat: number;
+  /** Dietary fibre in grams. Optional: entries logged before fibre was tracked, and products whose label omits it, have none. */
+  fiber?: number;
 }
 
 /** A way to measure a portion: 1 piece, 1 scoop, 1 ml… and its weight in grams. */
@@ -93,10 +95,12 @@ export async function lookupBarcode(code: string, _signal?: AbortSignal): Promis
 /** Scale a food's per-100g macros to an actual portion. */
 export function macrosFor(food: Food, grams: number): Macros {
   const k = grams / 100;
-  return {
+  const m: Macros = {
     kcal: Math.round(food.per100.kcal * k),
     protein: Math.round(food.per100.protein * k * 10) / 10,
     carbs: Math.round(food.per100.carbs * k * 10) / 10,
     fat: Math.round(food.per100.fat * k * 10) / 10,
   };
+  if (typeof food.per100.fiber === 'number') m.fiber = Math.round(food.per100.fiber * k * 10) / 10;
+  return m;
 }
