@@ -11,6 +11,8 @@ export interface GuessedFood {
   protein: number;
   carbs: number;
   fat: number;
+  /** Dietary fibre in grams for the estimated portion. */
+  fiber: number;
   confidence: 'high' | 'medium' | 'low';
 }
 
@@ -26,7 +28,9 @@ const visionModel = getGenerativeModel(aiService, {
 const PROMPT = `You are a nutrition assistant looking at a photo of a meal.
 
 List each distinct food item you can see on the plate. For each one estimate the
-portion in grams and its macros for that portion (not per 100g).
+portion in grams and its macros for that portion (not per 100g): kcal, protein,
+carbs, fat and dietary fibre ("fiber", in grams; 0 for meat, fish, eggs, dairy
+and oils).
 
 Rules:
 - Only list food you can actually see. Never invent items.
@@ -36,7 +40,7 @@ Rules:
 - If the image contains no food at all, return an empty array.
 
 Respond with JSON only, in exactly this shape:
-{"items":[{"name":"Grilled chicken breast","grams":180,"kcal":297,"protein":56,"carbs":0,"fat":6.5,"confidence":"high"}]}`;
+{"items":[{"name":"Grilled chicken breast","grams":180,"kcal":297,"protein":56,"carbs":0,"fat":6.5,"fiber":0,"confidence":"high"}]}`;
 
 const clampNum = (v: unknown, max: number): number => {
   const n = typeof v === 'number' ? v : parseFloat(String(v ?? ''));
@@ -73,6 +77,7 @@ export async function analyzePlate(base64: string, mimeType: string): Promise<Gu
         protein: clampNum(o.protein, 500),
         carbs: clampNum(o.carbs, 1000),
         fat: clampNum(o.fat, 500),
+        fiber: clampNum(o.fiber, 300),
         confidence: conf,
       };
     })

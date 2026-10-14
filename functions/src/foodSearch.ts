@@ -25,7 +25,7 @@ interface Food {
   name: string;
   brand?: string;
   barcode?: string;
-  per100: { kcal: number; protein: number; carbs: number; fat: number };
+  per100: { kcal: number; protein: number; carbs: number; fat: number; fiber?: number };
   servingGrams?: number;
   servingLabel?: string;
   imageUrl?: string;
@@ -64,12 +64,18 @@ function toFood(h: OffHit): Food | null {
     const kj = toNum(n['energy-kj_100g']) || toNum(n['energy_100g']);
     kcal = kj > 0 ? kj / 4.184 : 0;
   }
-  const per100 = {
+  const per100: Food['per100'] = {
     kcal: Math.round(kcal),
     protein: Math.round(toNum(n['proteins_100g']) * 10) / 10,
     carbs: Math.round(toNum(n['carbohydrates_100g']) * 10) / 10,
     fat: Math.round(toNum(n['fat_100g']) * 10) / 10,
   };
+  // Many OFF products have no fibre on their panel. Leave the key out then, so
+  // the app can tell "unknown" apart from a real 0 g.
+  const fiberRaw = n['fiber_100g'];
+  if (fiberRaw !== undefined && fiberRaw !== null && fiberRaw !== '') {
+    per100.fiber = Math.round(toNum(fiberRaw) * 10) / 10;
+  }
   // A product with no nutrition panel is noise in a calorie logger.
   if (per100.kcal <= 0 && per100.protein <= 0 && per100.carbs <= 0 && per100.fat <= 0) {
     return null;
