@@ -114,7 +114,26 @@ export function useNutritionLog(uid: string | undefined, date: Date) {
     save({ entries: next });
   };
 
-  return { mode, setMode, planEaten, togglePlanMeal, entries, addEntry, removeEntry, loading };
+  /** Change a logged food in place — its meal, portion and the macros that follow. */
+  const updateEntry = (id: string, patch: Partial<LogEntry>) => {
+    const next = entries.map(e => (e.id === id ? { ...e, ...patch, id: e.id } : e));
+    setEntries(next);
+    save({ entries: next });
+  };
+
+  /**
+   * Plan meals used to be ticked off rather than logged. Turn those ticks into
+   * ordinary entries (so they can be edited like anything else) and clear the
+   * ticks — in one write, so a meal is never counted twice or lost.
+   */
+  const absorbPlanTicks = (converted: LogEntry[]) => {
+    const next = [...entries, ...converted];
+    setEntries(next);
+    setPlanEaten(new Set());
+    save({ entries: next, planEaten: [] });
+  };
+
+  return { mode, setMode, planEaten, togglePlanMeal, entries, addEntry, removeEntry, updateEntry, absorbPlanTicks, loading };
 }
 
 /**
