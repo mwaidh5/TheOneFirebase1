@@ -96,8 +96,10 @@ const AppShell: React.FC<AppShellProps> = ({
       <main
         className="flex-grow flex flex-col"
         style={{
+          // The webview now fills the screen (contentInset: 'never'), so every
+          // screen pads for the status bar itself — auth screens included.
           paddingTop: isAuth
-            ? undefined
+            ? 'env(safe-area-inset-top)'
             : originalAdmin
               ? 'calc(3rem + env(safe-area-inset-top))'
               : showBack
@@ -105,7 +107,7 @@ const AppShell: React.FC<AppShellProps> = ({
                 : 'env(safe-area-inset-top)',
           // Generous clearance under the fixed tab bar so the last section
           // (buttons, feedback cards) is never hidden behind it.
-          paddingBottom: showBottomNav ? 'calc(6.5rem + env(safe-area-inset-bottom))' : undefined,
+          paddingBottom: showBottomNav ? 'calc(6.5rem + env(safe-area-inset-bottom))' : 'env(safe-area-inset-bottom)',
         }}
       >
         <ErrorBoundary key={path}>{children}</ErrorBoundary>

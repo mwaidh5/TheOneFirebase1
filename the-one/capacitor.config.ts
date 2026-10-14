@@ -5,7 +5,13 @@ const config: CapacitorConfig = {
   appName: 'The One Training',
   webDir: 'dist',
   ios: {
-    contentInset: 'automatic',
+    // 'never': the webview fills the whole screen and the CSS pads itself with
+    // env(safe-area-inset-*) (index.html sets viewport-fit=cover, and AppShell /
+    // BottomNav already use those insets). 'automatic' made iOS inset the
+    // webview as well, so the insets were applied twice: the native white
+    // background showed through as a strip under the tab bar, and env() read 0,
+    // which let the status bar sit on top of the home screen's hero card.
+    contentInset: 'never',
     allowsLinkPreview: false,
     scrollEnabled: true,
     backgroundColor: '#ffffff',
