@@ -31,6 +31,33 @@ interface Props {
 
 const uid = () => `e${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
 
+const NO_PLURAL = ['g', 'ml', 'tbsp', 'tsp'];
+
+/**
+ * The portion a food is listed and quick-added in: its natural unit (1 date,
+ * 1 scoop, 1 cup, 1 serving), else 100 ml for drinks that only have ml, else
+ * 100 g. Grams and millilitres are measures, never a "natural" portion, so
+ * laban opens on a cup rather than on 1 ml.
+ */
+function defaultPortion(food: Food): { idx: number; unit: Unit; qty: number; grams: number } {
+  const units = unitsFor(food);
+  let idx = units.findIndex(u => u.label !== 'g' && u.label !== 'ml');
+  let qty = 1;
+  if (idx < 0) {
+    idx = units.findIndex(u => u.label === 'ml');
+    if (idx < 0) idx = units.length - 1;
+    qty = 100;
+  }
+  const unit = units[idx];
+  return { idx, unit, qty, grams: Math.max(1, Math.round(qty * unit.grams)) };
+}
+
+/** "1 date", "2 dates", "100 g" — the label stored on the entry and shown in rows. */
+function unitLabelFor(unit: Unit, qty: number, ar: boolean): string {
+  if (ar) return unit.ar ?? unit.label;
+  return qty !== 1 && !NO_PLURAL.includes(unit.label) && !unit.label.endsWith('s') ? `${unit.label}s` : unit.label;
+}
+
 const blankCustom = { name: '', brand: '', barcode: '', kcal: '', protein: '', carbs: '', fat: '', fiber: '', unitName: '', unitGrams: '' };
 
 const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, customFoods, recents, ar, onAdd, onSaveCustom, onClose }) => {
@@ -56,17 +83,23 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
   const [form, setForm] = useState(blankCustom);
   // portion step
   const [chosen, setChosen] = useState<Food | null>(null);
+  // The sheet stays open after adding so several foods go in one go.
+  const [addedCount, setAddedCount] = useState(0);
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const noteAdded = (key: string, n = 1) => {
+    setAddedCount(c => c + n);
+    setJustAdded(key);
+    setTimeout(() => setJustAdded(k => (k === key ? null : k)), 1400);
+  };
   const [qty, setQty] = useState('1');
   const [unitIdx, setUnitIdx] = useState(0);
 
   // Opening a food picks its most natural portion: 1 egg, 1 scoop, 1 serving —
   // and only falls back to 100 g when the food has no real unit of its own.
   const pick = (food: Food) => {
-    const units = unitsFor(food);
-    const natural = units.findIndex(u => u.grams !== 1);
-    const idx = natural >= 0 ? natural : units.length - 1;
-    setUnitIdx(idx);
-    setQty(units[idx].grams === 1 ? '100' : '1');
+    const d = defaultPortion(food);
+    setUnitIdx(d.idx);
+    setQty(String(d.qty));
     setChosen(food);
   };
 
@@ -106,14 +139,16 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
     const unit = units[Math.min(unitIdx, units.length - 1)];
     const n = Math.max(0.01, parseFloat(qty) || 0);
     const g = Math.max(1, Math.round(n * unit.grams));
-    const NO_PLURAL = ['g', 'ml', 'tbsp', 'tsp'];
-    const label = ar
-      ? (unit.ar ?? unit.label)
-      : n !== 1 && !NO_PLURAL.includes(unit.label) && !unit.label.endsWith('s')
-        ? `${unit.label}s`
-        : unit.label;
-    commit(chosen.name, chosen.brand, chosen.id, g, macrosFor(chosen, g), { qty: n, unitLabel: label });
-    onClose();
+    commit(chosen.name, chosen.brand, chosen.id, g, macrosFor(chosen, g), { qty: n, unitLabel: unitLabelFor(unit, n, ar) });
+    noteAdded(chosen.id);
+    setChosen(null);
+  };
+
+  /** The + on a row: log the food's default portion without opening it. */
+  const quickAdd = (food: Food) => {
+    const d = defaultPortion(food);
+    commit(food.name, food.brand, food.id, d.grams, macrosFor(food, d.grams), { qty: d.qty, unitLabel: unitLabelFor(d.unit, d.qty, ar) });
+    noteAdded(food.id);
   };
 
   const runBarcode = async (raw?: string) => {
@@ -150,7 +185,8 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
       if (!picked.has(i)) return;
       commit(g.name, ar ? 'من الصورة' : 'From photo', `photo:${i}`, g.grams, { kcal: g.kcal, protein: g.protein, carbs: g.carbs, fat: g.fat, fiber: (g as { fiber?: number }).fiber });
     });
-    onClose();
+    noteAdded('photo', picked.size);
+    setGuesses(null); setPhotoUrl(null); setPicked(new Set());
   };
 
   const saveCustom = async () => {
@@ -191,30 +227,46 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
     setTab('custom');
   };
 
-  const Row: React.FC<{ food: Food; mine?: boolean }> = ({ food, mine }) => (
-    <button
-      onClick={() => pick(food)}
-      className="w-full text-start flex items-center gap-3 p-3 rounded-2xl border border-neutral-100 bg-white hover:border-black transition"
-    >
-      {food.imageUrl
-        ? <img src={food.imageUrl} alt="" className="w-11 h-11 rounded-xl object-cover bg-neutral-50 shrink-0" />
-        : <span className="w-11 h-11 rounded-xl bg-neutral-50 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[20px] text-neutral-300">{mine ? 'bookmark' : 'nutrition'}</span>
-          </span>}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-black truncate">{food.name}</p>
-        <p className="text-[11px] text-neutral-400 font-medium truncate">
-          {mine
-            ? (ar ? 'طعامي' : 'My food')
-            : food.source === 'common'
-              ? (ar ? 'طعام عام' : 'Common food')
-              : food.brand || (ar ? 'منتج' : 'Product')}
-          {' · '}<span dir="ltr">{food.per100.kcal} kcal / 100g</span>
-        </p>
+  const Row: React.FC<{ food: Food; mine?: boolean }> = ({ food, mine }) => {
+    const d = defaultPortion(food);
+    const m = macrosFor(food, d.grams);
+    const done = justAdded === food.id;
+    const portion = d.unit.label === 'g' || d.unit.label === 'ml'
+      ? `${d.qty} ${ar ? (d.unit.ar ?? d.unit.label) : d.unit.label}`
+      : `${d.qty} ${unitLabelFor(d.unit, d.qty, ar)}`;
+    const source = mine ? (ar ? 'طعامي' : 'My food') : food.source === 'common' ? '' : (food.brand || '');
+    return (
+      <div className="flex items-center rounded-2xl border border-neutral-100 bg-white">
+        <button onClick={() => pick(food)} className="flex-1 min-w-0 flex items-center gap-3 p-3 text-start">
+          {food.imageUrl
+            ? <img src={food.imageUrl} alt="" className="w-11 h-11 rounded-xl object-cover bg-neutral-50 shrink-0" />
+            : <span className="w-11 h-11 rounded-xl bg-neutral-50 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[20px] text-neutral-300">{mine ? 'bookmark' : 'nutrition'}</span>
+              </span>}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-black truncate flex items-center gap-1">
+              <span className="truncate">{food.name}</span>
+              {food.source === 'common' && (
+                <span className="material-symbols-outlined text-[15px] text-green-600 filled shrink-0" title={ar ? 'موثّق' : 'Verified'}>verified</span>
+              )}
+            </p>
+            <p className="text-[12px] text-neutral-500 font-medium truncate">
+              <span dir="ltr">{m.kcal} kcal</span>{', '}{portion}{source ? ` \u00b7 ${source}` : ''}
+            </p>
+          </div>
+        </button>
+        <button
+          onClick={() => quickAdd(food)}
+          aria-label={ar ? `أضف ${food.name}` : `Add ${food.name}`}
+          className={`w-10 h-10 me-3 rounded-full flex items-center justify-center shrink-0 transition ${
+            done ? 'bg-green-600 text-white' : 'bg-accent/10 text-accent'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[22px]">{done ? 'check' : 'add'}</span>
+        </button>
       </div>
-      <span className="text-[11px] font-black text-accent tabular-nums shrink-0" dir="ltr">{food.per100.protein}g P</span>
-    </button>
-  );
+    );
+  };
 
   const field = (label: string, key: keyof typeof form, placeholder: string, numeric = false) => (
     <div className="space-y-1">
@@ -327,7 +379,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                               kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat, fiber: r.fiber,
                               qty: 1, unitLabel: ar ? 'وجبة' : 'meal', loggedAt: Date.now(),
                             });
-                            onClose();
+                            noteAdded(`plan:${r.id}`);
                           }}
                           className={`w-full text-start flex items-center gap-3 p-3 rounded-2xl border transition ${
                             done ? 'border-green-200 bg-green-50' : 'border-neutral-100 bg-white hover:border-black'
@@ -359,7 +411,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                   {recents.slice(0, 6).map(r => (
                     <button
                       key={r.id}
-                      onClick={() => { commit(r.name, r.brand, r.foodId, r.grams, { kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat }, r.qty && r.unitLabel ? { qty: r.qty, unitLabel: r.unitLabel } : undefined); onClose(); }}
+                      onClick={() => { commit(r.name, r.brand, r.foodId, r.grams, { kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat, fiber: r.fiber }, r.qty && r.unitLabel ? { qty: r.qty, unitLabel: r.unitLabel } : undefined); noteAdded(`recent:${r.id}`); }}
                       className="w-full text-start flex items-center gap-3 p-3 rounded-2xl border border-neutral-100 bg-white hover:border-black transition"
                     >
                       <span className="w-9 h-9 rounded-xl bg-neutral-50 flex items-center justify-center shrink-0">
@@ -369,7 +421,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                         <p className="text-sm font-bold text-black truncate">{r.name}</p>
                         <p className="text-[11px] text-neutral-400 font-medium" dir="ltr">{r.qty && r.unitLabel && r.unitLabel !== 'g' ? `${r.qty} ${r.unitLabel}` : `${r.grams}g`} · {r.kcal} kcal</p>
                       </div>
-                      <span className="material-symbols-outlined text-neutral-300 text-[20px]">replay</span>
+                      <span className={`material-symbols-outlined text-[20px] ${justAdded === `recent:${r.id}` ? 'text-green-600 filled' : 'text-accent'}`}>{justAdded === `recent:${r.id}` ? 'check_circle' : 'add_circle'}</span>
                     </button>
                   ))}
                 </div>
@@ -593,6 +645,17 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
         </div>
 
         {/* Footer action for the tabs that need one */}
+        {addedCount > 0 && (
+          <div className="px-4 pt-3 pb-1 border-t border-neutral-100 flex items-center gap-3">
+            <span className="flex-1 flex items-center gap-1.5 text-[11px] font-black text-green-700">
+              <span className="material-symbols-outlined text-[18px] filled">check_circle</span>
+              {ar ? `أُضيف ${addedCount}` : `${addedCount} added`}
+            </span>
+            <button onClick={onClose} className="px-5 py-2.5 bg-black text-white rounded-xl text-[11px] font-black uppercase tracking-widest">
+              {ar ? 'تم' : 'Done'}
+            </button>
+          </div>
+        )}
         {tab === 'photo' && guesses && guesses.length > 0 && (
           <div className="p-4 border-t border-neutral-100">
             <button onClick={addPicked} disabled={picked.size === 0} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest disabled:opacity-40">

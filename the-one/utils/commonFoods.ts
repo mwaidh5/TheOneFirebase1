@@ -82,7 +82,8 @@ const LIST: Common[] = [
   { id: 'banana', name: 'Banana', ar: 'موز', kcal: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.6, units: [piece(118, 'medium', 'حبة متوسطة'), G] },
   { id: 'apple', name: 'Apple', ar: 'تفاح', kcal: 52, protein: 0.3, carbs: 13.8, fat: 0.2, fiber: 2.4, units: [piece(182, 'medium', 'حبة متوسطة'), G] },
   { id: 'orange', name: 'Orange', ar: 'برتقال', kcal: 47, protein: 0.9, carbs: 11.8, fat: 0.1, fiber: 2.4, units: [piece(131, 'medium', 'حبة متوسطة'), G] },
-  { id: 'dates', name: 'Dates, medjool', ar: 'تمر', kcal: 277, protein: 1.8, carbs: 75, fat: 0.2, fiber: 6.7, units: [piece(24, 'date', 'تمرة'), G] },
+  // The everyday date (deglet noor-sized, ~8 g): 1 date ≈ 23 kcal. Medjool is a unit, not the default.
+  { id: 'dates', name: 'Dates', ar: 'تمر', kcal: 282, protein: 2.5, carbs: 75, fat: 0.4, fiber: 8, alias: 'medjool tamr', units: [piece(8, 'date', 'تمرة'), piece(24, 'medjool date', 'تمرة مجهول'), G] },
   { id: 'grapes', name: 'Grapes', ar: 'عنب', kcal: 69, protein: 0.7, carbs: 18.1, fat: 0.2, fiber: 0.9, units: [cup(151), G] },
   { id: 'watermelon', name: 'Watermelon', ar: 'بطيخ', kcal: 30, protein: 0.6, carbs: 7.6, fat: 0.2, fiber: 0.4, units: [cup(152), G] },
   { id: 'avocado', name: 'Avocado', ar: 'أفوكادو', kcal: 160, protein: 2, carbs: 8.5, fat: 14.7, fiber: 6.7, units: [piece(150, 'medium', 'حبة متوسطة'), G] },
