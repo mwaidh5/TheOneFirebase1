@@ -68,6 +68,11 @@ service cloud.firestore {
       match /custom_foods/{foodId} {
         allow read, write: if isOwner(userId) || isAdmin() || isCoach();
       }
+
+      // The athlete's grocery list: own items + ticked state
+      match /grocery/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin() || isCoach();
+      }
     }
 
     // 2. Courses Collection
