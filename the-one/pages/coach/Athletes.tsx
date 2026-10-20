@@ -4,6 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { CustomCourseRequest, User } from '../../types';
+import { useT } from '../../i18n/I18nContext';
+import type { TranslationKey } from '../../i18n/translations';
+
+const STATUS_LABELS: Record<string, TranslationKey> = {
+  PENDING_PAYMENT: 'status.pending_payment',
+  DIAGNOSTIC: 'status.diagnostic',
+  BUILDING: 'status.building',
+  COMPLETED: 'status.completed',
+};
 
 interface Athlete {
   id: string;
@@ -14,6 +23,7 @@ interface Athlete {
   level: string;
   status: string;
   lastSeen: string;
+  createdAt?: string;
   isCustomClient?: boolean;
   vitals: { weight: string; height: string; age: number | string };
   recentPrs: { lift: string; weight: string; date: string }[];
@@ -24,6 +34,7 @@ interface CoachAthletesProps {
 }
 
 const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
+  const { t, lang } = useT();
   const navigate = useNavigate();
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -48,6 +59,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
           level: data.sport ? data.sport.toUpperCase() : 'General',
           status: data.status,
           lastSeen: new Date(data.createdAt).toLocaleDateString(),
+          createdAt: data.createdAt,
           isCustomClient: true,
           vitals: { 
             weight: `${data.biometrics.weight}kg`, 
@@ -68,25 +80,29 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
     return () => unsubscribe();
   }, [currentUser.id]);
 
+  const statusLabel = (s: string) => (STATUS_LABELS[s] ? t(STATUS_LABELS[s]) : s);
+  const levelLabel = (l: string) => (l === 'General' ? t('coach.athletes.general') : l);
+  const formatSince = (a: Athlete) => (a.createdAt ? new Date(a.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB') : a.lastSeen);
+
   const handleMessageAthlete = (e: React.MouseEvent, athleteId: string) => {
     e.stopPropagation();
     navigate(`/coach/messages?athleteId=${athleteId}`);
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-500 text-left">
+    <div className="space-y-12 animate-in fade-in duration-500 text-start">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">My Athletes</h1>
-          <p className="text-neutral-400 font-medium">Full visibility into your standard and bespoke client rosters.</p>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('coach.athletes.title')}</h1>
+          <p className="text-neutral-400 font-medium">{t('coach.athletes.subtitle')}</p>
         </div>
         <div className="flex gap-4">
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
-            <input type="text" placeholder="Search athletes..." className="bg-white border border-neutral-100 rounded-2xl pl-12 pr-6 py-4 text-sm focus:border-black outline-none w-64 shadow-sm transition" />
+            <span className="material-symbols-outlined absolute start-4 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
+            <input type="text" placeholder={t('coach.athletes.search_placeholder')} className="bg-white border border-neutral-100 rounded-2xl ps-12 pe-6 py-4 text-sm focus:border-black outline-none w-64 shadow-sm transition" />
           </div>
           <button className="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-neutral-800 transition shadow-xl">
-            Assign Program
+            {t('coach.athletes.assign_program')}
           </button>
         </div>
       </div>
@@ -94,12 +110,12 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
       {isLoading ? (
          <div className="py-20 text-center">
             <div className="w-8 h-8 border-4 border-neutral-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-neutral-400 font-black uppercase tracking-widest text-xs">Loading Roster...</p>
+            <p className="text-neutral-400 font-black uppercase tracking-widest text-xs">{t('coach.athletes.loading')}</p>
          </div>
       ) : athletes.length === 0 ? (
          <div className="py-20 text-center space-y-4">
             <span className="material-symbols-outlined text-6xl text-neutral-100">groups</span>
-            <p className="text-neutral-300 font-black uppercase tracking-[0.2em]">No active athletes found</p>
+            <p className="text-neutral-300 font-black uppercase tracking-[0.2em]">{t('coach.athletes.empty')}</p>
          </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -110,26 +126,26 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
               className={`bg-white rounded-[2.5rem] p-8 border shadow-sm hover:shadow-2xl hover:-translate-y-1 transition cursor-pointer group relative overflow-hidden ${athlete.isCustomClient ? 'border-accent/30 ring-1 ring-accent/5' : 'border-neutral-100'}`}
             >
               {athlete.isCustomClient && (
-                <div className="absolute top-0 right-0 p-4">
-                  <span className="px-3 py-1 bg-accent text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl rounded-tr-xl">Bespoke Client</span>
+                <div className="absolute top-0 end-0 p-4">
+                  <span className="px-3 py-1 bg-accent text-white text-[8px] font-black uppercase tracking-widest rounded-es-xl rounded-se-xl">{t('coach.athletes.bespoke_client')}</span>
                 </div>
               )}
               
               <div className="flex items-center gap-6 mb-8">
                 <div className={`w-16 h-16 rounded-full overflow-hidden border-4 shadow-md ${athlete.isCustomClient ? 'border-accent/20' : 'border-neutral-50'}`}>
-                  <img src={`https://picsum.photos/100/100?random=${i+50}`} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={`https://picsum.photos/100/100?random=${i+50}`} alt={t('coach.athletes.avatar_alt')} className="w-full h-full object-cover" />
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-black uppercase tracking-tight group-hover:text-accent transition-colors">{athlete.name}</h3>
-                  <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{athlete.level} Specialty</p>
+                  <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('coach.athletes.specialty', { level: levelLabel(athlete.level) })}</p>
                 </div>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                    <span className="text-neutral-300">Phase Progress</span>
-                    <span className="text-black">{athlete.progress}%</span>
+                    <span className="text-neutral-300">{t('coach.athletes.phase_progress')}</span>
+                    <span className="text-black" dir="ltr">{athlete.progress}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-neutral-50 rounded-full overflow-hidden border border-neutral-100">
                     <div className={`h-full rounded-full transition-[width] duration-1000 ${athlete.isCustomClient ? 'bg-accent' : 'bg-black'}`} style={{ width: `${athlete.progress}%` }}></div>
@@ -139,17 +155,19 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
                 <div className="flex justify-between items-center pt-4 border-t border-neutral-50">
                   <div className="flex gap-4">
                     <div>
-                      <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Status</p>
-                      <p className={`text-xs font-bold uppercase ${athlete.status === 'At Risk' ? 'text-red-500' : 'text-green-600'}`}>{athlete.status}</p>
+                      <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('coach.courses.status')}</p>
+                      <p className={`text-xs font-bold uppercase ${athlete.status === 'At Risk' ? 'text-red-500' : 'text-green-600'}`}>{statusLabel(athlete.status)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Since</p>
-                      <p className="text-xs font-bold text-black uppercase tracking-tight">{athlete.lastSeen}</p>
+                      <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('coach.athletes.since')}</p>
+                      <p className="text-xs font-bold text-black uppercase tracking-tight">{formatSince(athlete)}</p>
                     </div>
                   </div>
                   
                   <button 
                     onClick={(e) => handleMessageAthlete(e, athlete.id)}
+                    aria-label={t('coach.athletes.message')}
+                    title={t('coach.athletes.message')}
                     className="w-10 h-10 rounded-xl bg-neutral-50 text-neutral-400 hover:bg-black hover:text-white transition flex items-center justify-center group/msg shadow-sm"
                   >
                     <span className="material-symbols-outlined text-[20px] filled">chat</span>
@@ -167,7 +185,8 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
             <button 
               onClick={() => setSelectedAthlete(null)}
-              className="absolute top-8 right-8 w-12 h-12 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition z-20 shadow-sm"
+              aria-label={t('common.close')}
+              className="absolute top-8 end-8 w-12 h-12 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition z-20 shadow-sm"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -175,42 +194,42 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
             <div className="p-12 overflow-y-auto no-scrollbar">
               <div className="flex items-center gap-8 mb-12">
                 <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-neutral-50 shadow-xl">
-                  <img src={`https://picsum.photos/150/150?u=${selectedAthlete.id}`} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={`https://picsum.photos/150/150?u=${selectedAthlete.id}`} alt={t('coach.athletes.avatar_alt')} className="w-full h-full object-cover" />
                 </div>
                 <div className="space-y-2">
                   <span className={`px-3 py-1 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-lg ${selectedAthlete.isCustomClient ? 'bg-accent' : 'bg-black'}`}>
-                    {selectedAthlete.isCustomClient ? 'Custom Athlete' : selectedAthlete.level}
+                    {selectedAthlete.isCustomClient ? t('coach.athletes.custom_athlete') : levelLabel(selectedAthlete.level)}
                   </span>
                   <h2 className="text-4xl font-black font-display uppercase tracking-tight text-black">{selectedAthlete.name}</h2>
                   <div className="flex gap-4 text-xs font-bold text-neutral-400 uppercase tracking-widest">
-                    <span>{selectedAthlete.phone}</span>
+                    <span dir="ltr">{selectedAthlete.phone}</span>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-6 mb-12">
                 <div className="p-6 bg-neutral-50 rounded-2xl border border-neutral-100 text-center">
-                  <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest mb-1">Weight</p>
-                  <p className="text-xl font-black text-black uppercase">{selectedAthlete.vitals.weight}</p>
+                  <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest mb-1">{t('coach.athletes.weight')}</p>
+                  <p className="text-xl font-black text-black uppercase" dir="ltr">{selectedAthlete.vitals.weight}</p>
                 </div>
                 <div className="p-6 bg-neutral-50 rounded-2xl border border-neutral-100 text-center">
-                  <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest mb-1">Height</p>
-                  <p className="text-xl font-black text-black uppercase">{selectedAthlete.vitals.height}</p>
+                  <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest mb-1">{t('coach.athletes.height')}</p>
+                  <p className="text-xl font-black text-black uppercase" dir="ltr">{selectedAthlete.vitals.height}</p>
                 </div>
                 <div className="p-6 bg-neutral-50 rounded-2xl border border-neutral-100 text-center">
-                  <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest mb-1">Age</p>
+                  <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest mb-1">{t('coach.athletes.age')}</p>
                   <p className="text-xl font-black text-black uppercase">{selectedAthlete.vitals.age}</p>
                 </div>
               </div>
 
               <div className="space-y-8">
                 <div>
-                  <h3 className={`text-lg font-black uppercase tracking-tight mb-6 border-l-4 pl-4 ${selectedAthlete.isCustomClient ? 'border-accent' : 'border-black'}`}>
-                    {selectedAthlete.isCustomClient ? 'Bespoke Cycle Intent' : 'Recent Performance Records'}
+                  <h3 className={`text-lg font-black uppercase tracking-tight mb-6 border-s-4 ps-4 ${selectedAthlete.isCustomClient ? 'border-accent' : 'border-black'}`}>
+                    {selectedAthlete.isCustomClient ? t('coach.athletes.bespoke_intent') : t('coach.athletes.recent_records')}
                   </h3>
                   {selectedAthlete.isCustomClient ? (
                     <div className="p-8 bg-neutral-50 rounded-[2.5rem] italic text-neutral-500 text-sm leading-relaxed border border-neutral-100">
-                      This athlete is on a personalized {selectedAthlete.level} cycle. Logs and PRs will populate as the architecture is finalized.
+                      {t('coach.athletes.personalized_note', { level: levelLabel(selectedAthlete.level) })}
                     </div>
                   ) : (
                     <div className="grid gap-4">
@@ -218,9 +237,9 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
                         <div key={i} className="flex items-center justify-between p-5 bg-white border border-neutral-100 rounded-2xl shadow-sm">
                           <div>
                             <p className="text-sm font-black text-black uppercase tracking-tight">{pr.lift}</p>
-                            <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest mt-1">Logged on {pr.date}</p>
+                            <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest mt-1">{t('coach.athletes.logged_on', { date: pr.date })}</p>
                           </div>
-                          <p className="text-xl font-black text-accent">{pr.weight}</p>
+                          <p className="text-xl font-black text-accent" dir="ltr">{pr.weight}</p>
                         </div>
                       ))}
                     </div>
@@ -236,11 +255,11 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
                     className="flex-1 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition shadow-xl flex items-center justify-center gap-3"
                   >
                     <span className="material-symbols-outlined filled">chat</span>
-                    Open Chat
+                    {t('coach.athletes.open_chat')}
                   </button>
                   <button className="flex-1 py-5 border border-neutral-100 text-black rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-50 transition flex items-center justify-center gap-3">
                     <span className="material-symbols-outlined">assignment_ind</span>
-                    Audit History
+                    {t('coach.athletes.audit_history')}
                   </button>
                 </div>
               </div>

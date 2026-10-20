@@ -19,6 +19,11 @@ export type LiveActivityStatus =
   | { state: 'unsupported' }       // device/OS can't do Live Activities
   | { state: 'error'; reason: string };
 
+// Known error reasons. Exported so the workout screen can show them translated
+// (the text itself stays English here; it's matched, not shown, in Arabic).
+export const LIVE_REASON_DISABLED = 'Live Activities are turned off for this app (Settings → The One Training → Live Activities).';
+export const LIVE_REASON_NO_PLUGIN = 'Live Activity plugin not found in this build.';
+
 let lastStatus: LiveActivityStatus = { state: 'idle' };
 
 export function getLiveActivityStatus(): LiveActivityStatus {
@@ -55,9 +60,9 @@ export async function startWorkoutActivity(opts: { title: string; courseTitle: s
   } catch (e: any) {
     const reason = (e && (e.message || e.errorMessage)) ? String(e.message || e.errorMessage) : 'Unknown error';
     // Map the plugin's known rejections to a cleaner state.
-    if (/disabled/i.test(reason)) setStatus({ state: 'error', reason: 'Live Activities are turned off for this app (Settings → The One Training → Live Activities).' });
+    if (/disabled/i.test(reason)) setStatus({ state: 'error', reason: LIVE_REASON_DISABLED });
     else if (/16\.2|requires ios/i.test(reason)) setStatus({ state: 'unsupported' });
-    else if (/not implemented|unimplemented|not available/i.test(reason)) setStatus({ state: 'error', reason: 'Live Activity plugin not found in this build.' });
+    else if (/not implemented|unimplemented|not available/i.test(reason)) setStatus({ state: 'error', reason: LIVE_REASON_NO_PLUGIN });
     else setStatus({ state: 'error', reason });
     console.warn('Live Activity start failed:', reason);
   }

@@ -2,8 +2,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MOCK_COACH_USER, COACHES } from '../../constants';
+import { useT } from '../../i18n/I18nContext';
+import type { TranslationKey } from '../../i18n/translations';
+import LanguageToggle from '../../components/LanguageToggle';
+
+const PAGE_TITLES: Record<string, TranslationKey> = {
+  coach: 'coach.layout.page_dashboard',
+  messages: 'coach.layout.nav_messages',
+  athletes: 'coach.layout.nav_athletes',
+  'custom-cycles': 'coach.layout.nav_orders',
+  'global-questions': 'coach.layout.nav_questions',
+  'exercise-library': 'coach.layout.nav_exercises',
+  'workout-library': 'coach.layout.nav_workouts',
+  'meal-library': 'coach.layout.nav_meal_plans',
+  media: 'coach.layout.page_media',
+  analytics: 'coach.layout.page_analytics',
+  courses: 'coach.layout.nav_courses',
+  new: 'coach.layout.page_new_course',
+};
 
 const CoachLayout: React.FC = () => {
+  const { t, isRtl } = useT();
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -13,9 +32,9 @@ const CoachLayout: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const notifications = [
-    { id: 1, type: 'ATHLETE', title: 'New Message', text: 'Sarah sent you a progress photo.', time: '5m ago', icon: 'chat' },
-    { id: 2, type: 'ORDER', title: 'New Custom Order', text: 'Mike Ross ordered a Custom Strength Cycle.', time: '20m ago', icon: 'shopping_cart' },
-    { id: 3, type: 'ALERT', title: 'Session Missed', text: 'Athlete Fran missed "Back Squat" day.', time: '2h ago', icon: 'event_busy' },
+    { id: 1, type: 'ATHLETE', title: t('coach.layout.notif_new_message'), text: t('coach.layout.notif_new_message_text', { name: 'Sarah' }), time: t('coach.layout.minutes_ago', { n: 5 }), icon: 'chat' },
+    { id: 2, type: 'ORDER', title: t('coach.layout.notif_new_order'), text: t('coach.layout.notif_new_order_text', { name: 'Mike Ross' }), time: t('coach.layout.minutes_ago', { n: 20 }), icon: 'shopping_cart' },
+    { id: 3, type: 'ALERT', title: t('coach.layout.notif_session_missed'), text: t('coach.layout.notif_session_missed_text', { name: 'Fran', session: 'Back Squat' }), time: t('coach.layout.hours_ago', { n: 2 }), icon: 'event_busy' },
   ];
 
   useEffect(() => {
@@ -37,49 +56,56 @@ const CoachLayout: React.FC = () => {
       setIsSidebarOpen(false);
   }, [location]);
 
+  const lastSegment = location.pathname.split('/').pop() || '';
+  const pageTitleKey = PAGE_TITLES[lastSegment];
+  const pageTitle = pageTitleKey ? t(pageTitleKey) : (lastSegment.replace('-',' ') || t('coach.layout.page_dashboard'));
+
   const isAuthorized = COACHES.find(c => c.id === MOCK_COACH_USER.id)?.isBespokeAuthorized;
 
   return (
     <div className="flex bg-neutral-50 relative min-h-screen">
       {isSidebarOpen && <div className="fixed inset-0 bg-black/40 z-[60] md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
 
-      <aside ref={sidebarRef} className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-neutral-100 flex flex-col shrink-0 transition-transform duration-300 md:sticky md:top-20 md:h-[calc(100vh-5rem)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 z-[70]`}>
+      <aside ref={sidebarRef} className={`fixed top-0 start-0 h-full w-72 bg-white border-e border-neutral-100 flex flex-col shrink-0 transition-transform duration-300 md:sticky md:top-20 md:h-[calc(100vh-5rem)] ${isSidebarOpen ? 'translate-x-0' : isRtl ? 'translate-x-full' : '-translate-x-full'} md:translate-x-0 z-[70]`}>
         <div className="p-8 flex items-center justify-between md:hidden">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-black rounded-xl shadow-lg flex items-center justify-center text-white">
                     <span className="material-symbols-outlined text-2xl">fitness_center</span>
                 </div>
-                <h1 className="text-lg font-bold font-display uppercase leading-tight">Coach</h1>
+                <h1 className="text-lg font-bold font-display uppercase leading-tight">{t('coach.layout.brand')}</h1>
             </div>
-             <button onClick={() => setIsSidebarOpen(false)} className="text-neutral-400">
+             <div className="flex items-center gap-2">
+             <LanguageToggle variant="compact" />
+             <button onClick={() => setIsSidebarOpen(false)} aria-label={t('common.close')} className="text-neutral-400">
                <span className="material-symbols-outlined">close</span>
             </button>
+             </div>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
           <Link to="/coach" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/coach') ? 'filled text-accent' : ''}`}>dashboard</span>
-            Overview
+            {t('coach.layout.nav_overview')}
           </Link>
           <Link to="/coach/messages" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/messages') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/coach/messages') ? 'filled text-accent' : ''}`}>chat_bubble</span>
-            Messages
+            {t('coach.layout.nav_messages')}
           </Link>
           <Link to="/coach/athletes" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/athletes') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/coach/athletes') ? 'filled text-accent' : ''}`}>groups</span>
-            Athletes
+            {t('coach.layout.nav_athletes')}
           </Link>
 
           {isAuthorized && (
              <div className="pt-4 space-y-2">
-               <p className="px-6 text-[10px] font-black text-accent uppercase tracking-widest mb-4">Custom</p>
+               <p className="px-6 text-[10px] font-black text-accent uppercase tracking-widest mb-4">{t('coach.layout.section_custom')}</p>
                <Link to="/coach/custom-cycles" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/custom-cycles') ? 'bg-neutral-900 text-white shadow-xl' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
                  <span className={`material-symbols-outlined ${isActive('/coach/custom-cycles') ? 'filled text-accent' : 'text-accent'}`}>architecture</span>
-                 Orders
+                 {t('coach.layout.nav_orders')}
                </Link>
                <Link to="/coach/global-questions" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/global-questions') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
                  <span className={`material-symbols-outlined ${isActive('/coach/global-questions') ? 'filled text-accent' : ''}`}>quiz</span>
-                 Questions
+                 {t('coach.layout.nav_questions')}
                </Link>
              </div>
           )}
@@ -88,23 +114,23 @@ const CoachLayout: React.FC = () => {
 
           <Link to="/coach/courses" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/courses') || isActive('/coach/courses/new') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/coach/courses') || isActive('/coach/courses/new') ? 'filled text-accent' : ''}`}>school</span>
-            Courses
+            {t('coach.layout.nav_courses')}
           </Link>
 
           <div className="pt-4 pb-2 px-6">
-            <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Library</p>
+            <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('coach.layout.section_library')}</p>
           </div>
           <Link to="/coach/exercise-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/exercise-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/coach/exercise-library') ? 'filled text-accent' : ''}`}>menu_book</span>
-            Exercises
+            {t('coach.layout.nav_exercises')}
           </Link>
           <Link to="/coach/workout-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/workout-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/coach/workout-library') ? 'filled text-accent' : ''}`}>library_books</span>
-            Workouts
+            {t('coach.layout.nav_workouts')}
           </Link>
           <Link to="/coach/meal-library" className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition text-sm font-bold ${isActive('/coach/meal-library') ? 'bg-neutral-50 text-black' : 'text-neutral-500 hover:bg-neutral-50 hover:text-black'}`}>
             <span className={`material-symbols-outlined ${isActive('/coach/meal-library') ? 'filled text-accent' : ''}`}>restaurant_menu</span>
-            Meal Plans
+            {t('coach.layout.nav_meal_plans')}
           </Link>
         </nav>
       </aside>
@@ -112,33 +138,35 @@ const CoachLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-neutral-100 h-20 px-4 sm:px-10 flex items-center justify-between shrink-0">
            <div className="flex items-center gap-2 sm:gap-4">
-              <button onClick={() => navigate('/')} title="Back to app" className="w-9 h-9 rounded-xl bg-neutral-50 text-neutral-500 hover:text-black hover:bg-neutral-100 flex items-center justify-center transition">
-                  <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+              <button onClick={() => navigate('/')} title={t('coach.layout.back_to_app')} aria-label={t('coach.layout.back_to_app')} className="w-9 h-9 rounded-xl bg-neutral-50 text-neutral-500 hover:text-black hover:bg-neutral-100 flex items-center justify-center transition">
+                  <span className="material-symbols-outlined text-[20px] rtl:rotate-180">arrow_back</span>
               </button>
-              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-neutral-600">
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label={t('coach.layout.toggle_menu')} className="md:hidden text-neutral-600">
                   <span className="material-symbols-outlined">{isSidebarOpen ? 'close' : 'menu'}</span>
               </button>
-              <span className="text-xs font-black uppercase tracking-widest text-black">{location.pathname.split('/').pop()?.replace('-',' ') || 'Dashboard'}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-black">{pageTitle}</span>
            </div>
            
-           <div className="flex items-center gap-6">
+           <div className="flex items-center gap-3 sm:gap-6">
+              <LanguageToggle variant="pill" className="hidden md:flex" />
               <div className="relative" ref={notifRef}>
                 <button 
                     onClick={() => setIsNotifOpen(!isNotifOpen)}
+                    aria-label={t('coach.layout.notifications')}
                     className={`w-11 h-11 rounded-xl flex items-center justify-center transition relative ${isNotifOpen ? 'bg-black text-white' : 'bg-neutral-50 text-neutral-400 hover:text-black'}`}>
                     <span className="material-symbols-outlined text-[20px]">notifications</span>
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                    <span className="absolute top-2 end-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                 </button>
 
                 {isNotifOpen && (
-                    <div className="absolute top-full right-0 mt-4 w-[calc(100vw-2rem)] sm:w-80 bg-white border border-neutral-100 rounded-2xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute top-full end-0 mt-4 w-[calc(100vw-2rem)] sm:w-80 bg-white border border-neutral-100 rounded-2xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2">
                         <div className="p-4 border-b border-neutral-50 flex justify-between items-center bg-neutral-50/30">
-                            <h3 className="text-xs md:text-sm font-black uppercase tracking-widest text-black">Pulse</h3>
-                            <button className="text-[10px] font-black text-accent uppercase hover:underline">Clear</button>
+                            <h3 className="text-xs md:text-sm font-black uppercase tracking-widest text-black">{t('coach.layout.pulse')}</h3>
+                            <button className="text-[10px] font-black text-accent uppercase hover:underline">{t('coach.layout.clear')}</button>
                         </div>
                         <div className="max-h-[300px] overflow-y-auto no-scrollbar py-2">
                             {notifications.map(notif => (
-                                <div key={notif.id} className="p-4 hover:bg-neutral-50 transition-colors flex gap-3 text-left">
+                                <div key={notif.id} className="p-4 hover:bg-neutral-50 transition-colors flex gap-3 text-start">
                                     <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center text-white shrink-0"><span className="material-symbols-outlined text-sm">{notif.icon}</span></div>
                                     <div className="min-w-0 flex-1">
                                         <p className="text-[9px] font-black text-neutral-300 uppercase mb-0.5">{notif.title}</p>

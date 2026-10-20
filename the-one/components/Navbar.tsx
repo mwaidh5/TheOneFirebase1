@@ -18,6 +18,13 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useT();
+  // Display label for the stored role value.
+  const roleLabel = (role: UserRole | string) =>
+    role === UserRole.ADMIN ? t('app.nav.role_admin')
+    : role === UserRole.COACH ? t('app.nav.role_coach')
+    : role === UserRole.SUPPORT ? t('app.nav.role_support')
+    : role === UserRole.CLIENT ? t('app.nav.role_client')
+    : String(role);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -81,7 +88,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
       <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
           {logo ? (
-            <img src={logo} alt="Logo" className="h-10 w-auto object-contain" />
+            <img src={logo} alt={t('app.nav.logo_alt')} className="h-10 w-auto object-contain" />
           ) : (
             <div className="w-8 h-8 bg-black rounded flex items-center justify-center text-white shadow-sm">
               <span className="material-symbols-outlined text-[20px]">fitness_center</span>
@@ -94,6 +101,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
           <LanguageToggle variant="compact" />
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={isMobileMenuOpen ? t('common.close') : t('app.nav.menu')}
           >
             <span className="material-symbols-outlined">
               {isMobileMenuOpen ? 'close' : 'menu'}
@@ -116,25 +124,25 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
 
           {isLoggedIn && currentUser ? (
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-              <div className="text-right hidden md:block">
+              <div className="text-end hidden md:block">
                 <p className="text-sm font-bold leading-none">{currentUser.firstName} {currentUser.lastName}</p>
-                <p className="text-xs text-gray-500 mt-1">{currentUser.role}</p>
+                <p className="text-xs text-gray-500 mt-1">{roleLabel(currentUser.role)}</p>
               </div>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 hover:ring-2 hover:ring-black transition relative"
               >
-                <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                <img src={currentUser.avatar} alt={t('common.profile')} className="w-full h-full object-cover" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  <span className="absolute top-0 end-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
               </button>
 
               {isDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute end-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-4 py-3 border-b border-gray-50 mb-1">
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('common.welcome')}</p>
-                    <p className="text-sm font-bold text-black truncate">{currentUser.email}</p>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest rtl:tracking-normal">{t('common.welcome')}</p>
+                    <p dir="ltr" className="text-sm font-bold text-black truncate text-start rtl:text-end">{currentUser.email}</p>
                   </div>
                   {currentUser.role === UserRole.ADMIN && (
                     <Link to="/admin" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-accent hover:bg-neutral-50 transition-colors">
@@ -172,7 +180,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                   </Link>
                   <div className="h-px bg-gray-50 my-1"></div>
                   <button onClick={handleLogoutClick} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">logout</span> {t('nav.logout')}
+                    <span className="material-symbols-outlined text-[20px] rtl:-scale-x-100">logout</span> {t('nav.logout')}
                   </button>
                 </div>
               )}
@@ -188,7 +196,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-100 absolute w-full left-0 top-20 shadow-xl z-50">
+        <div className="lg:hidden bg-white border-t border-gray-100 absolute w-full start-0 top-20 shadow-xl z-50">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <nav className="flex flex-col gap-4 text-sm font-medium">
                 <Link to="/" onClick={handleMobileLinkClick} className={`${isActive('/') ? 'text-black font-bold' : 'text-gray-500 hover:text-black transition-colors'}`}>{t('nav.home')}</Link>
@@ -201,14 +209,14 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                      <img src={currentUser.avatar} alt="Profile" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                      <img src={currentUser.avatar} alt={t('common.profile')} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
                       {unreadCount > 0 && (
-                          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                          <span className="absolute top-0 end-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                       )}
                   </div>
                   <div>
                     <p className="text-sm font-bold leading-none">{currentUser.firstName} {currentUser.lastName}</p>
-                    <p className="text-xs text-gray-500 mt-1">{currentUser.role}</p>
+                    <p className="text-xs text-gray-500 mt-1">{roleLabel(currentUser.role)}</p>
                   </div>
                 </div>
                 {currentUser.role === UserRole.ADMIN && (
@@ -247,7 +255,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, currentUser, onLogout, logo
                   </Link>
                   <div className="h-px bg-gray-50 my-1"></div>
                   <button onClick={() => { handleMobileLinkClick(); handleLogoutClick(); }} className="w-full flex items-center gap-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">logout</span> {t('nav.logout')}
+                    <span className="material-symbols-outlined text-[20px] rtl:-scale-x-100">logout</span> {t('nav.logout')}
                   </button>
               </div>
             ) : (

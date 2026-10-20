@@ -66,19 +66,21 @@ function showToast(title: string, body: string) {
 
   const toast = document.createElement('div');
   toast.id = 'fcm-toast';
+  // Letter-spacing breaks joined Arabic script, so only space out the title in LTR.
+  const titleSpacing = document.documentElement.dir === 'rtl' ? 'normal' : '0.1em';
   toast.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;">
       <span class="material-symbols-outlined" style="color:#137FEC;font-size:20px">notifications</span>
       <div>
-        <p style="font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#000;margin:0">${title}</p>
-        ${body ? `<p style="font-size:11px;color:#666;margin:2px 0 0">${body}</p>` : ''}
+        <p dir="auto" style="font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:${titleSpacing};color:#000;margin:0">${title}</p>
+        ${body ? `<p dir="auto" style="font-size:11px;color:#666;margin:2px 0 0">${body}</p>` : ''}
       </div>
     </div>
   `;
   Object.assign(toast.style, {
     position: 'fixed',
     bottom: '24px',
-    right: '24px',
+    insetInlineEnd: '24px', // bottom-right in LTR, bottom-left in RTL
     zIndex: '999999',
     background: '#fff',
     border: '1px solid #f0f0f0',

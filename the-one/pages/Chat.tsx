@@ -33,7 +33,7 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ currentUser }) => {
-  const { t } = useT();
+  const { t, lang } = useT();
   const location = useLocation();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
@@ -224,7 +224,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
           setShowThreadList(false);
       } catch (error: any) {
           console.error("Error creating conversation", error);
-          alert("Failed to start chat. " + (error.message.includes('permission') ? 'This action is disabled while Impersonating another user.' : error.message));
+          alert(t('app.chat.start_failed', { reason: error.message.includes('permission') ? t('app.chat.start_failed_impersonating') : error.message }));
       }
   };
 
@@ -332,7 +332,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
 
   const getRecipientDetails = (conv: Conversation) => {
       const recipientId = getRecipientId(conv) || '';
-      if (recipientId === 'support-team') return { firstName: 'Platform', lastName: 'Support', avatar: 'https://via.placeholder.com/150?text=Support' };
+      if (recipientId === 'support-team') return { firstName: t('chat.platform_support'), lastName: '', avatar: 'https://via.placeholder.com/150?text=Support' };
       
       const cachedDetail = conv.participantDetails?.[recipientId];
       const liveDetail = usersCache[recipientId];
@@ -343,6 +343,12 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
       
       return { firstName: 'Unknown', lastName: '', avatar: '' };
   };
+
+  // Display-only: translate the placeholder names and the stored attachment captions.
+  const recipientName = (r: any) =>
+      r.isDeleted ? t('chat.deleted_user') : r.firstName === 'Unknown' ? t('app.chat.unknown_user') : `${r.firstName} ${r.lastName}`.trim();
+  const displayText = (text: string) =>
+      text === 'Sent an image' ? t('chat.sent_image') : text === 'Sent a video' ? t('chat.sent_video') : text;
 
   const startSupportChat = async () => {
       const existing = conversations.find(c => c.type === 'support' && c.participants.includes(currentUser.id));
@@ -399,7 +405,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
     <div className="flex bg-white overflow-hidden relative" style={{ height: chatHeight }}>
       <input type="file" className="hidden" ref={fileInputRef} accept="image/*,video/*" onChange={handleFileUpload} />
       {/* Sidebar */}
-      <div className={`${showThreadList ? 'flex' : 'hidden md:flex'} w-full md:w-80 lg:w-96 border-r border-neutral-100 flex-col shrink-0 bg-neutral-50/30 absolute inset-0 z-20 md:relative`}>
+      <div className={`${showThreadList ? 'flex' : 'hidden md:flex'} w-full md:w-80 lg:w-96 border-e border-neutral-100 flex-col shrink-0 bg-neutral-50/30 absolute inset-0 z-20 md:relative`}>
         <div className="p-6 md:p-8 border-b border-neutral-100 bg-white flex justify-between items-center">
           <h2 className="text-xl font-black font-display uppercase text-black">{t('chat.inbox')}</h2>
           {(currentUser.role === UserRole.CLIENT || currentUser.role === UserRole.COACH) && (
@@ -431,17 +437,17 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
               <button
                 key={conv.id}
                 onClick={() => { setActiveThreadId(conv.id); setShowThreadList(false); }}
-                className={`w-full p-4 text-left rounded-2xl transition flex gap-4 items-center ${isActive ? 'bg-black text-white' : 'hover:bg-white text-neutral-500'}`}
+                className={`w-full p-4 text-start rounded-2xl transition flex gap-4 items-center ${isActive ? 'bg-black text-white' : 'hover:bg-white text-neutral-500'}`}
               >
                 <img src={recipient.avatar || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-xl object-cover shrink-0" alt="" />
                 <div className="flex-grow min-w-0">
                   <div className="flex justify-between items-center">
                       <p className={`font-black uppercase text-xs truncate ${isActive ? 'text-white' : 'text-black'}`}>{recipient.firstName} {recipient.lastName}</p>
                       {unread > 0 && (
-                          <span className="w-2 h-2 rounded-full bg-accent ml-2"></span>
+                          <span className="w-2 h-2 rounded-full bg-accent ms-2"></span>
                       )}
                   </div>
-                  <p className="text-[10px] truncate opacity-60">{conv.lastMessage || t('chat.start_conversation')}</p>
+                  <p className="text-[10px] truncate opacity-60" dir="auto">{conv.lastMessage ? displayText(conv.lastMessage) : t('chat.start_conversation')}</p>
                 </div>
                 {conv.type === 'support' && (
                     <span className="material-symbols-outlined text-[14px] text-accent" title={t('chat.support_ticket')}>support_agent</span>
@@ -457,13 +463,13 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
         {activeThread ? (
           <>
             <div className="p-4 md:p-6 border-b border-neutral-100 flex items-center gap-4">
-              <button onClick={() => setShowThreadList(true)} className="md:hidden p-2 text-neutral-400">
-                <span className="material-symbols-outlined">arrow_back</span>
+              <button onClick={() => setShowThreadList(true)} aria-label={t('app.chat.back_to_inbox')} className="md:hidden p-2 text-neutral-400">
+                <span className="material-symbols-outlined rtl:-scale-x-100">arrow_back</span>
               </button>
               <div className="flex items-center gap-3">
                 <img src={getRecipientDetails(activeThread).avatar || 'https://via.placeholder.com/40'} className="w-8 h-8 md:w-10 md:h-10 rounded-full" alt="" />
                 <h3 className="font-black text-black uppercase text-sm">
-                    {getRecipientDetails(activeThread).firstName} {getRecipientDetails(activeThread).lastName}
+                    {recipientName(getRecipientDetails(activeThread))}
                 </h3>
               </div>
             </div>
@@ -473,14 +479,14 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                 const isMine = msg.senderId === currentUser.id;
                 return (
                   <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-[85%]`}>
-                    <div className={`p-3 md:p-4 rounded-2xl text-sm font-medium ${isMine ? 'bg-black text-white rounded-tr-none ml-auto' : 'bg-white text-black border border-neutral-100 rounded-tl-none mr-auto'}`}>
-                      {msg.imageUrl && <img src={msg.imageUrl} className="max-w-[200px] md:max-w-xs rounded-xl mb-2 object-cover" alt="attachment" />}
+                    <div className={`p-3 md:p-4 rounded-2xl text-sm font-medium ${isMine ? 'bg-black text-white rounded-se-none ms-auto' : 'bg-white text-black border border-neutral-100 rounded-ss-none me-auto'}`}>
+                      {msg.imageUrl && <img src={msg.imageUrl} className="max-w-[200px] md:max-w-xs rounded-xl mb-2 object-cover" alt={t('app.chat.attachment_alt')} />}
                       {msg.videoUrl && <video src={msg.videoUrl} controls className="max-w-[200px] md:max-w-xs rounded-xl mb-2" />}
-                      {msg.text && msg.text !== 'Sent an image' && msg.text !== 'Sent a video' && <span>{msg.text}</span>}
-                      {msg.text && (msg.text === 'Sent an image' || msg.text === 'Sent a video') && !(msg.imageUrl || msg.videoUrl) && <span>{msg.text}</span>}
+                      {msg.text && msg.text !== 'Sent an image' && msg.text !== 'Sent a video' && <span dir="auto">{msg.text}</span>}
+                      {msg.text && (msg.text === 'Sent an image' || msg.text === 'Sent a video') && !(msg.imageUrl || msg.videoUrl) && <span>{displayText(msg.text)}</span>}
                     </div>
                     <span className="text-[9px] font-bold text-neutral-300 mt-1 uppercase">
-                        {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...'}
+                        {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB', {hour: '2-digit', minute:'2-digit'}) : '...'}
                     </span>
                   </div>
                 );
@@ -489,7 +495,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
 
             <form onSubmit={handleSendMessage} className="p-4 md:p-8 border-t border-neutral-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.05)] relative z-10">
               <div className="flex items-center gap-2 md:gap-4 bg-neutral-50 p-1 md:p-2 rounded-2xl border border-neutral-200 focus-within:border-black transition">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-black">
+                <button type="button" onClick={() => fileInputRef.current?.click()} aria-label={t('app.chat.attach_file')} title={t('app.chat.attach_file')} className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-black">
                   {isUploading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> : <span className="material-symbols-outlined">attach_file</span>}
                 </button>
                 <input
@@ -497,21 +503,22 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value.slice(0, MAX_MSG_LENGTH))}
                   placeholder={t('chat.message_placeholder')}
+                  dir="auto"
                   className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-medium"
                 />
                 {inputText.length > MAX_MSG_LENGTH * 0.8 && (
-                  <span className={`text-[9px] font-black shrink-0 ${inputText.length >= MAX_MSG_LENGTH ? 'text-red-500' : 'text-neutral-300'}`}>
+                  <span dir="ltr" className={`text-[9px] font-black shrink-0 ${inputText.length >= MAX_MSG_LENGTH ? 'text-red-500' : 'text-neutral-300'}`}>
                     {inputText.length}/{MAX_MSG_LENGTH}
                   </span>
                 )}
-                <button type="submit" disabled={!inputText.trim() || inputText.length > MAX_MSG_LENGTH} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20 transition"><span className="material-symbols-outlined text-sm md:text-base">send</span></button>
+                <button type="submit" disabled={!inputText.trim() || inputText.length > MAX_MSG_LENGTH} aria-label={t('chat.send')} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-20 transition"><span className="material-symbols-outlined text-sm md:text-base rtl:-scale-x-100">send</span></button>
               </div>
             </form>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-12 opacity-20 hidden md:flex">
             <span className="material-symbols-outlined text-[100px] mb-4">chat_bubble</span>
-            <p className="font-black uppercase tracking-widest text-sm">{t('chat.select_conv')}</p>
+            <p className="font-black uppercase tracking-widest rtl:tracking-normal text-sm">{t('chat.select_conv')}</p>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import LanguageToggle from './LanguageToggle';
 import ErrorBoundary from './ErrorBoundary';
 import { Capacitor } from '@capacitor/core';
 import { User } from '../types';
+import { useT } from '../i18n/I18nContext';
 
 interface AppShellProps {
   isLoggedIn: boolean;
@@ -35,6 +36,7 @@ const AppShell: React.FC<AppShellProps> = ({
   children,
 }) => {
   const path = useLocation().pathname;
+  const { t } = useT();
   const navigate = useNavigate();
   const goBack = () => { if (window.history.length > 1) navigate(-1); else navigate('/'); };
 
@@ -46,15 +48,15 @@ const AppShell: React.FC<AppShellProps> = ({
     <div className="bg-accent py-2 px-6 flex items-center justify-center gap-6 animate-in slide-in-from-top duration-500 z-[110] fixed w-full top-0 left-0 shadow-xl">
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-white text-[18px] filled animate-pulse">admin_panel_settings</span>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">
-          Viewing as <span className="underline decoration-white/30 decoration-2 underline-offset-4">{currentUser?.firstName} {currentUser?.lastName}</span>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-white">
+          {t('app.shell.viewing_as')} <span className="underline decoration-white/30 decoration-2 underline-offset-4">{currentUser?.firstName} {currentUser?.lastName}</span>
         </p>
       </div>
       <button
         onClick={stopImpersonating}
-        className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition shadow-xl"
+        className="bg-white text-accent px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-black hover:text-white transition shadow-xl"
       >
-        Exit Session
+        {t('app.shell.exit_session')}
       </button>
     </div>
   ) : null;
@@ -117,13 +119,13 @@ const AppShell: React.FC<AppShellProps> = ({
         <>
           <button
             onClick={goBack}
-            aria-label="Back"
-            className="fixed left-4 z-[120] w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-sm flex items-center justify-center text-black hover:bg-black hover:text-white transition"
+            aria-label={t('common.back')}
+            className="fixed start-4 z-[120] w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-sm flex items-center justify-center text-black hover:bg-black hover:text-white transition"
             style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
           >
-            <span className="material-symbols-outlined">arrow_back</span>
+            <span className="material-symbols-outlined rtl:-scale-x-100">arrow_back</span>
           </button>
-          <div className="fixed right-4 z-[120]" style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}>
+          <div className="fixed end-4 z-[120]" style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}>
             <LanguageToggle variant="pill" />
           </div>
         </>
@@ -132,11 +134,11 @@ const AppShell: React.FC<AppShellProps> = ({
       {showBack && (
         <button
           onClick={goBack}
-          aria-label="Back"
-          className="fixed left-3 z-[120] w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-neutral-200 shadow-md flex items-center justify-center text-black active:scale-95 transition-transform"
+          aria-label={t('common.back')}
+          className="fixed start-3 z-[120] w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-neutral-200 shadow-md flex items-center justify-center text-black active:scale-95 transition-transform"
           style={{ top: 'calc(0.6rem + env(safe-area-inset-top))' }}
         >
-          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="material-symbols-outlined rtl:-scale-x-100">arrow_back</span>
         </button>
       )}
 

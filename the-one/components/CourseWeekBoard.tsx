@@ -22,6 +22,14 @@ import { setDoc, doc } from 'firebase/firestore';
 import { db, storage } from '../firebase';
 import { WeekProgram, DayProgram, Exercise, MediaAsset, ExerciseTemplate, WorkoutTemplate } from '../types';
 import AICourseGenerator from './AICourseGenerator';
+import { useT } from '../i18n/I18nContext';
+import { translations, TranslationKey } from '../i18n/translations';
+
+// Display label for a stored ExerciseFormat value (the value itself stays English).
+const fmtShort = (t: (k: TranslationKey) => string, f: string) => {
+  const k = `builder.fmts.${f}`;
+  return k in translations ? t(k as TranslationKey) : f;
+};
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const renumber = (days: DayProgram[]) => days.map((d, i) => ({ ...d, dayNumber: i + 1 }));
@@ -41,6 +49,7 @@ const DayCard: React.FC<{ day: DayProgram; weekId: string; onOpen: () => void; o
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: day.id, data: { type: 'day', weekId } });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const stop = (e: React.SyntheticEvent) => { e.stopPropagation(); };
+  const { t } = useT();
   return (
     <div
       ref={setNodeRef}
@@ -56,27 +65,27 @@ const DayCard: React.FC<{ day: DayProgram; weekId: string; onOpen: () => void; o
             {...attributes}
             {...listeners}
             onClick={stop}
-            aria-label={`Reorder day ${day.dayNumber}`}
-            title="Drag to move"
-            className="-ml-1 shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-neutral-300 hover:text-black hover:bg-neutral-100 cursor-grab active:cursor-grabbing touch-none transition-colors"
+            aria-label={t('builder.reorder_day', { n: day.dayNumber })}
+            title={t('builder.drag_move')}
+            className="-ms-1 shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-neutral-300 hover:text-black hover:bg-neutral-100 cursor-grab active:cursor-grabbing touch-none transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">drag_indicator</span>
           </button>
-          <span className="text-[8px] font-black uppercase tracking-widest text-accent">Day {day.dayNumber}</span>
+          <span className="text-[8px] font-black uppercase tracking-widest text-accent">{t('builder.day_n', { n: day.dayNumber })}</span>
         </div>
         <div className="flex gap-1 opacity-100 md:opacity-0 group-hover/card:opacity-100 transition-opacity">
-          <button onPointerDown={stop} onClick={(e) => { stop(e); onClone(); }} className="w-6 h-6 rounded-lg bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-accent hover:text-white transition" title="Clone day">
+          <button onPointerDown={stop} onClick={(e) => { stop(e); onClone(); }} className="w-6 h-6 rounded-lg bg-neutral-50 text-neutral-400 flex items-center justify-center hover:bg-accent hover:text-white transition" title={t('builder.clone_day')}>
             <span className="material-symbols-outlined text-[14px]">content_copy</span>
           </button>
-          <button onPointerDown={stop} onClick={(e) => { stop(e); onDelete(); }} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition" title="Delete day">
+          <button onPointerDown={stop} onClick={(e) => { stop(e); onDelete(); }} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition" title={t('builder.delete_day')}>
             <span className="material-symbols-outlined text-[14px]">delete</span>
           </button>
         </div>
       </div>
-      <p className="font-black uppercase text-sm text-black truncate leading-tight">{day.title || 'Untitled'}</p>
+      <p className="font-black uppercase text-sm text-black truncate leading-tight">{day.title || t('builder.untitled')}</p>
       <div className="flex items-center gap-1.5 mt-3 text-neutral-400">
         <span className="material-symbols-outlined text-[14px]">exercise</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider">{day.exercises.length} {day.exercises.length === 1 ? 'block' : 'blocks'}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider">{day.exercises.length === 1 ? t('builder.block_one', { n: 1 }) : t('builder.block_many', { n: day.exercises.length })}</span>
       </div>
     </div>
   );
@@ -93,15 +102,16 @@ const WeekColumn: React.FC<{
   onDeleteDay: (dayId: string) => void;
 }> = ({ week, onAddDay, onClone, onDelete, onOpenDay, onCloneDay, onDeleteDay }) => {
   const { setNodeRef, isOver } = useDroppable({ id: `col-${week.id}`, data: { type: 'column', weekId: week.id } });
+  const { t } = useT();
   return (
     <div className="shrink-0 w-60 flex flex-col">
       <div className="flex items-center justify-between px-2 mb-3">
-        <h3 className="text-xs font-black uppercase tracking-widest text-black">Week {week.weekNumber}</h3>
+        <h3 className="text-xs font-black uppercase tracking-widest text-black">{t('builder.week_n', { n: week.weekNumber })}</h3>
         <div className="flex gap-1">
-          <button onClick={onClone} className="w-6 h-6 rounded-lg bg-accent/10 text-accent flex items-center justify-center hover:bg-accent hover:text-white transition" title="Duplicate week">
+          <button onClick={onClone} className="w-6 h-6 rounded-lg bg-accent/10 text-accent flex items-center justify-center hover:bg-accent hover:text-white transition" title={t('builder.duplicate_week')}>
             <span className="material-symbols-outlined text-[14px]">content_copy</span>
           </button>
-          <button onClick={onDelete} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition" title="Delete week">
+          <button onClick={onDelete} className="w-6 h-6 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition" title={t('builder.delete_week')}>
             <span className="material-symbols-outlined text-[14px]">delete</span>
           </button>
         </div>
@@ -123,7 +133,7 @@ const WeekColumn: React.FC<{
           ))}
         </SortableContext>
         <button onClick={onAddDay} className="w-full py-2.5 rounded-xl border-2 border-dashed border-neutral-300 text-[10px] font-black uppercase text-neutral-400 hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-1">
-          <span className="material-symbols-outlined text-sm">add</span> Day
+          <span className="material-symbols-outlined text-sm">add</span> {t('builder.add_day_short')}
         </button>
       </div>
     </div>
@@ -134,39 +144,40 @@ const WeekColumn: React.FC<{
 const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: number, f: keyof Exercise, v: any) => void; removeExercise: (i: number) => void; openPicker: (p: PickerState) => void; }> = ({ ex, exIdx, updateExercise, removeExercise, openPicker }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: ex.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
+  const { t } = useT();
   return (
     <div ref={setNodeRef} style={style} className="p-5 bg-neutral-50 rounded-2xl border border-neutral-100 relative space-y-6">
       {/* Grip — the only place this block can be dragged from */}
       <div
         {...attributes}
         {...listeners}
-        title="Drag to reorder"
-        className="absolute top-3 left-3 w-8 h-8 rounded-lg flex items-center justify-center text-neutral-300 hover:text-black hover:bg-neutral-200/70 cursor-grab active:cursor-grabbing touch-none transition-colors"
+        title={t('builder.drag_reorder')}
+        className="absolute top-3 start-3 w-8 h-8 rounded-lg flex items-center justify-center text-neutral-300 hover:text-black hover:bg-neutral-200/70 cursor-grab active:cursor-grabbing touch-none transition-colors"
       >
         <span className="material-symbols-outlined text-[18px]">drag_indicator</span>
       </div>
-      <div className="absolute top-4 right-4 flex gap-3">
-        <button onClick={() => openPicker({ type: 'exercise', exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> Library</button>
+      <div className="absolute top-4 end-4 flex gap-3">
+        <button onClick={() => openPicker({ type: 'exercise', exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> {t('builder.library')}</button>
         <button onClick={() => removeExercise(exIdx)} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-lg">delete</span></button>
       </div>
       <div className="space-y-6 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[8px] font-black text-neutral-300 ml-1">Name</label>
+            <label className="text-[8px] font-black text-neutral-300 ms-1">{t('builder.name')}</label>
             <input type="text" value={ex.name} onChange={(e) => updateExercise(exIdx, 'name', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 font-bold text-xs" />
           </div>
           <div className="space-y-1">
-            <label className="text-[8px] font-black text-neutral-300 ml-1">Type</label>
+            <label className="text-[8px] font-black text-neutral-300 ms-1">{t('builder.type')}</label>
             <select value={ex.format} onChange={(e) => updateExercise(exIdx, 'format', e.target.value as any)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[9px] font-black uppercase outline-none">
-              <option value="REGULAR">Standard (Straight Sets)</option>
-              <option value="SUPER_SET">Superset / Circuit</option>
-              <option value="EMOM">EMOM</option>
-              <option value="AMRAP">AMRAP</option>
-              <option value="HIIT">HIIT (Intervals)</option>
-              <option value="CARDIO">Cardio (Monostructural)</option>
-              <option value="MAX_EFFORT">Max Effort (1RM/3RM)</option>
-              <option value="FOR_TIME">For Time</option>
-              <option value="HOLD">Hold (Timed Position)</option>
+              <option value="REGULAR">{t('builder.fmt.REGULAR')}</option>
+              <option value="SUPER_SET">{t('builder.fmt.SUPER_SET')}</option>
+              <option value="EMOM">{t('builder.fmt.EMOM')}</option>
+              <option value="AMRAP">{t('builder.fmt.AMRAP')}</option>
+              <option value="HIIT">{t('builder.fmt.HIIT')}</option>
+              <option value="CARDIO">{t('builder.fmt.CARDIO')}</option>
+              <option value="MAX_EFFORT">{t('builder.fmt.MAX_EFFORT')}</option>
+              <option value="FOR_TIME">{t('builder.fmt.FOR_TIME')}</option>
+              <option value="HOLD">{t('builder.fmt.HOLD')}</option>
             </select>
           </div>
         </div>
@@ -174,35 +185,35 @@ const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: num
           <div className="space-y-4">
             {(ex.format === 'REGULAR' || ex.format === 'MAX_EFFORT' || ex.format === 'DROP_SET' || ex.format === 'SUPER_SET') && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets} onChange={(e) => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Reps</label><input type="text" value={ex.reps} onChange={(e) => updateExercise(exIdx, 'reps', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.rest} onChange={(e) => updateExercise(exIdx, 'rest', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.sets')}</label><input type="number" value={ex.sets} onChange={(e) => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.reps')}</label><input type="text" value={ex.reps} onChange={(e) => updateExercise(exIdx, 'reps', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.rest')}</label><input type="text" value={ex.rest} onChange={(e) => updateExercise(exIdx, 'rest', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
               </div>
             )}
             {(ex.format === 'CARDIO' || ex.format === 'FOR_TIME') && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Distance</label><input type="text" value={ex.distance || ''} onChange={(e) => updateExercise(exIdx, 'distance', e.target.value)} placeholder="5km" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Time Cap</label><input type="text" value={ex.time || ''} onChange={(e) => updateExercise(exIdx, 'time', e.target.value)} placeholder="20:00" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Pace/Cals</label><input type="text" value={ex.speed || ex.calories || ''} onChange={(e) => updateExercise(exIdx, 'speed', e.target.value)} placeholder="Zone 2" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.distance')}</label><input type="text" value={ex.distance || ''} onChange={(e) => updateExercise(exIdx, 'distance', e.target.value)} placeholder="5km" dir="ltr" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.time_cap')}</label><input type="text" value={ex.time || ''} onChange={(e) => updateExercise(exIdx, 'time', e.target.value)} placeholder="20:00" dir="ltr" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.pace_cals')}</label><input type="text" value={ex.speed || ex.calories || ''} onChange={(e) => updateExercise(exIdx, 'speed', e.target.value)} placeholder={t('builder.ph_zone2')} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
               </div>
             )}
             {ex.format === 'FOR_TIME' && (
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-2">
-                <p className="text-[8px] font-black uppercase text-blue-400">Movements To Complete</p>
+                <p className="text-[8px] font-black uppercase text-blue-400">{t('builder.movements_to_complete')}</p>
                 {(ex.forTimeItems || []).map((item: any, itemIdx: number) => (
                   <div key={item.id} className="flex gap-2 items-center">
-                    <input type="text" value={item.name} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="Exercise name" className="flex-1 bg-white border border-blue-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
-                    <input type="text" value={item.reps || ''} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="21 reps" className="w-20 bg-white border border-blue-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
+                    <input type="text" value={item.name} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder={t('builder.exercise_name')} className="flex-1 bg-white border border-blue-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                    <input type="text" value={item.reps || ''} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder={t('builder.ph_21_reps')} className="w-20 bg-white border border-blue-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
                     <button onClick={() => updateExercise(exIdx, 'forTimeItems', (ex.forTimeItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-blue-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
                   </div>
                 ))}
-                <button onClick={() => updateExercise(exIdx, 'forTimeItems', [...(ex.forTimeItems || []), { id: uid(), name: '', reps: '' }])} className="text-[8px] font-black uppercase text-blue-400 flex items-center gap-1 hover:text-blue-600 transition-colors"><span className="material-symbols-outlined text-sm">add_circle</span> Add Movement</button>
+                <button onClick={() => updateExercise(exIdx, 'forTimeItems', [...(ex.forTimeItems || []), { id: uid(), name: '', reps: '' }])} className="text-[8px] font-black uppercase text-blue-400 flex items-center gap-1 hover:text-blue-600 transition-colors"><span className="material-symbols-outlined text-sm">add_circle</span> {t('builder.add_movement')}</button>
               </div>
             )}
             {ex.format === 'HOLD' && (
               <div className="grid grid-cols-2 gap-2">
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets || ''} onChange={(e) => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Target Hold</label><input type="text" value={ex.time || ''} onChange={(e) => updateExercise(exIdx, 'time', e.target.value)} placeholder="01:00 (optional)" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.sets')}</label><input type="number" value={ex.sets || ''} onChange={(e) => updateExercise(exIdx, 'sets', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.target_hold')}</label><input type="text" value={ex.time || ''} onChange={(e) => updateExercise(exIdx, 'time', e.target.value)} placeholder={t('builder.ph_hold')} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
               </div>
             )}
             {(ex.format === 'EMOM' || ex.format === 'AMRAP' || ex.format === 'HIIT') && (
@@ -210,58 +221,58 @@ const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: num
                 {/* An AMRAP's rounds are the athlete's score, not a target, so
                     it takes a time cap only — the reps live on each movement. */}
                 <div className={ex.format === 'AMRAP' ? '' : 'grid grid-cols-2 gap-2'}>
-                  <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{ex.format === 'AMRAP' ? 'Time Cap (Min)' : 'Total Time (Min)'}</label><input type="number" value={ex.durationMinutes || ''} onChange={(e) => updateExercise(exIdx, 'durationMinutes', parseInt(e.target.value))} placeholder={ex.format === 'AMRAP' ? '6' : ''} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                  <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{ex.format === 'AMRAP' ? t('builder.time_cap_min') : t('builder.total_time_min')}</label><input type="number" value={ex.durationMinutes || ''} onChange={(e) => updateExercise(exIdx, 'durationMinutes', parseInt(e.target.value))} placeholder={ex.format === 'AMRAP' ? '6' : ''} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                   {ex.format !== 'AMRAP' && (
-                    <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rounds</label><input type="number" value={ex.rounds || ''} onChange={(e) => updateExercise(exIdx, 'rounds', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                    <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.rounds')}</label><input type="number" value={ex.rounds || ''} onChange={(e) => updateExercise(exIdx, 'rounds', parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                   )}
                 </div>
                 {ex.format === 'AMRAP' && (
                   <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 space-y-2">
-                    <p className="text-[8px] font-black uppercase text-orange-400">Movements Per Round (cycle through these)</p>
+                    <p className="text-[8px] font-black uppercase text-orange-400">{t('builder.amrap_movements')}</p>
                     {(ex.forTimeItems || []).map((item: any, itemIdx: number) => (
                       <div key={item.id} className="flex gap-2 items-center">
-                        <input type="text" value={item.name} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="Exercise name" className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                        <input type="text" value={item.name} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder={t('builder.exercise_name')} className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
                         <input type="text" value={item.reps || ''} onChange={(e) => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, 'forTimeItems', items); }} placeholder="5" className="w-16 bg-white border border-orange-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
                         <button onClick={() => updateExercise(exIdx, 'forTimeItems', (ex.forTimeItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-orange-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
                       </div>
                     ))}
-                    <button onClick={() => updateExercise(exIdx, 'forTimeItems', [...(ex.forTimeItems || []), { id: uid(), name: '', reps: '' }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors"><span className="material-symbols-outlined text-sm">add_circle</span> Add Movement</button>
+                    <button onClick={() => updateExercise(exIdx, 'forTimeItems', [...(ex.forTimeItems || []), { id: uid(), name: '', reps: '' }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors"><span className="material-symbols-outlined text-sm">add_circle</span> {t('builder.add_movement')}</button>
                   </div>
                 )}
                 {ex.format === 'HIIT' && (
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Work</label><input type="text" value={ex.workInterval || ''} onChange={(e) => updateExercise(exIdx, 'workInterval', e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                    <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.restInterval || ''} onChange={(e) => updateExercise(exIdx, 'restInterval', e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                    <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.work')}</label><input type="text" value={ex.workInterval || ''} onChange={(e) => updateExercise(exIdx, 'workInterval', e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                    <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.rest')}</label><input type="text" value={ex.restInterval || ''} onChange={(e) => updateExercise(exIdx, 'restInterval', e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                   </div>
                 )}
                 {ex.format === 'EMOM' && (
                   <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 space-y-2">
-                    <p className="text-[8px] font-black uppercase text-orange-400">Exercises Per Round</p>
+                    <p className="text-[8px] font-black uppercase text-orange-400">{t('builder.emom_exercises')}</p>
                     {(ex.emomItems || []).map((item: any, itemIdx: number) => (
                       <div key={item.id} className="flex gap-2 items-center">
-                        <input type="text" value={item.name} onChange={(e) => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'emomItems', items); }} placeholder="Exercise name" className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                        <input type="text" value={item.name} onChange={(e) => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, 'emomItems', items); }} placeholder={t('builder.exercise_name')} className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
                         <input type="text" value={item.time} onChange={(e) => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], time: e.target.value }; updateExercise(exIdx, 'emomItems', items); }} placeholder="30s" className="w-16 bg-white border border-orange-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
                         <button onClick={() => updateExercise(exIdx, 'emomItems', (ex.emomItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-orange-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
                       </div>
                     ))}
-                    <button onClick={() => updateExercise(exIdx, 'emomItems', [...(ex.emomItems || []), { id: uid(), name: '', time: '' }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors"><span className="material-symbols-outlined text-sm">add_circle</span> Add Exercise</button>
+                    <button onClick={() => updateExercise(exIdx, 'emomItems', [...(ex.emomItems || []), { id: uid(), name: '', time: '' }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors"><span className="material-symbols-outlined text-sm">add_circle</span> {t('builder.add_exercise')}</button>
                   </div>
                 )}
               </div>
             )}
             {ex.format === 'SUPER_SET' && (
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 mt-2">
-                <p className="text-[8px] font-black uppercase text-blue-400 mb-2">Circuit Grouping</p>
-                <input type="text" value={ex.supersetId || ''} onChange={(e) => updateExercise(exIdx, 'supersetId', e.target.value)} placeholder="Group A" className="w-full bg-white border border-blue-100 rounded-lg p-2 text-[10px] font-bold" />
+                <p className="text-[8px] font-black uppercase text-blue-400 mb-2">{t('builder.circuit_grouping')}</p>
+                <input type="text" value={ex.supersetId || ''} onChange={(e) => updateExercise(exIdx, 'supersetId', e.target.value)} placeholder={t('builder.ph_group_a')} className="w-full bg-white border border-blue-100 rounded-lg p-2 text-[10px] font-bold" />
               </div>
             )}
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.imageUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">Photo</span></button>
-              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.videoUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">Video</span></button>
+              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'imageUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.imageUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">{t('builder.photo')}</span></button>
+              <button onClick={() => openPicker({ type: 'media', exIdx, field: 'videoUrl' })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.videoUrl ? 'bg-accent text-white border-accent' : 'bg-white border-neutral-100 text-neutral-300'}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">{t('builder.video')}</span></button>
             </div>
-            <textarea rows={2} value={ex.description} onChange={(e) => updateExercise(exIdx, 'description', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[10px] font-medium resize-none" placeholder="Coaching Notes..." />
+            <textarea rows={2} value={ex.description} onChange={(e) => updateExercise(exIdx, 'description', e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[10px] font-medium resize-none" placeholder={t('builder.coaching_notes')} />
           </div>
         </div>
       </div>
@@ -271,6 +282,7 @@ const ExerciseEditor: React.FC<{ ex: any; exIdx: number; updateExercise: (i: num
 
 // ───────────────────────────── Main board ───────────────────────────────────
 const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, workoutLibrary, mediaLibrary }) => {
+  const { t } = useT();
   // Horizontal week board: a plain mouse only emits vertical wheel deltas, so
   // translate them into horizontal scrolling (and leave the page free to scroll
   // once the board reaches either end).
@@ -282,11 +294,16 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
       if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // already horizontal
       const max = el.scrollWidth - el.clientWidth;
       if (max <= 0) return;
-      const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
-      const atEnd = el.scrollLeft >= max - 1 && e.deltaY > 0;
+      // In RTL the board starts at the right edge and scrollLeft runs 0 → -max,
+      // so work in "distance from the start" and flip the sign back.
+      const rtl = getComputedStyle(el).direction === 'rtl';
+      const pos = rtl ? -el.scrollLeft : el.scrollLeft;
+      const atStart = pos <= 0 && e.deltaY < 0;
+      const atEnd = pos >= max - 1 && e.deltaY > 0;
       if (atStart || atEnd) return; // let the page scroll instead
       e.preventDefault();
-      el.scrollLeft = Math.max(0, Math.min(max, el.scrollLeft + e.deltaY));
+      const next = Math.max(0, Math.min(max, pos + e.deltaY));
+      el.scrollLeft = rtl ? -next : next;
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
@@ -322,8 +339,8 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
     return [...prev, copy];
   });
   const deleteWeek = (weekId: string) => {
-    if (weeks.length <= 1) { alert('You must have at least one week.'); return; }
-    if (!window.confirm('Delete this week?')) return;
+    if (weeks.length <= 1) { alert(t('builder.at_least_one_week')); return; }
+    if (!window.confirm(t('builder.confirm_delete_week'))) return;
     setWeeks((prev) => prev.filter((w) => w.id !== weekId).map((w, i) => ({ ...w, weekNumber: i + 1 })));
   };
 
@@ -420,7 +437,7 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
       setPicker(null);
     } catch (err) {
       console.error('Upload failed', err);
-      alert('Upload failed.');
+      alert(t('builder.upload_failed'));
     } finally {
       setIsUploading(false);
     }
@@ -431,11 +448,11 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
       {/* AI Generate — above the weeks */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-black font-display uppercase tracking-tight text-black">Program Board</h2>
-          <p className="text-[11px] font-medium text-neutral-400">Drag days between weeks · tap a day to edit</p>
+          <h2 className="text-xl md:text-2xl font-black font-display uppercase tracking-tight text-black">{t('builder.program_board')}</h2>
+          <p className="text-[11px] font-medium text-neutral-400">{t('builder.board_hint')}</p>
         </div>
         <button onClick={() => setIsAIOpen(true)} className="px-5 py-3 bg-gradient-to-r from-violet-600 to-accent text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg hover:shadow-accent/30 transition hover:-translate-y-0.5">
-          <span className="material-symbols-outlined text-base">auto_awesome</span> AI Generate
+          <span className="material-symbols-outlined text-base">auto_awesome</span> {t('builder.ai_generate')}
         </button>
       </div>
 
@@ -456,14 +473,14 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
           ))}
           <button onClick={addWeek} className="shrink-0 w-60 self-stretch min-h-[160px] rounded-2xl border-2 border-dashed border-neutral-300 text-neutral-400 hover:border-accent hover:text-accent transition-colors flex flex-col items-center justify-center gap-2 mt-8">
             <span className="material-symbols-outlined text-2xl">add</span>
-            <span className="text-[10px] font-black uppercase tracking-widest">Add Week</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{t('builder.add_week')}</span>
           </button>
         </div>
         <DragOverlay>
           {activeDayCard ? (
             <div className="w-56 bg-white border border-black rounded-2xl p-4 shadow-2xl rotate-3">
-              <span className="text-[8px] font-black uppercase tracking-widest text-accent">Day {activeDayCard.dayNumber}</span>
-              <p className="font-black uppercase text-sm text-black truncate">{activeDayCard.title || 'Untitled'}</p>
+              <span className="text-[8px] font-black uppercase tracking-widest text-accent">{t('builder.day_n', { n: activeDayCard.dayNumber })}</span>
+              <p className="font-black uppercase text-sm text-black truncate">{activeDayCard.title || t('builder.untitled')}</p>
             </div>
           ) : null}
         </DragOverlay>
@@ -475,22 +492,22 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
           <div className="bg-white w-full md:max-w-3xl md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-screen md:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-neutral-100 flex items-start justify-between gap-4 bg-neutral-50/60">
               <div className="flex-1 min-w-0">
-                <span className="text-[9px] font-black uppercase text-accent">Week {weeks[selectedLoc.weekIdx].weekNumber} · Day {selectedDay.dayNumber}</span>
-                <input type="text" value={selectedDay.title} onChange={(e) => mutateSelectedDay((d) => ({ ...d, title: e.target.value }))} className="block w-full text-xl md:text-2xl font-black uppercase text-black bg-transparent outline-none mt-1" placeholder="Day title" />
+                <span className="text-[9px] font-black uppercase text-accent">{t('builder.week_day', { w: weeks[selectedLoc.weekIdx].weekNumber, d: selectedDay.dayNumber })}</span>
+                <input type="text" value={selectedDay.title} onChange={(e) => mutateSelectedDay((d) => ({ ...d, title: e.target.value }))} className="block w-full text-xl md:text-2xl font-black uppercase text-black bg-transparent outline-none mt-1" placeholder={t('builder.day_title_ph')} />
               </div>
               <button onClick={() => setSelectedDayId(null)} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center shrink-0 hover:bg-black hover:text-white transition"><span className="material-symbols-outlined">close</span></button>
             </div>
 
             <div className="px-6 py-4 border-b border-neutral-100 flex gap-2 flex-wrap">
-              <button onClick={() => setPicker({ type: 'workout', exIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase border border-neutral-100 flex items-center gap-2"><span className="material-symbols-outlined text-base">library_add</span> Blueprint</button>
-              <button onClick={addExercise} className="px-4 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-2"><span className="material-symbols-outlined text-base">add</span> Exercise</button>
+              <button onClick={() => setPicker({ type: 'workout', exIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase border border-neutral-100 flex items-center gap-2"><span className="material-symbols-outlined text-base">library_add</span> {t('builder.blueprint')}</button>
+              <button onClick={addExercise} className="px-4 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-2"><span className="material-symbols-outlined text-base">add</span> {t('builder.exercise')}</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar">
               {selectedDay.exercises.length === 0 && (
                 <div className="text-center py-16 text-neutral-300">
                   <span className="material-symbols-outlined text-4xl">exercise</span>
-                  <p className="text-[10px] font-black uppercase tracking-widest mt-2">No exercises yet</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest mt-2">{t('builder.no_exercises')}</p>
                 </div>
               )}
               <DndContext sensors={exSensors} collisionDetection={closestCorners} onDragEnd={onExerciseDragEnd}>
@@ -511,12 +528,12 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
       {picker && picker.type !== 'media' && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
           <div className="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left"><h3 className="text-xl font-black uppercase text-black">{picker.type === 'exercise' ? 'Exercises' : 'Workouts'}</h3><button onClick={() => setPicker(null)} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
+            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-start"><h3 className="text-xl font-black uppercase text-black">{picker.type === 'exercise' ? t('builder.exercises') : t('builder.workouts_lib')}</h3><button onClick={() => setPicker(null)} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
               {picker.type === 'exercise' ? exerciseLibrary.map((ex) => (
-                <button key={ex.id} onClick={() => { if (picker.exIdx != null) { updateExercise(picker.exIdx, 'name', ex.name); updateExercise(picker.exIdx, 'format', ex.defaultFormat as any); } setPicker(null); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{ex.defaultFormat}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                <button key={ex.id} onClick={() => { if (picker.exIdx != null) { updateExercise(picker.exIdx, 'name', ex.name); updateExercise(picker.exIdx, 'format', ex.defaultFormat as any); } setPicker(null); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{fmtShort(t, ex.defaultFormat)}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
               )) : workoutLibrary.map((wo) => (
-                <button key={wo.id} onClick={() => applyBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                <button key={wo.id} onClick={() => applyBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
               ))}
             </div>
           </div>
@@ -527,11 +544,11 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
       {picker && picker.type === 'media' && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
           <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left">
-              <h3 className="text-xl font-black uppercase tracking-tight">Library Gallery</h3>
+            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-start">
+              <h3 className="text-xl font-black uppercase tracking-tight">{t('builder.library_gallery')}</h3>
               <div className="flex items-center gap-4">
                 <label className="cursor-pointer px-4 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-2">
-                  {isUploading ? 'Uploading...' : <><span className="material-symbols-outlined text-base">upload</span> Upload New</>}
+                  {isUploading ? t('builder.uploading') : <><span className="material-symbols-outlined text-base">upload</span> {t('builder.upload_new')}</>}
                   <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
                 </label>
                 <button onClick={() => setPicker(null)} className="w-10 h-10 rounded-xl bg-white border border-neutral-100 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined">close</span></button>
@@ -545,7 +562,7 @@ const CourseWeekBoard: React.FC<Props> = ({ weeks, setWeeks, exerciseLibrary, wo
                   ) : (
                     <img src={asset.data} className="w-full h-full object-cover" />
                   )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[8px] font-black uppercase text-white tracking-widest px-3 py-1.5 bg-accent rounded-full">Apply</span></div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[8px] font-black uppercase text-white tracking-widest px-3 py-1.5 bg-accent rounded-full">{t('builder.apply')}</span></div>
                 </div>
               ))}
             </div>

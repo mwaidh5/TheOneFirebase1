@@ -48,7 +48,9 @@ export function writeActiveSession(s: ActiveSession): void {
     window.dispatchEvent(new Event('theone-session-change'));
   } catch {}
   // Mirror to the iOS Lock-Screen / Dynamic Island live timer (no-op on web).
-  startWorkoutActivity({ title: s.dayTitle || s.courseTitle || 'Workout', courseTitle: s.courseTitle || '', startTs: s.startTs });
+  // Fallback title follows the app language (I18nProvider keeps <html lang> in sync).
+  const isAr = typeof document !== 'undefined' && document.documentElement.lang === 'ar';
+  startWorkoutActivity({ title: s.dayTitle || s.courseTitle || (isAr ? 'تمرين' : 'Workout'), courseTitle: s.courseTitle || '', startTs: s.startTs });
 }
 
 export function clearActiveSession(): void {

@@ -64,16 +64,16 @@ const Contact: React.FC = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
              <div className="p-8 bg-white rounded-[2.5rem] shadow-sm border border-neutral-100">
-                <p className="text-4xl font-black text-black mb-2">100%</p>
-                <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{t('contact.online_focus')}</p>
+                <p dir="ltr" className="text-4xl font-black text-black mb-2">100%</p>
+                <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('contact.online_focus')}</p>
              </div>
              <div className="p-8 bg-white rounded-[2.5rem] shadow-sm border border-neutral-100">
-                <p className="text-4xl font-black text-black mb-2">500+</p>
-                <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{t('contact.athletes_guided')}</p>
+                <p dir="ltr" className="text-4xl font-black text-black mb-2">500+</p>
+                <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('contact.athletes_guided')}</p>
              </div>
              <div className="p-8 bg-white rounded-[2.5rem] shadow-sm border border-neutral-100">
                 <p className="text-4xl font-black text-black mb-2">{t('contact.elite_label')}</p>
-                <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{t('contact.elite_methods')}</p>
+                <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('contact.elite_methods')}</p>
              </div>
           </div>
         </div>

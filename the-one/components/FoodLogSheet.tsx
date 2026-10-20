@@ -12,6 +12,9 @@ export interface RecommendedMeal extends Macros {
   id: string;
   title: string;
   detail: string;
+  /** Arabic title / detail, for display only — the entry is still logged under `title`. */
+  titleAr?: string;
+  detailAr?: string;
   slot: MealSlot;
 }
 
@@ -24,6 +27,8 @@ interface Props {
   customFoods: Food[];
   /** Foods logged lately, newest first, one per food. */
   recents: LogEntry[];
+  /** How a logged entry's name is shown (plan meals are saved in English). */
+  nameOf?: (e: LogEntry) => string;
   /** Logged days before the one being logged, newest first — for "same as yesterday's lunch". */
   previousDays?: DayLog[];
   /** YYYY-MM-DD of the day being logged. */
@@ -79,7 +84,7 @@ function dayLabel(date: string, dayKey: string | undefined, ar: boolean): string
   const base = dayKey ? (() => { const [by, bm, bd] = dayKey.split('-').map(Number); return new Date(by, bm - 1, bd); })() : new Date();
   const daysAgo = Math.round((base.getTime() - then.getTime()) / 86_400_000);
   if (daysAgo === 1) return ar ? 'أمس' : 'yesterday';
-  const locale = ar ? 'ar' : 'en-GB';
+  const locale = ar ? 'ar-u-nu-latn' : 'en-GB';
   if (daysAgo > 1 && daysAgo < 7) {
     const wd = then.toLocaleDateString(locale, { weekday: 'long' });
     return ar ? `يوم ${wd}` : wd;
@@ -89,7 +94,11 @@ function dayLabel(date: string, dayKey: string | undefined, ar: boolean): string
 
 const blankCustom = { name: '', brand: '', barcode: '', kcal: '', protein: '', carbs: '', fat: '', fiber: '', unitName: '', unitGrams: '' };
 
-const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, customFoods, recents, previousDays = [], dayKey, ar, onAdd, onSaveCustom, onClose }) => {
+const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, customFoods, recents, nameOf, previousDays = [], dayKey, ar, onAdd, onSaveCustom, onClose }) => {
+  // Units shown next to numbers (Arabic keeps a space before the unit).
+  const KCAL = ar ? 'سعرة' : 'kcal';
+  const G = ar ? ' غ' : 'g';
+  const nm = (e: LogEntry) => (nameOf ? nameOf(e) : e.name);
   const [tab, setTab] = useState<Tab>('search');
   const [targetSlot, setTargetSlot] = useState<MealSlot>(slot);
   const [busy, setBusy] = useState(false);
@@ -202,8 +211,8 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
     setPhotoUrl(URL.createObjectURL(file));
     setGuesses(null); setPicked(new Set()); setError(null); setBusy(true);
     try {
-      const { base64, mimeType } = await fileToBase64(file);
-      const found = await analyzePlate(base64, mimeType);
+      const { base64, mimeType } = await fileToBase64(file, ar);
+      const found = await analyzePlate(base64, mimeType, ar);
       setGuesses(found);
       setPicked(new Set(found.map((_, i) => i)));   // everything on by default
       if (found.length === 0) setError(ar ? 'لم يتم التعرف على طعام في الصورة.' : 'No food recognised in that photo.');
@@ -283,7 +292,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               )}
             </p>
             <p className="text-[12px] text-neutral-500 font-medium truncate">
-              <span dir="ltr">{m.kcal} kcal</span>{', '}{portion}{source ? ` \u00b7 ${source}` : ''}
+              {ar ? <span>{m.kcal} سعرة</span> : <span dir="ltr">{m.kcal} kcal</span>}{ar ? '، ' : ', '}{portion}{source ? ` \u00b7 ${source}` : ''}
             </p>
           </div>
         </button>
@@ -302,7 +311,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
 
   const field = (label: string, key: keyof typeof form, placeholder: string, numeric = false) => (
     <div className="space-y-1">
-      <label className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{label}</label>
+      <label className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{label}</label>
       <input
         value={form[key]}
         onChange={e => setForm({ ...form, [key]: e.target.value })}
@@ -341,7 +350,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               <button
                 key={s.id}
                 onClick={() => setTargetSlot(s.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition ${
+                className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest rtl:tracking-normal border transition ${
                   targetSlot === s.id ? 'bg-black text-white border-black' : 'bg-white text-neutral-400 border-neutral-200'
                 }`}
               >
@@ -360,7 +369,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                 }`}
               >
                 <span className="material-symbols-outlined text-[19px]">{x.icon}</span>
-                <span className="text-[8px] font-black uppercase tracking-widest">{ar ? x.arLabel : x.en}</span>
+                <span className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal">{ar ? x.arLabel : x.en}</span>
               </button>
             ))}
           </div>
@@ -419,17 +428,17 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                         {ar ? `نفس ${slotInfo.ar} ${when}` : `Same as ${when}'s ${slotInfo.en.toLowerCase()}`}
                       </p>
                       <p className="text-[11px] text-neutral-500 font-medium truncate">
-                        {prev.entries.map(e => e.name).join(', ')}
+                        {prev.entries.map(nm).join(ar ? '، ' : ', ')}
                       </p>
                     </div>
-                    <span className="text-[11px] font-black text-black tabular-nums shrink-0" dir="ltr">{kcal} kcal</span>
+                    <span className="text-[11px] font-black text-black tabular-nums shrink-0" dir={ar ? undefined : 'ltr'}>{kcal} {KCAL}</span>
                   </button>
                 );
               })()}
 
               {query.trim().length < 2 && recommended.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'مقترح من خطتك' : 'Recommended from your plan'}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{ar ? 'مقترح من خطتك' : 'Recommended from your plan'}</p>
                   {[...recommended]
                     .sort((a, b) => Number(b.slot === targetSlot) - Number(a.slot === targetSlot))
                     .map(r => {
@@ -458,12 +467,14 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                             </span>
                           </span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-black truncate">{r.title}</p>
-                            <p className="text-[11px] text-neutral-400 font-medium truncate" dir="ltr">
-                              {r.kcal} kcal · {r.protein}g P · {r.carbs}g C · {r.fiber}g fib
+                            <p className="text-sm font-bold text-black truncate">{ar && r.titleAr ? r.titleAr : r.title}</p>
+                            <p className="text-[11px] text-neutral-400 font-medium truncate" dir={ar ? undefined : 'ltr'}>
+                              {ar
+                                ? `${r.kcal} سعرة · بروتين ${r.protein} غ · كارب ${r.carbs} غ · ألياف ${r.fiber} غ`
+                                : `${r.kcal} kcal · ${r.protein}g P · ${r.carbs}g C · ${r.fiber}g fib`}
                             </p>
                           </div>
-                          <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400 shrink-0">
+                          <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 shrink-0">
                             {ar ? slotInfo?.ar : slotInfo?.en}
                           </span>
                         </button>
@@ -474,7 +485,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
 
               {query.trim().length < 2 && recents.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'الأخيرة' : 'Recent'}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{ar ? 'الأخيرة' : 'Recent'}</p>
                   {recents.slice(0, recentShown).map(r => (
                     <button
                       key={r.id}
@@ -485,15 +496,15 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                         <span className="material-symbols-outlined text-[18px] text-neutral-300">history</span>
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-black truncate">{r.name}</p>
-                        <p className="text-[11px] text-neutral-400 font-medium" dir="ltr">{r.qty && r.unitLabel && r.unitLabel !== 'g' ? `${r.qty} ${r.unitLabel}` : `${r.grams}g`} · {r.kcal} kcal</p>
+                        <p className="text-sm font-bold text-black truncate">{nm(r)}</p>
+                        <p className="text-[11px] text-neutral-400 font-medium" dir={ar ? undefined : 'ltr'}>{r.qty && r.unitLabel && r.unitLabel !== 'g' ? `${r.qty} ${r.unitLabel}` : `${r.grams}${G}`} · {r.kcal} {KCAL}</p>
                       </div>
                       <span className={`material-symbols-outlined text-[20px] ${justAdded === `recent:${r.id}` ? 'text-green-600 filled' : 'text-accent'}`}>{justAdded === `recent:${r.id}` ? 'check_circle' : 'add_circle'}</span>
                     </button>
                   ))}
                   {recents.length > recentShown && (
-                    <button onClick={() => setRecentShown(n => n + 10)} className="w-full py-2.5 rounded-xl bg-neutral-50 text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                      {ar ? 'عرض المزيد' : `Show more (${recents.length - recentShown})`}
+                    <button onClick={() => setRecentShown(n => n + 10)} className="w-full py-2.5 rounded-xl bg-neutral-50 text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-500">
+                      {ar ? `عرض المزيد (${recents.length - recentShown})` : `Show more (${recents.length - recentShown})`}
                     </button>
                   )}
                 </div>
@@ -501,14 +512,14 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
 
               {query.trim().length < 2 && customFoods.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'أطعمتي المحفوظة' : 'My saved foods'}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{ar ? 'أطعمتي المحفوظة' : 'My saved foods'}</p>
                   {[...customFoods]
                     .sort((a, b) => ((b as { createdAt?: number }).createdAt ?? 0) - ((a as { createdAt?: number }).createdAt ?? 0))
                     .slice(0, mineShown)
                     .map(f => <Row key={f.id} food={f} mine />)}
                   {customFoods.length > mineShown && (
-                    <button onClick={() => setMineShown(customFoods.length)} className="w-full py-2.5 rounded-xl bg-neutral-50 text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                      {ar ? 'عرض الكل' : `Show all (${customFoods.length})`}
+                    <button onClick={() => setMineShown(customFoods.length)} className="w-full py-2.5 rounded-xl bg-neutral-50 text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-500">
+                      {ar ? `عرض الكل (${customFoods.length})` : `Show all (${customFoods.length})`}
                     </button>
                   )}
                 </div>
@@ -516,21 +527,21 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
 
               {commonMatches.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'أطعمة شائعة' : 'Common foods'}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{ar ? 'أطعمة شائعة' : 'Common foods'}</p>
                   {commonMatches.map(f => <Row key={f.id} food={f} />)}
                 </div>
               )}
 
               {localMatches.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'أطعمتي' : 'My foods'}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{ar ? 'أطعمتي' : 'My foods'}</p>
                   {localMatches.map(f => <Row key={f.id} food={f} mine />)}
                 </div>
               )}
 
               {results.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'قاعدة البيانات' : 'Food database'}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{ar ? 'قاعدة البيانات' : 'Food database'}</p>
                   {results.map(f => <Row key={f.id} food={f} />)}
                 </div>
               )}
@@ -538,7 +549,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               {!busy && query.trim().length >= 2 && results.length === 0 && localMatches.length === 0 && commonMatches.length === 0 && (
                 <div className="text-center py-8 space-y-3">
                   <p className="text-xs font-bold text-neutral-400">{ar ? 'لا نتائج.' : 'Nothing found.'}</p>
-                  <button onClick={() => { setForm({ ...blankCustom, name: query.trim() }); setTab('custom'); }} className="px-4 py-2.5 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest">
+                  <button onClick={() => { setForm({ ...blankCustom, name: query.trim() }); setTab('custom'); }} className="px-4 py-2.5 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">
                     {ar ? 'أضفه بنفسك' : 'Add it yourself'}
                   </button>
                 </div>
@@ -550,7 +561,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
             <div className="space-y-3">
               <button
                 onClick={() => { setNotFoundCode(null); setError(null); setScanning(true); }}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-black text-white text-[11px] font-black uppercase tracking-widest"
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-black text-white text-[11px] font-black uppercase tracking-widest rtl:tracking-normal"
               >
                 <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
                 {ar ? 'امسح بالكاميرا' : 'Scan with camera'}
@@ -564,25 +575,25 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                   onChange={e => setCode(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') runBarcode(); }}
                   inputMode="numeric"
-                  placeholder="e.g. 3017624010701"
+                  placeholder={ar ? 'مثال: 3017624010701' : 'e.g. 3017624010701'}
                   dir="ltr"
                   className="flex-1 min-w-0 bg-neutral-50 border border-neutral-100 rounded-2xl px-4 py-3 text-sm font-bold tabular-nums outline-none focus:border-black transition"
                 />
-                <button onClick={() => runBarcode()} disabled={busy} className="px-5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40">
+                <button onClick={() => runBarcode()} disabled={busy} className="px-5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal disabled:opacity-40">
                   {busy ? '…' : (ar ? 'ابحث' : 'Find')}
                 </button>
               </div>
               {notFoundCode && (
                 <div className="text-center py-6 space-y-3 border border-dashed border-neutral-200 rounded-2xl">
                   <p className="text-xs font-bold text-neutral-400">{ar ? 'غير موجود في قاعدة البيانات.' : 'Not in the database.'}</p>
-                  <button onClick={() => openCustomWithBarcode(notFoundCode)} className="px-4 py-2.5 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest">
+                  <button onClick={() => openCustomWithBarcode(notFoundCode)} className="px-4 py-2.5 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">
                     {ar ? 'احفظه بهذا الباركود' : 'Save it with this barcode'}
                   </button>
                 </div>
               )}
               {customFoods.filter(f => f.barcode).length > 0 && (
                 <div className="space-y-2 pt-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'أطعمتي بباركود' : 'My barcoded foods'}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{ar ? 'أطعمتي بباركود' : 'My barcoded foods'}</p>
                   {customFoods.filter(f => f.barcode).map(f => <Row key={f.id} food={f} mine />)}
                 </div>
               )}
@@ -605,7 +616,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                   className="w-full py-10 rounded-3xl border-2 border-dashed border-neutral-200 flex flex-col items-center gap-2 hover:border-black transition"
                 >
                   <span className="material-symbols-outlined text-4xl text-neutral-300">add_a_photo</span>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-neutral-400">
+                  <span className="text-[11px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">
                     {ar ? 'صوّر طبقك' : 'Take a photo of your plate'}
                   </span>
                 </button>
@@ -626,13 +637,13 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               {busy && (
                 <div className="flex items-center justify-center gap-2 py-6">
                   <span className="w-4 h-4 border-2 border-neutral-300 border-t-black rounded-full animate-spin" />
-                  <span className="text-[11px] font-black uppercase tracking-widest text-neutral-400">{ar ? 'يتم التحليل…' : 'Analysing…'}</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{ar ? 'يتم التحليل…' : 'Analysing…'}</span>
                 </div>
               )}
 
               {guesses && guesses.length > 0 && (
                 <>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">
                     {ar ? 'اختر ما في الطبق' : 'Pick what is on the plate'}
                   </p>
                   {guesses.map((g, i) => {
@@ -648,12 +659,14 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                           </span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-black truncate">{g.name}</p>
-                            <p className="text-[11px] text-neutral-400 font-medium" dir="ltr">
-                              {g.kcal} kcal · {g.protein}g P · {g.carbs}g C · {g.fat}g F
+                            <p className="text-[11px] text-neutral-400 font-medium" dir={ar ? undefined : 'ltr'}>
+                              {ar
+                                ? `${g.kcal} سعرة · بروتين ${g.protein} غ · كارب ${g.carbs} غ · دهون ${g.fat} غ`
+                                : `${g.kcal} kcal · ${g.protein}g P · ${g.carbs}g C · ${g.fat}g F`}
                             </p>
                           </div>
                           {g.confidence !== 'high' && (
-                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full shrink-0 ${
+                            <span className={`text-[8px] font-black uppercase tracking-widest rtl:tracking-normal px-2 py-1 rounded-full shrink-0 ${
                               g.confidence === 'low' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'
                             }`}>
                               {g.confidence === 'low' ? (ar ? 'غير مؤكد' : 'unsure') : (ar ? 'تقريبي' : 'approx')}
@@ -662,7 +675,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                         </button>
                         {on && (
                           <div className="flex items-center gap-2 mt-2 ps-8">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{ar ? 'الكمية' : 'Portion'}</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{ar ? 'الكمية' : 'Portion'}</span>
                             <input
                               value={String(g.grams)}
                               onChange={e => {
@@ -680,7 +693,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                               dir="ltr"
                               className="w-20 bg-white border border-neutral-200 rounded-lg px-2 py-1.5 text-xs font-black tabular-nums outline-none focus:border-black"
                             />
-                            <span className="text-[10px] font-bold text-neutral-400">g</span>
+                            <span className="text-[10px] font-bold text-neutral-400">{ar ? 'غ' : 'g'}</span>
                           </div>
                         )}
                       </div>
@@ -704,9 +717,9 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                 {field(ar ? 'العلامة' : 'Brand', 'brand', ar ? 'اختياري' : 'optional')}
                 {field(ar ? 'الباركود' : 'Barcode', 'barcode', ar ? 'اختياري' : 'optional', true)}
               </div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 pt-1">{ar ? 'لكل 100 غرام' : 'Per 100 g'}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 pt-1">{ar ? 'لكل 100 غرام' : 'Per 100 g'}</p>
               <div className="grid grid-cols-4 gap-2">
-                {field('kcal', 'kcal', '0', true)}
+                {field(ar ? 'سعرات' : 'kcal', 'kcal', '0', true)}
                 {field(ar ? 'بروتين' : 'Protein', 'protein', '0', true)}
                 {field(ar ? 'كارب' : 'Carbs', 'carbs', '0', true)}
                 {field(ar ? 'دهون' : 'Fat', 'fat', '0', true)}
@@ -715,7 +728,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                 {field(ar ? 'ألياف' : 'Fibre', 'fiber', '0', true)}
               </div>
 
-              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 pt-1">
+              <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 pt-1">
                 {ar ? 'وحدة خاصة (اختياري)' : 'Your own portion (optional)'}
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -738,21 +751,21 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               <span className="material-symbols-outlined text-[18px] filled">check_circle</span>
               {ar ? `أُضيف ${addedCount}` : `${addedCount} added`}
             </span>
-            <button onClick={onClose} className="px-5 py-2.5 bg-black text-white rounded-xl text-[11px] font-black uppercase tracking-widest">
+            <button onClick={onClose} className="px-5 py-2.5 bg-black text-white rounded-xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">
               {ar ? 'تم' : 'Done'}
             </button>
           </div>
         )}
         {tab === 'photo' && guesses && guesses.length > 0 && (
           <div className="p-4 border-t border-neutral-100">
-            <button onClick={addPicked} disabled={picked.size === 0} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest disabled:opacity-40">
+            <button onClick={addPicked} disabled={picked.size === 0} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal disabled:opacity-40">
               {ar ? `أضف ${picked.size}` : `Add ${picked.size} item${picked.size === 1 ? '' : 's'}`}
             </button>
           </div>
         )}
         {tab === 'custom' && (
           <div className="p-4 border-t border-neutral-100">
-            <button onClick={saveCustom} disabled={busy} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest disabled:opacity-40">
+            <button onClick={saveCustom} disabled={busy} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal disabled:opacity-40">
               {busy ? '…' : (ar ? 'احفظ وتابع' : 'Save & continue')}
             </button>
           </div>
@@ -803,7 +816,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                     >
                       {units.map((u, i) => (
                         <option key={u.label + i} value={i}>
-                          {(ar ? (u.ar ?? u.label) : u.label) + (u.grams !== 1 ? ` (${u.grams} g)` : '')}
+                          {(ar ? (u.ar ?? u.label) : u.label) + (u.grams !== 1 ? (ar ? ` (${u.grams} غ)` : ` (${u.grams} g)`) : '')}
                         </option>
                       ))}
                     </select>
@@ -820,8 +833,8 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                         {n}
                       </button>
                     ))}
-                    <span className="flex-1 flex items-center justify-center text-[10px] font-black text-neutral-400 tabular-nums" dir="ltr">
-                      = {Math.max(1, Math.round((parseFloat(qty) || 0) * units[safeIdx].grams))} g
+                    <span className="flex-1 flex items-center justify-center text-[10px] font-black text-neutral-400 tabular-nums" dir={ar ? undefined : 'ltr'}>
+                      = {Math.max(1, Math.round((parseFloat(qty) || 0) * units[safeIdx].grams))} {ar ? 'غ' : 'g'}
                     </span>
                   </div>
                 </div>
@@ -835,19 +848,19 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               return (
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between bg-black text-white rounded-xl px-4 py-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/60">{ar ? 'السعرات' : 'Calories'}</span>
-                    <span className="text-xl font-black tabular-nums" dir="ltr">{m.kcal} <span className="text-[10px] text-white/60">kcal</span></span>
+                    <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-white/60">{ar ? 'السعرات' : 'Calories'}</span>
+                    <span className="text-xl font-black tabular-nums"><span dir="ltr">{m.kcal}</span> <span className="text-[10px] text-white/60">{KCAL}</span></span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { l: ar ? 'بروتين' : 'Protein', v: `${m.protein}g` },
-                      { l: ar ? 'كارب' : 'Carbs', v: `${m.carbs}g` },
-                      { l: ar ? 'ألياف' : 'Fibre', v: typeof m.fiber === 'number' ? `${m.fiber}g` : '\u2014' },
-                      { l: ar ? 'دهون' : 'Fat', v: `${m.fat}g` },
+                      { l: ar ? 'بروتين' : 'Protein', v: `${m.protein}${G}` },
+                      { l: ar ? 'كارب' : 'Carbs', v: `${m.carbs}${G}` },
+                      { l: ar ? 'ألياف' : 'Fibre', v: typeof m.fiber === 'number' ? `${m.fiber}${G}` : '\u2014' },
+                      { l: ar ? 'دهون' : 'Fat', v: `${m.fat}${G}` },
                     ].map(x => (
                       <div key={x.l} className="bg-neutral-50 rounded-xl py-2.5 text-center">
-                        <p className="text-sm font-black text-black tabular-nums" dir="ltr">{x.v}</p>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mt-0.5">{x.l}</p>
+                        <p className="text-sm font-black text-black tabular-nums" dir={ar ? undefined : 'ltr'}>{x.v}</p>
+                        <p className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 mt-0.5">{x.l}</p>
                       </div>
                     ))}
                   </div>
@@ -860,7 +873,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               );
             })()}
 
-            <button onClick={addChosen} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest">
+            <button onClick={addChosen} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">
               {ar ? `أضف إلى ${SLOTS.find(s => s.id === targetSlot)?.ar}` : `Add to ${SLOTS.find(s => s.id === targetSlot)?.en}`}
             </button>
           </div>

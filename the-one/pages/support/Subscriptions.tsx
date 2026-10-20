@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react';
+import { useT } from '../../i18n/I18nContext';
+import type { TranslationKey } from '../../i18n/translations';
 
 interface Subscription {
   id: string;
@@ -7,68 +9,81 @@ interface Subscription {
   plan: string;
   status: 'ACTIVE' | 'EXPIRED' | 'PENDING' | 'REFUNDED';
   price: string;
-  renewal: string;
+  renewal: string | null; // ISO date (YYYY-MM-DD), null when not applicable
   gateway: string;
 }
 
+const STATUS_LABELS: Record<Subscription['status'], TranslationKey> = {
+  ACTIVE: 'support.subs.status_active',
+  EXPIRED: 'support.subs.status_expired',
+  PENDING: 'support.subs.status_pending',
+  REFUNDED: 'support.subs.status_refunded',
+};
+
 const SupportSubscriptions: React.FC = () => {
+  const { t, lang } = useT();
   const [search, setSearch] = useState('');
 
   const subscriptions: Subscription[] = [
-    { id: '#SUB-9021', athleteName: 'Alex Johnson', plan: 'Engine Builder 101', status: 'ACTIVE', price: '$149.00', renewal: 'Nov 12, 2024', gateway: 'SindiPay' },
-    { id: '#SUB-8821', athleteName: 'Mark Ruffalo', plan: 'Pro Unlimited', status: 'ACTIVE', price: '$299.00', renewal: 'Dec 01, 2024', gateway: 'Stripe' },
-    { id: '#SUB-7712', athleteName: 'Sarah Jenkins', plan: 'Muay Thai Custom', status: 'PENDING', price: '$350.00', renewal: 'N/A', gateway: 'SindiPay' },
-    { id: '#SUB-6623', athleteName: 'John Doe', plan: 'Bodybuilding Track', status: 'EXPIRED', price: '$99.00', renewal: 'Oct 10, 2024', gateway: 'SindiPay' }
+    { id: '#SUB-9021', athleteName: 'Alex Johnson', plan: 'Engine Builder 101', status: 'ACTIVE', price: '$149.00', renewal: '2024-11-12', gateway: 'SindiPay' },
+    { id: '#SUB-8821', athleteName: 'Mark Ruffalo', plan: 'Pro Unlimited', status: 'ACTIVE', price: '$299.00', renewal: '2024-12-01', gateway: 'Stripe' },
+    { id: '#SUB-7712', athleteName: 'Sarah Jenkins', plan: 'Muay Thai Custom', status: 'PENDING', price: '$350.00', renewal: null, gateway: 'SindiPay' },
+    { id: '#SUB-6623', athleteName: 'John Doe', plan: 'Bodybuilding Track', status: 'EXPIRED', price: '$99.00', renewal: '2024-10-10', gateway: 'SindiPay' }
   ];
 
-  const filtered = subscriptions.filter(s => 
-    s.athleteName.toLowerCase().includes(search.toLowerCase()) || 
+  const formatRenewal = (d: string | null) =>
+    d
+      ? new Date(`${d}T00:00:00`).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : t('support.subs.not_applicable');
+
+  const filtered = subscriptions.filter(s =>
+    s.athleteName.toLowerCase().includes(search.toLowerCase()) ||
     s.id.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="text-left space-y-12 animate-in fade-in duration-500 pb-20">
+    <div className="text-start space-y-12 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black font-display uppercase text-black leading-none tracking-tight">Athlete Subscriptions</h1>
-          <p className="text-neutral-400 font-medium">Verify enrollments and resolve billing discrepancy reports.</p>
+          <h1 className="text-4xl font-black font-display uppercase text-black leading-none tracking-tight">{t('support.subs.title')}</h1>
+          <p className="text-neutral-400 font-medium">{t('support.subs.subtitle')}</p>
         </div>
         <div className="relative w-full md:w-80">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
-          <input 
-            type="text" 
-            placeholder="Search Athlete or ID..." 
+          <span className="material-symbols-outlined absolute start-4 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
+          <input
+            type="text"
+            placeholder={t('support.subs.search_placeholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white border border-neutral-100 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-purple-600 transition"
+            className="w-full bg-white border border-neutral-100 rounded-2xl py-4 ps-12 pe-6 text-sm font-bold shadow-sm outline-none focus:border-purple-600 transition"
           />
         </div>
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-xl overflow-hidden">
-         <table className="w-full text-left">
+         <table className="w-full text-start">
             <thead className="bg-neutral-50 border-b border-neutral-100">
                <tr>
-                  <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Reference ID</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Athlete</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Track / Plan</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Status</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Gateway</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-right">Actions</th>
+                  <th className="px-8 py-6 text-start text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('support.subs.col_ref')}</th>
+                  <th className="px-8 py-6 text-start text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('support.subs.col_athlete')}</th>
+                  <th className="px-8 py-6 text-start text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('support.subs.col_plan')}</th>
+                  <th className="px-8 py-6 text-start text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('support.subs.col_status')}</th>
+                  <th className="px-8 py-6 text-start text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('support.subs.col_gateway')}</th>
+                  <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-end">{t('support.subs.col_actions')}</th>
                </tr>
             </thead>
             <tbody className="divide-y divide-neutral-50">
                {filtered.map(sub => (
                  <tr key={sub.id} className="hover:bg-neutral-50 transition-colors">
                     <td className="px-8 py-6">
-                       <p className="text-xs font-black text-neutral-300 uppercase tracking-tight">{sub.id}</p>
+                       <p dir="ltr" className="text-xs font-black text-neutral-300 uppercase tracking-tight text-start">{sub.id}</p>
                     </td>
                     <td className="px-8 py-6">
                        <p className="text-sm font-black text-black uppercase tracking-tight">{sub.athleteName}</p>
                     </td>
                     <td className="px-8 py-6">
                        <p className="text-xs font-bold text-neutral-600 uppercase">{sub.plan}</p>
-                       <p className="text-[10px] text-neutral-400 mt-1">{sub.price} • Renewal: {sub.renewal}</p>
+                       <p className="text-[10px] text-neutral-400 mt-1"><span dir="ltr">{sub.price}</span> • {t('support.subs.renewal', { date: formatRenewal(sub.renewal) })}</p>
                     </td>
                     <td className="px-8 py-6">
                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
@@ -76,7 +91,7 @@ const SupportSubscriptions: React.FC = () => {
                          sub.status === 'PENDING' ? 'bg-orange-50 text-orange-600' :
                          'bg-neutral-100 text-neutral-500'
                        }`}>
-                         {sub.status}
+                         {t(STATUS_LABELS[sub.status])}
                        </span>
                     </td>
                     <td className="px-8 py-6">
@@ -85,9 +100,9 @@ const SupportSubscriptions: React.FC = () => {
                           <span className="text-[10px] font-bold text-neutral-500">{sub.gateway}</span>
                        </div>
                     </td>
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-8 py-6 text-end">
                        <button className="px-4 py-2 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition shadow-sm">
-                          Verify Payment
+                          {t('support.subs.verify_payment')}
                        </button>
                     </td>
                  </tr>
@@ -97,7 +112,7 @@ const SupportSubscriptions: React.FC = () => {
          {filtered.length === 0 && (
            <div className="py-24 text-center space-y-4">
               <span className="material-symbols-outlined text-6xl text-neutral-100">receipt_long</span>
-              <p className="text-neutral-300 font-black uppercase tracking-widest">No matching records found</p>
+              <p className="text-neutral-300 font-black uppercase tracking-widest">{t('support.subs.empty')}</p>
            </div>
          )}
       </div>

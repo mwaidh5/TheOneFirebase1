@@ -20,7 +20,7 @@ const CoachProfile: React.FC = () => {
         <div className="w-full lg:w-7/12 flex flex-col gap-8">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-black text-white text-xs font-bold uppercase tracking-wider rounded-sm">{coach.title}</span>
+              <span className="px-3 py-1 bg-black text-white text-xs font-bold uppercase tracking-wider rtl:tracking-normal rounded-sm">{coach.title}</span>
             </div>
             <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-black uppercase leading-tight font-display">
               {coach.name}
@@ -32,19 +32,19 @@ const CoachProfile: React.FC = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-8 border-y border-gray-100">
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{t('coach_profile.experience')}</p>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider rtl:tracking-normal">{t('coach_profile.experience')}</p>
               <p className="text-2xl font-bold text-black">{coach.experience}</p>
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{t('coach_profile.certifications')}</p>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider rtl:tracking-normal">{t('coach_profile.certifications')}</p>
               <p className="text-2xl font-bold text-black">{t('coach_profile.level3')}</p>
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{t('coach_profile.athletes')}</p>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider rtl:tracking-normal">{t('coach_profile.athletes')}</p>
               <p className="text-2xl font-bold text-black">{coach.athletes}</p>
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{t('coach_profile.games')}</p>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider rtl:tracking-normal">{t('coach_profile.games')}</p>
               <p className="text-2xl font-bold text-black">{coach.games}</p>
             </div>
           </div>
@@ -63,16 +63,16 @@ const CoachProfile: React.FC = () => {
           <div>
             <h2 className="text-2xl font-bold font-display uppercase mb-6">{t('coach_profile.athlete_stories')}</h2>
             <div className="bg-black text-white rounded-3xl p-10 relative overflow-hidden shadow-2xl">
-              <span className="material-symbols-outlined text-8xl absolute -top-4 -right-4 text-white/10 select-none rotate-12">format_quote</span>
+              <span className="material-symbols-outlined text-8xl absolute -top-4 -end-4 text-white/10 select-none rotate-12">format_quote</span>
               <div className="relative z-10 space-y-8">
-                <p className="text-xl md:text-2xl font-light italic leading-relaxed">
+                <p className="text-xl md:text-2xl font-light italic rtl:not-italic leading-relaxed">
                   {t('coach_profile.testimonial')}
                 </p>
                 <div className="flex items-center gap-4 border-t border-white/20 pt-8">
                   <div className="w-12 h-12 rounded-full bg-gray-700 bg-cover bg-center border-2 border-white" style={{backgroundImage: 'url(https://picsum.photos/100/100)'}}></div>
                   <div>
                     <p className="font-bold text-white text-base">{t('coach_profile.testimonial_name')}</p>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider">{t('coach_profile.member_since')}</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider rtl:tracking-normal">{t('coach_profile.member_since')}</p>
                   </div>
                 </div>
               </div>
@@ -92,7 +92,7 @@ const CoachProfile: React.FC = () => {
                   <div>
                     <h4 className="font-bold text-black group-hover:underline">{course.title}</h4>
                     <p className="text-sm text-gray-500">{course.duration}</p>
-                    <p className="font-bold text-primary mt-1">${course.price}</p>
+                    <p className="font-bold text-primary mt-1"><span dir="ltr">${course.price}</span></p>
                   </div>
                 </Link>
               ))}

@@ -44,11 +44,11 @@ const ResultsShowcase: React.FC = () => {
   const { t, lang } = useT();
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between ml-1">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-neutral-400">
+      <div className="flex items-center justify-between ms-1">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400">
           {lang === 'ar' ? 'نتائج حقيقية' : 'Real results'}
         </p>
-        <span className="text-[9px] font-black uppercase tracking-widest text-neutral-300">
+        <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-300">
           {lang === 'ar' ? 'قبل / بعد' : 'Before / After'}
         </span>
       </div>
@@ -60,13 +60,13 @@ const ResultsShowcase: React.FC = () => {
             <div className="grid grid-cols-2 h-40 relative">
               <div className="relative">
                 <img src={r.before} alt="" className="w-full h-full object-cover grayscale" />
-                <span className="absolute bottom-2 start-2 bg-black/70 text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest">
+                <span className="absolute bottom-2 start-2 bg-black/70 text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest rtl:tracking-normal">
                   {lang === 'ar' ? 'قبل' : 'Before'}
                 </span>
               </div>
               <div className="relative">
                 <img src={r.after} alt="" className="w-full h-full object-cover" />
-                <span className="absolute bottom-2 end-2 bg-accent text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest">
+                <span className="absolute bottom-2 end-2 bg-accent text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest rtl:tracking-normal">
                   {lang === 'ar' ? 'بعد' : 'After'}
                 </span>
               </div>
@@ -78,9 +78,9 @@ const ResultsShowcase: React.FC = () => {
             <div className="p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-black uppercase tracking-tight text-black">{r.name}</p>
-                <span className="bg-green-50 text-green-700 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">{r.result[lang]}</span>
+                <span className="bg-green-50 text-green-700 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wide rtl:tracking-normal whitespace-nowrap">{r.result[lang]}</span>
               </div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-300">{r.program}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-300">{r.program}</p>
               <p className="text-xs font-medium text-neutral-500 leading-relaxed">
                 <span className="material-symbols-outlined text-[14px] text-accent align-middle me-1 filled">format_quote</span>
                 {r.quote[lang]}

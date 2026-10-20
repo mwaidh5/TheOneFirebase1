@@ -4,9 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import { collection, onSnapshot, query, where, getDocs, deleteDoc, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { CustomCourseRequest, Coach, User, CustomDiscipline } from '../../types';
+import { useT } from '../../i18n/I18nContext';
+import { TranslationKey } from '../../i18n/translations';
+
+// Display labels for stored request statuses (the values stay English).
+const STATUS_LABEL: Record<string, TranslationKey> = {
+  PENDING_PAYMENT: 'status.pending_payment',
+  DIAGNOSTIC: 'status.diagnostic',
+  BUILDING: 'status.building',
+  COMPLETED: 'status.completed',
+};
 
 const AdminCustomRequests: React.FC = () => {
   const navigate = useNavigate();
+  const { t, lang } = useT();
   const [requests, setRequests] = useState<CustomCourseRequest[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [clients, setClients] = useState<User[]>([]);
@@ -64,58 +75,58 @@ const AdminCustomRequests: React.FC = () => {
   };
 
   const handleGrantAccess = async (reqId: string) => {
-    if (!window.confirm('Are you sure you want to manually grant access to this athlete? This will bypass payment and move them to the Diagnostic phase.')) return;
+    if (!window.confirm(t('builder.confirm_grant'))) return;
     try {
       await updateDoc(doc(db, 'custom_requests', reqId), {
         status: 'DIAGNOSTIC'
       });
     } catch (error) {
       console.error("Error granting access:", error);
-      alert("Failed to grant access");
+      alert(t('builder.grant_failed'));
     }
   };
 
   const handleDeleteRequest = async (reqId: string) => {
-    if (!window.confirm('Are you sure you want to remove this customer lead? This action cannot be undone.')) return;
+    if (!window.confirm(t('builder.confirm_delete_lead'))) return;
     try {
       await deleteDoc(doc(db, 'custom_requests', reqId));
     } catch (error) {
       console.error("Error deleting request:", error);
-      alert("Failed to delete request");
+      alert(t('builder.delete_failed'));
     }
   };
 
   return (
-    <div className="space-y-12 text-left animate-in fade-in duration-500 pb-20">
+    <div className="space-y-12 text-start animate-in fade-in duration-500 pb-20">
       <div className="flex justify-between items-end">
           <div className="space-y-1">
-            <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Custom Lead Management</h1>
-            <p className="text-neutral-400 font-medium">Auto-assigned bespoke cycles based on modality expertise.</p>
+            <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('builder.leads_title')}</h1>
+            <p className="text-neutral-400 font-medium">{t('builder.leads_sub')}</p>
           </div>
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition shadow-lg flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[16px]">person_add</span>
-            Add Manual Lead
+            {t('builder.add_manual_lead')}
           </button>
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-neutral-100 overflow-hidden shadow-2xl">
-        <table className="w-full text-left">
+        <table className="w-full text-start">
           <thead className="bg-neutral-50 border-b border-neutral-100">
             <tr>
-              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Athlete Intelligence</th>
-              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Game & Progress</th>
-              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">Dedicated Coach</th>
-              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-right">Actions</th>
+              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('builder.th_athlete')}</th>
+              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('builder.th_game')}</th>
+              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('builder.th_coach')}</th>
+              <th className="px-8 py-6 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-end">{t('builder.th_actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-50">
             {requests.length === 0 ? (
                <tr>
                   <td colSpan={4} className="px-8 py-12 text-center text-neutral-400 font-bold uppercase tracking-widest text-xs">
-                     No active requests found
+                     {t('builder.no_requests')}
                   </td>
                </tr>
             ) : requests.map((req) => {
@@ -132,7 +143,7 @@ const AdminCustomRequests: React.FC = () => {
                         className="text-[10px] font-black text-neutral-400 uppercase tracking-widest flex items-center gap-1 hover:text-black"
                       >
                         <span className="material-symbols-outlined text-[14px]">visibility</span>
-                        Inspect Dossier
+                        {t('builder.inspect_dossier')}
                       </button>
                     </div>
                   </td>
@@ -143,9 +154,9 @@ const AdminCustomRequests: React.FC = () => {
                         req.status === 'COMPLETED' ? 'bg-green-50 text-green-700' :
                         'bg-blue-50 text-blue-600'
                       }`}>
-                        {req.status.replace('_', ' ')}
+                        {STATUS_LABEL[req.status] ? t(STATUS_LABEL[req.status]) : req.status.replace('_', ' ')}
                       </span>
-                      <span className="text-[10px] font-black uppercase text-neutral-400 tracking-widest">${req.price} • {game?.name || req.sport}</span>
+                      <span className="text-[10px] font-black uppercase text-neutral-400 tracking-widest"><span dir="ltr">${req.price}</span> • {game?.name || req.sport}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6">
@@ -154,19 +165,19 @@ const AdminCustomRequests: React.FC = () => {
                           <img src={assignedCoach.avatar || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
                           <div>
                              <p className="text-[10px] font-black uppercase text-black leading-tight">{assignedCoach.name}</p>
-                             <p className="text-[8px] font-bold text-accent uppercase tracking-widest mt-0.5">{game?.name || 'Master Coach'}</p>
+                             <p className="text-[8px] font-bold text-accent uppercase tracking-widest mt-0.5">{game?.name || t('builder.master_coach')}</p>
                           </div>
                        </div>
                     ) : (
-                       <span className="text-[10px] font-black text-neutral-300 uppercase italic">Awaiting Auto-Assign</span>
+                       <span className="text-[10px] font-black text-neutral-300 uppercase italic">{t('builder.awaiting_assign')}</span>
                     )}
                   </td>
-                  <td className="px-8 py-6 text-right">
+                  <td className="px-8 py-6 text-end">
                     <div className="flex items-center justify-end gap-2">
                       {req.status === 'PENDING_PAYMENT' && (
                         <button
                           onClick={() => handleGrantAccess(req.id)}
-                          title="Grant Access (Bypass Payment)"
+                          title={t('builder.grant_access_title')}
                           className="w-10 h-10 flex items-center justify-center bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors shadow-sm"
                         >
                           <span className="material-symbols-outlined text-[20px]">lock_open</span>
@@ -178,12 +189,12 @@ const AdminCustomRequests: React.FC = () => {
                         className="px-6 py-3 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition shadow-lg flex items-center gap-2"
                       >
                         <span className="material-symbols-outlined text-[16px]">design_services</span>
-                        Submit Course
+                        {t('builder.submit_course')}
                       </button>
 
                       <button
                         onClick={() => handleDeleteRequest(req.id)}
-                        title="Remove Customer Lead"
+                        title={t('builder.remove_lead')}
                         className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors shadow-sm"
                       >
                         <span className="material-symbols-outlined text-[20px]">delete</span>
@@ -199,22 +210,22 @@ const AdminCustomRequests: React.FC = () => {
 
       {/* Manual Lead Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-left">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-start">
            <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden p-10 space-y-8">
                <div className="flex justify-between items-center">
-                   <h3 className="text-2xl font-black font-display uppercase tracking-tight">Manual Lead</h3>
+                   <h3 className="text-2xl font-black font-display uppercase tracking-tight">{t('builder.manual_lead')}</h3>
                    <button onClick={() => setIsAddModalOpen(false)} className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center hover:bg-black hover:text-white transition-colors"><span className="material-symbols-outlined">close</span></button>
                </div>
                
                <div className="space-y-6">
                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-neutral-400 ml-1">Select Client</label>
+                       <label className="text-[10px] font-black uppercase text-neutral-400 ms-1">{t('builder.select_client')}</label>
                        <select 
                            value={newLead.clientId} 
                            onChange={e => setNewLead({...newLead, clientId: e.target.value})}
                            className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-4 font-bold text-sm outline-none"
                        >
-                           <option value="">-- Choose Athlete --</option>
+                           <option value="">{t('builder.choose_athlete')}</option>
                            {clients.map(c => (
                                <option key={c.id} value={c.id}>{c.firstName} {c.lastName} ({c.email})</option>
                            ))}
@@ -222,14 +233,14 @@ const AdminCustomRequests: React.FC = () => {
                    </div>
                    
                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-neutral-400 ml-1">Select Discipline</label>
+                       <label className="text-[10px] font-black uppercase text-neutral-400 ms-1">{t('builder.select_discipline')}</label>
                        <select 
                            value={newLead.sportId} 
                            onChange={e => setNewLead({...newLead, sportId: e.target.value})}
                            className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-4 font-bold text-sm outline-none"
                        >
-                           <option value="">-- Choose Sport --</option>
-                           {disciplines.length === 0 && <option disabled>No sports configured</option>}
+                           <option value="">{t('builder.choose_sport')}</option>
+                           {disciplines.length === 0 && <option disabled>{t('builder.no_sports')}</option>}
                            {disciplines.map(s => (
                                <option key={s.id} value={s.id}>{s.name} (${s.price})</option>
                            ))}
@@ -238,7 +249,7 @@ const AdminCustomRequests: React.FC = () => {
                    
                    <button 
                        onClick={async () => {
-                           if (!newLead.clientId || !newLead.sportId) return alert("All fields required");
+                           if (!newLead.clientId || !newLead.sportId) return alert(t('builder.all_fields_required'));
                            const client = clients.find(c => c.id === newLead.clientId);
                            const sport = disciplines.find(s => s.id === newLead.sportId);
                            if (!client || !sport) return;
@@ -274,15 +285,15 @@ const AdminCustomRequests: React.FC = () => {
                                
                                setIsAddModalOpen(false);
                                setNewLead({ clientId: '', sportId: '' });
-                               alert("Lead created and athlete enrolled!");
+                               alert(t('builder.lead_created'));
                            } catch (e) {
                                console.error(e);
-                               alert("Error creating lead.");
+                               alert(t('builder.lead_error'));
                            }
                        }}
                        className="w-full py-5 bg-black text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-accent transition shadow-xl"
                    >
-                       Create & Grant Access
+                       {t('builder.create_grant')}
                    </button>
                </div>
            </div>
@@ -291,11 +302,11 @@ const AdminCustomRequests: React.FC = () => {
 
       {/* Inspector Modal */}
       {inspectingReq && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-left">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 text-start">
           <div className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
             <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 shrink-0">
-               <div className="space-y-1 text-left">
-                  <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">Athlete Investigation</p>
+               <div className="space-y-1 text-start">
+                  <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{t('builder.athlete_investigation')}</p>
                   <h3 className="text-4xl font-black font-display uppercase text-black leading-none">{inspectingReq.athleteName}</h3>
                </div>
                <button 
@@ -311,13 +322,13 @@ const AdminCustomRequests: React.FC = () => {
                 onClick={() => setActiveModalTab('INTAKE')}
                 className={`flex-1 py-6 text-center text-[10px] font-black uppercase tracking-widest transition border-b-4 ${activeModalTab === 'INTAKE' ? 'border-black text-black bg-neutral-50/50' : 'border-transparent text-neutral-300 hover:text-black'}`}
               >
-                Inquiry Profile
+                {t('builder.inquiry_profile')}
               </button>
               <button 
                 onClick={() => setActiveModalTab('RESULTS')}
                 className={`flex-1 py-6 text-center text-[10px] font-black uppercase tracking-widest transition border-b-4 ${activeModalTab === 'RESULTS' ? 'border-black text-black bg-neutral-50/50' : 'border-transparent text-neutral-300 hover:text-black'}`}
               >
-                Assigned Test Submissions ({inspectingReq.submissions?.length || 0})
+                {t('builder.test_submissions', { n: inspectingReq.submissions?.length || 0 })}
               </button>
             </div>
 
@@ -326,9 +337,9 @@ const AdminCustomRequests: React.FC = () => {
                  <div className="space-y-10 animate-in fade-in duration-300">
                     <div className="grid grid-cols-3 gap-6">
                        {[
-                          { l: 'Height', v: inspectingReq.biometrics?.height || 'N/A' },
-                          { l: 'Weight', v: inspectingReq.biometrics?.weight || 'N/A' },
-                          { l: 'Age', v: inspectingReq.biometrics?.age || 'N/A' }
+                          { l: t('builder.height'), v: inspectingReq.biometrics?.height || t('builder.na') },
+                          { l: t('builder.weight'), v: inspectingReq.biometrics?.weight || t('builder.na') },
+                          { l: t('builder.age'), v: inspectingReq.biometrics?.age || t('builder.na') }
                        ].map(s => (
                           <div key={s.l} className="p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 text-center shadow-inner">
                              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">{s.l}</p>
@@ -338,22 +349,22 @@ const AdminCustomRequests: React.FC = () => {
                     </div>
 
                     <div className="space-y-4">
-                       <h3 className="text-xl font-black uppercase tracking-tight border-l-4 border-accent pl-6">Stimulus Directive</h3>
+                       <h3 className="text-xl font-black uppercase tracking-tight border-s-4 border-accent ps-6">{t('builder.stimulus_directive')}</h3>
                        <div className="p-10 bg-neutral-50 rounded-[3rem] border border-neutral-100 italic text-neutral-600 leading-relaxed font-medium text-lg">
                          "{inspectingReq.goal}"
                        </div>
                     </div>
                  </div>
                ) : (
-                 <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+                 <div className="space-y-8 animate-in slide-in-from-right-4 rtl:slide-in-from-left-4 duration-300">
                     {inspectingReq.submissions && inspectingReq.submissions.length > 0 ? (
                         inspectingReq.submissions.map((sub, idx) => {
                             const test = inspectingReq.diagnostics?.find(d => d.id === sub.testId);
                             return (
                                 <div key={idx} className="p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 space-y-4 shadow-sm">
                                     <div className="flex justify-between items-center">
-                                        <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{test?.title || 'Diagnostic Question'}</p>
-                                        <span className="text-[8px] font-bold text-neutral-300 uppercase">{new Date(sub.submittedAt).toLocaleDateString()}</span>
+                                        <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{test?.title || t('builder.diagnostic_question')}</p>
+                                        <span className="text-[8px] font-bold text-neutral-300 uppercase">{new Date(sub.submittedAt).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB')}</span>
                                     </div>
                                     
                                     {sub.data.startsWith('http') ? (
@@ -361,7 +372,7 @@ const AdminCustomRequests: React.FC = () => {
                                             {test?.inputType === 'VIDEO' || sub.data.includes('.mp4') || sub.data.includes('.mov') || sub.data.includes('.webm') ? (
                                                 <video src={sub.data} controls className="w-full max-h-[400px] object-cover bg-black" />
                                             ) : (
-                                                <img src={sub.data} alt="Submission" className="w-full object-contain bg-neutral-900" />
+                                                <img src={sub.data} alt={t('builder.submission_alt')} className="w-full object-contain bg-neutral-900" />
                                             )}
                                         </div>
                                     ) : (
@@ -369,7 +380,7 @@ const AdminCustomRequests: React.FC = () => {
                                     )}
                                     
                                     {test?.instruction && (
-                                        <p className="text-[9px] font-medium text-neutral-400 italic border-l-2 border-neutral-200 pl-3">Ref: "{test.instruction}"</p>
+                                        <p className="text-[9px] font-medium text-neutral-400 italic border-s-2 border-neutral-200 ps-3">{t('builder.ref')} "{test.instruction}"</p>
                                     )}
                                 </div>
                             );
@@ -377,7 +388,7 @@ const AdminCustomRequests: React.FC = () => {
                     ) : (
                         <div className="py-20 text-center space-y-4">
                             <span className="material-symbols-outlined text-6xl text-neutral-100">inbox</span>
-                            <p className="text-neutral-300 font-black uppercase tracking-widest text-xs">No submissions received yet.</p>
+                            <p className="text-neutral-300 font-black uppercase tracking-widest text-xs">{t('builder.no_submissions_yet')}</p>
                         </div>
                     )}
                  </div>

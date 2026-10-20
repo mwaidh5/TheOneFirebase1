@@ -4,6 +4,19 @@ import { Link } from 'react-router-dom';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
+
+// Firebase Auth error code → user-facing message key.
+const resetErrorKey = (code?: string): TranslationKey => {
+  switch (code) {
+    case 'auth/invalid-email': return 'app.auth.err_invalid_email';
+    case 'auth/missing-email': return 'app.auth.err_missing_email';
+    case 'auth/user-not-found': return 'app.auth.err_user_not_found';
+    case 'auth/too-many-requests': return 'app.auth.err_too_many';
+    case 'auth/network-request-failed': return 'app.auth.err_network';
+    default: return 'app.auth.reset_failed';
+  }
+};
 
 const ForgotPassword: React.FC = () => {
   const { t } = useT();
@@ -22,7 +35,7 @@ const ForgotPassword: React.FC = () => {
       await sendPasswordResetEmail(auth, email);
       setMessage(t('auth.reset_sent'));
     } catch (err: any) {
-      setError(err.message);
+      setError(t(resetErrorKey(err?.code)));
     } finally {
       setLoading(false);
     }
@@ -42,10 +55,11 @@ const ForgotPassword: React.FC = () => {
         </div>
 
         <form className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-8" onSubmit={handleReset}>
-          <div className="space-y-2 text-left">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.email')}</label>
+          <div className="space-y-2 text-start">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.email')}</label>
             <input
               type="email"
+              dir="ltr"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -55,13 +69,13 @@ const ForgotPassword: React.FC = () => {
           </div>
 
           {message && (
-            <p className="text-center text-xs font-bold text-green-600 uppercase tracking-widest animate-pulse">
+            <p className="text-center text-xs font-bold text-green-600 uppercase tracking-widest rtl:tracking-normal animate-pulse">
               {message}
             </p>
           )}
 
           {error && (
-            <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-shake">
+            <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest rtl:tracking-normal animate-shake">
               {error}
             </p>
           )}
@@ -69,13 +83,13 @@ const ForgotPassword: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] rtl:tracking-normal text-xs hover:bg-neutral-800 shadow-xl transition flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
             ) : (
               <>
-                <span className="material-symbols-outlined text-lg">send</span>
+                <span className="material-symbols-outlined text-lg rtl:-scale-x-100">send</span>
                 {t('auth.send_reset_link')}
               </>
             )}
@@ -83,7 +97,7 @@ const ForgotPassword: React.FC = () => {
         </form>
 
         <p className="text-center text-sm font-medium text-neutral-400">
-          <Link to="/login" className="font-black text-black hover:underline uppercase tracking-widest text-xs ml-1">{t('auth.back_to_login')}</Link>
+          <Link to="/login" className="font-black text-black hover:underline uppercase tracking-widest rtl:tracking-normal text-xs ms-1">{t('auth.back_to_login')}</Link>
         </p>
       </div>
     </div>

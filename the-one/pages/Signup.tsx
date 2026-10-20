@@ -7,6 +7,20 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { logEvent } from '../hooks/useLogEvent';
 import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
+
+// Firebase Auth error code → user-facing message key.
+const signupErrorKey = (code?: string): TranslationKey => {
+  switch (code) {
+    case 'auth/email-already-in-use': return 'app.auth.err_email_in_use';
+    case 'auth/invalid-email': return 'app.auth.err_invalid_email';
+    case 'auth/weak-password': return 'app.auth.err_weak_password';
+    case 'auth/operation-not-allowed': return 'app.auth.err_not_allowed';
+    case 'auth/too-many-requests': return 'app.auth.err_too_many';
+    case 'auth/network-request-failed': return 'app.auth.err_network';
+    default: return 'app.auth.signup_failed';
+  }
+};
 
 interface SignupProps {
   onSignup: (user: User) => void;
@@ -70,7 +84,7 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
       }
 
     } catch (err: any) {
-      setError(err.message);
+      setError(t(signupErrorKey(err?.code)));
     } finally {
       setLoading(false);
     }
@@ -89,35 +103,36 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
 
         <form className="bg-white p-10 md:p-12 rounded-[2.5rem] shadow-2xl border border-neutral-100 space-y-8" onSubmit={handleSignup}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.first_name')}</label>
+            <div className="space-y-2 text-start">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.first_name')}</label>
               <input
                 type="text"
                 required
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                placeholder="Alex"
+                placeholder={t('app.auth.first_name_ph')}
                 className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition"
               />
             </div>
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.last_name')}</label>
+            <div className="space-y-2 text-start">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.last_name')}</label>
               <input
                 type="text"
                 required
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                placeholder="Johnson"
+                placeholder={t('app.auth.last_name_ph')}
                 className="w-full rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-black focus:ring-2 focus:ring-black focus:border-black font-medium transition"
               />
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.email')}</label>
+            <div className="space-y-2 text-start">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.email')}</label>
               <input
                 type="email"
+                dir="ltr"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -126,10 +141,11 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
               />
             </div>
 
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.phone')}</label>
+            <div className="space-y-2 text-start">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.phone')}</label>
               <input
                 type="tel"
+                dir="ltr"
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
@@ -138,10 +154,11 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
               />
             </div>
 
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.create_password')}</label>
+            <div className="space-y-2 text-start">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.create_password')}</label>
               <input
                 type="password"
+                dir="ltr"
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -152,7 +169,7 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
           </div>
 
           {error && (
-            <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-shake">
+            <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest rtl:tracking-normal animate-shake">
               {error}
             </p>
           )}
@@ -161,7 +178,7 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition flex items-center justify-center gap-3 disabled:opacity-50"
+              className="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] rtl:tracking-normal text-xs hover:bg-neutral-800 shadow-xl transition flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -181,7 +198,7 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
 
         <p className="text-center text-sm font-medium text-neutral-400">
           {t('auth.already_member')}
-          <button onClick={() => navigate('/login')} className="font-black text-black hover:underline uppercase tracking-widest text-xs ml-1">
+          <button onClick={() => navigate('/login')} className="font-black text-black hover:underline uppercase tracking-widest rtl:tracking-normal text-xs ms-1">
             {t('auth.login_here')}
           </button>
         </p>

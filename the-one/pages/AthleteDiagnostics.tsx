@@ -91,7 +91,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
         setSubmissions(prev => ({ ...prev, [testId]: url }));
     } catch (error) {
         console.error("Upload failed", error);
-        alert("Upload failed. Please try again.");
+        alert(t('app.diag.upload_failed'));
     }
   };
 
@@ -112,10 +112,10 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
           await updateDoc(doc(db, 'custom_requests', request.id), {
               submissions: submissionsData
           });
-          alert("Draft saved successfully.");
+          alert(t('app.diag.draft_saved'));
       } catch (e) {
           console.error("Error saving draft", e);
-          alert("Failed to save draft.");
+          alert(t('app.diag.draft_failed'));
       } finally {
           setIsSubmitting(false);
       }
@@ -163,7 +163,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
               {t('diag.usually_takes')} <span className="text-accent font-bold">{t('diag.days_range')}</span> {t('diag.to_finish')}
             </p>
           </div>
-          <div className="p-8 bg-neutral-50 rounded-[3rem] border border-neutral-100 flex items-center gap-6 text-left">
+          <div className="p-8 bg-neutral-50 rounded-[3rem] border border-neutral-100 flex items-center gap-6 text-start">
              <span className="material-symbols-outlined text-4xl text-accent">notifications_active</span>
              <div>
                 <p className="text-sm font-black uppercase text-black">{t('diag.what_happens')}</p>
@@ -172,7 +172,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
           </div>
           <button
             onClick={() => navigate('/profile/courses')}
-            className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition shadow-xl"
+            className="px-12 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest rtl:tracking-normal text-xs hover:bg-neutral-800 transition shadow-xl"
           >
             {t('diag.go_to_my_courses')}
           </button>
@@ -182,20 +182,20 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
   }
 
   return (
-    <div className="bg-neutral-50 min-h-screen pb-24 text-left animate-in fade-in duration-700">
+    <div className="bg-neutral-50 min-h-screen pb-24 text-start animate-in fade-in duration-700">
       {/* Title — scrolls normally */}
       <div className="bg-white border-b border-neutral-100">
         <div className="max-w-5xl mx-auto px-6 py-8 space-y-1">
           <div className="flex items-center justify-between mb-2">
             <button
               onClick={() => navigate('/profile/courses')}
-              className="flex items-center gap-2 text-[10px] font-black text-neutral-400 uppercase tracking-widest hover:text-black transition-colors"
+              className="flex items-center gap-2 text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal hover:text-black transition-colors"
             >
-              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span className="material-symbols-outlined text-base rtl:rotate-180">arrow_back</span>
               {t('diag.back_to_courses')}
             </button>
           </div>
-          <nav className="flex items-center gap-3 text-[10px] font-black text-accent uppercase tracking-[0.3em]">
+          <nav className="flex items-center gap-3 text-[10px] font-black text-accent uppercase tracking-[0.3em] rtl:tracking-normal">
             <span className="w-2 h-2 rounded-full bg-accent animate-ping"></span>
             {t('diag.custom_questions')}
           </nav>
@@ -207,7 +207,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
       <div className="bg-white border-b border-neutral-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-6">
           <div className="flex-1 space-y-1.5">
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">
               <span className="text-neutral-400">{t('diag.progress')}</span>
               <span className="text-accent">{Math.round(progress)}%</span>
             </div>
@@ -215,7 +215,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
               <div className="h-full bg-black transition-[width] duration-700" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-black text-base shadow-lg shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-black text-base shadow-lg shrink-0" dir="ltr">
             {completedCount}/{allTests.length}
           </div>
         </div>
@@ -225,7 +225,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
         <form onSubmit={submitAll} className="space-y-10">
           <div className="space-y-6">
              <div className="p-8 bg-accent/5 border border-accent/10 rounded-[2.5rem]">
-                <p className="text-sm font-medium text-accent leading-relaxed italic">
+                <p className="text-sm font-medium text-accent leading-relaxed italic rtl:not-italic">
                   {t('diag.intro')}
                 </p>
              </div>
@@ -235,9 +235,9 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                    <div className="p-10 grid grid-cols-1 md:grid-cols-12 gap-10">
                       <div className="md:col-span-7 space-y-6">
                          <div className="space-y-2">
-                            <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('diag.step_n', { n: idx + 1 })}</span>
+                            <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest rtl:tracking-normal">{t('diag.step_n', { n: idx + 1 })}</span>
                             <h3 className="text-2xl font-black font-display uppercase tracking-tight text-black">{test.title}</h3>
-                            <p className="text-sm text-neutral-500 font-medium leading-relaxed italic border-l-4 border-accent pl-6">
+                            <p className="text-sm text-neutral-500 font-medium leading-relaxed italic rtl:not-italic border-s-4 border-accent ps-6">
                                "{test.instruction}"
                             </p>
                          </div>
@@ -248,8 +248,8 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                   {/* If demoVideoUrl exists, maybe show it? For now, mock */}
                                   <span className="material-symbols-outlined text-white text-5xl group-hover:scale-110 transition-transform">play_circle</span>
                                </div>
-                               <div className="absolute top-6 left-6 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                                  <p className="text-white text-[8px] font-black uppercase tracking-widest flex items-center gap-2">
+                               <div className="absolute top-6 start-6 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+                                  <p className="text-white text-[8px] font-black uppercase tracking-widest rtl:tracking-normal flex items-center gap-2">
                                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> {t('diag.coach_demo')}
                                   </p>
                                </div>
@@ -260,7 +260,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                       <div className="md:col-span-5 flex flex-col justify-center">
                          {test.inputType === 'TEXT' ? (
                             <div className="space-y-4">
-                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">{t('diag.your_answer')}</label>
+                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest rtl:tracking-normal ms-1">{t('diag.your_answer')}</label>
                                <textarea 
                                   required={test.required}
                                   value={submissions[test.id] || ''}
@@ -272,7 +272,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                             </div>
                          ) : (
                             <div className="space-y-4">
-                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">{t('diag.upload_file')}</label>
+                               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest rtl:tracking-normal ms-1">{t('diag.upload_file')}</label>
                                <div 
                                   onClick={() => fileInputRefs.current[test.id]?.click()}
                                   className={`aspect-square rounded-[3rem] border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition hover:bg-neutral-50 ${submissions[test.id] ? 'border-accent bg-accent/5 shadow-xl shadow-accent/10' : 'border-neutral-200 bg-neutral-50 hover:border-black'}`}
@@ -290,7 +290,7 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                            <span className="material-symbols-outlined text-3xl filled">check</span>
                                         </div>
                                         <div className="text-center">
-                                           <p className="text-[10px] font-black uppercase text-accent tracking-[0.2em]">{t('diag.file_uploaded')}</p>
+                                           <p className="text-[10px] font-black uppercase text-accent tracking-[0.2em] rtl:tracking-normal">{t('diag.file_uploaded')}</p>
                                            <button type="button" className="text-[8px] font-black text-neutral-300 uppercase underline mt-1">{t('diag.change_file')}</button>
                                         </div>
                                      </>
@@ -300,8 +300,8 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                                            <span className="material-symbols-outlined text-2xl">{test.inputType === 'VIDEO' ? 'videocam' : 'photo_camera'}</span>
                                         </div>
                                         <div className="text-center px-6">
-                                           <p className="text-[10px] font-black uppercase tracking-widest text-black">{t('diag.click_upload')}</p>
-                                           <p className="text-[9px] font-medium text-neutral-400 mt-1 max-w-[140px] mx-auto leading-tight">{t('diag.upload_hint', { type: test.inputType.toLowerCase() })}</p>
+                                           <p className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-black">{t('diag.click_upload')}</p>
+                                           <p className="text-[9px] font-medium text-neutral-400 mt-1 max-w-[140px] mx-auto leading-tight">{t('diag.upload_hint', { type: test.inputType === 'VIDEO' ? t('diag.upload_video') : t('diag.upload_image') })}</p>
                                         </div>
                                      </>
                                   )}
@@ -319,27 +319,27 @@ const AthleteDiagnostics: React.FC<AthleteDiagnosticsProps> = ({ currentUser }) 
                 type="button"
                 onClick={saveDraft}
                 disabled={isSubmitting}
-                className="flex-1 py-8 bg-neutral-100 text-neutral-500 rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-200 transition flex items-center justify-center gap-4 disabled:opacity-50"
+                className="flex-1 py-8 bg-neutral-100 text-neutral-500 rounded-[3rem] font-black uppercase tracking-[0.3em] rtl:tracking-normal text-sm hover:bg-neutral-200 transition flex items-center justify-center gap-4 disabled:opacity-50"
              >
                 {t('diag.save_draft')}
              </button>
              <button 
                 type="submit"
                 disabled={!isAllFilled || isSubmitting}
-                className="flex-[2] py-8 bg-black text-white rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm hover:bg-neutral-800 transition shadow-2xl flex items-center justify-center gap-4 disabled:opacity-20 disabled:cursor-not-allowed group"
+                className="flex-[2] py-8 bg-black text-white rounded-[3rem] font-black uppercase tracking-[0.3em] rtl:tracking-normal text-sm hover:bg-neutral-800 transition shadow-2xl flex items-center justify-center gap-4 disabled:opacity-20 disabled:cursor-not-allowed group"
              >
                 {isSubmitting ? (
                    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                 ) : (
                    <>
-                      <span className="material-symbols-outlined text-xl group-hover:translate-y-[-2px] transition-transform">send</span>
+                      <span className="material-symbols-outlined text-xl group-hover:translate-y-[-2px] transition-transform rtl:-scale-x-100">send</span>
                       {t('diag.submit_all')}
                    </>
                 )}
              </button>
           </div>
           {!isAllFilled && (
-                <p className="text-center text-[10px] font-black uppercase text-neutral-300 tracking-widest mt-0 animate-pulse">
+                <p className="text-center text-[10px] font-black uppercase text-neutral-300 tracking-widest rtl:tracking-normal mt-0 animate-pulse">
                    {t('diag.finish_count', { n: allTests.length })}
                 </p>
              )}
