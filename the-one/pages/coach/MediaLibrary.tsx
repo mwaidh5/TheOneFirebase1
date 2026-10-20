@@ -4,6 +4,14 @@ import { setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { MediaAsset, User } from '../../types';
+import { useT } from '../../i18n/I18nContext';
+import type { TranslationKey } from '../../i18n/translations';
+
+const CATEGORY_LABELS: Record<string, TranslationKey> = {
+  WORKOUT: 'coach.media.cat_workout',
+  GENERAL: 'coach.media.cat_general',
+  PROFILE: 'coach.media.cat_profile',
+};
 
 interface MediaLibraryProps {
   library: MediaAsset[];
@@ -12,6 +20,7 @@ interface MediaLibraryProps {
 }
 
 const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, currentUser }) => {
+  const { t } = useT();
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +66,7 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
       setLibrary(prev => [newAsset, ...prev]);
     } catch (error) {
         console.error("Error uploading to media library:", error);
-        alert("Failed to save to media library.");
+        alert(t('coach.media.save_failed'));
     } finally {
         setIsUploading(false);
         if (fileInputRef.current) {
@@ -67,7 +76,7 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
   };
 
   const deleteAsset = async (asset: MediaAsset) => {
-    if (window.confirm("Are you sure you want to delete this asset?")) {
+    if (window.confirm(t('coach.media.confirm_delete'))) {
         try {
             await deleteDoc(doc(db, 'media', asset.id));
             if (asset.storagePath) {
@@ -78,27 +87,27 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
              setLibrary(prev => prev.filter(l => l.id !== asset.id));
         } catch (error) {
             console.error("Error deleting asset:", error);
-            alert("Failed to delete asset.");
+            alert(t('coach.media.delete_failed'));
         }
     }
   };
 
   return (
-    <div className="space-y-12 pb-24 text-left animate-in fade-in duration-500">
+    <div className="space-y-12 pb-24 text-start animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Coach Media Studio</h1>
-          <p className="text-neutral-400 font-medium">Your personal vault for movement demos and bespoke assets.</p>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('coach.media.title')}</h1>
+          <p className="text-neutral-400 font-medium">{t('coach.media.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
           <div className="relative flex-1 md:w-64 min-w-[200px]">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
+            <span className="material-symbols-outlined absolute start-4 top-1/2 -translate-y-1/2 text-neutral-300">search</span>
             <input 
               type="text" 
-              placeholder="Search gallery..." 
+              placeholder={t('coach.media.search_placeholder')} 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold shadow-sm outline-none focus:border-black transition"
+              className="w-full bg-white border border-neutral-100 rounded-2xl py-3.5 ps-12 pe-6 text-sm font-bold shadow-sm outline-none focus:border-black transition"
             />
           </div>
           <button 
@@ -109,12 +118,12 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
             {isUploading ? (
                 <>
                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                Uploading...
+                {t('coach.media.uploading')}
                 </>
             ) : (
                 <>
                 <span className="material-symbols-outlined">upload_file</span>
-                Upload File
+                {t('coach.media.upload_file')}
                 </>
             )}
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/*,video/mp4" />
@@ -127,7 +136,7 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
           <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm min-h-[600px] flex flex-col">
             <h2 className="text-xl font-bold font-display uppercase tracking-tight flex items-center gap-3 mb-8">
               <span className="material-symbols-outlined text-accent">gallery_thumbnail</span>
-              Movement & Asset Gallery
+              {t('coach.media.gallery')}
             </h2>
             
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -141,10 +150,10 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
                       <span className="material-symbols-outlined text-4xl absolute pointer-events-none">video_file</span>
                     </div>
                   )}
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <span className="px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-black shadow-sm">{asset.category}</span>
+                  <div className="absolute top-4 start-4 flex gap-2">
+                    <span className="px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-black shadow-sm">{CATEGORY_LABELS[asset.category] ? t(CATEGORY_LABELS[asset.category]) : asset.category}</span>
                     {asset.isPublic && (
-                      <span className="px-2 py-1 bg-accent/20 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-accent shadow-sm">Global</span>
+                      <span className="px-2 py-1 bg-accent/20 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-accent shadow-sm">{t('coach.media.global')}</span>
                     )}
                   </div>
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
@@ -153,6 +162,7 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
                       {asset.creatorId === currentUser.id && (
                         <button 
                           onClick={() => deleteAsset(asset)}
+                          aria-label={t('common.delete')}
                           className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex-1 flex items-center justify-center"
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>
@@ -165,7 +175,7 @@ const CoachMediaLibrary: React.FC<MediaLibraryProps> = ({ library, setLibrary, c
               {displayAssets.length === 0 && (
                 <div className="col-span-full py-20 text-center space-y-4">
                   <span className="material-symbols-outlined text-6xl text-neutral-100">collections</span>
-                  <p className="text-neutral-300 font-black uppercase tracking-[0.2em]">Gallery empty or no results</p>
+                  <p className="text-neutral-300 font-black uppercase tracking-[0.2em]">{t('coach.media.empty')}</p>
                 </div>
               )}
             </div>
