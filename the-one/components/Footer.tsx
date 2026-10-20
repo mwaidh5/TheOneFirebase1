@@ -15,7 +15,7 @@ const Footer: React.FC<FooterProps> = ({ logo }) => {
         <div className="flex flex-col gap-6 lg:max-w-md">
           <div className="flex items-center gap-3">
             {logo ? (
-              <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
+              <img src={logo} alt={t('app.nav.logo_alt')} className="h-8 w-auto object-contain" />
             ) : (
               <div className="w-6 h-6 bg-black rounded-sm flex items-center justify-center text-white">
                 <span className="material-symbols-outlined text-[16px]">fitness_center</span>
@@ -32,7 +32,7 @@ const Footer: React.FC<FooterProps> = ({ logo }) => {
         </div>
         <div className="flex flex-wrap gap-12 lg:gap-24">
           <div className="flex flex-col gap-4">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-black">{t('footer.company')}</h4>
+            <h4 className="font-bold text-xs uppercase tracking-wider rtl:tracking-normal text-black">{t('footer.company')}</h4>
             <ul className="flex flex-col gap-3 text-sm text-gray-500">
               <li><Link to="/about" className="hover:text-black transition-colors">{t('footer.about')}</Link></li>
               <li><Link to="/coaches" className="hover:text-black transition-colors">{t('nav.coaches')}</Link></li>
@@ -40,7 +40,7 @@ const Footer: React.FC<FooterProps> = ({ logo }) => {
             </ul>
           </div>
           <div className="flex flex-col gap-4">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-black">{t('footer.explore')}</h4>
+            <h4 className="font-bold text-xs uppercase tracking-wider rtl:tracking-normal text-black">{t('footer.explore')}</h4>
             <ul className="flex flex-col gap-3 text-sm text-gray-500">
               <li><Link to="/courses" className="hover:text-black transition-colors">{t('nav.courses')}</Link></li>
               <li><Link to="/profile/nutrition" className="hover:text-black transition-colors">{t('nav.nutrition')}</Link></li>

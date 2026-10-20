@@ -7,9 +7,9 @@ import { useT } from '../i18n/I18nContext';
 const Coaches: React.FC = () => {
   const { t } = useT();
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 text-left pb-40">
+    <div className="max-w-7xl mx-auto px-6 py-12 text-start pb-40">
       <div className="space-y-6 mb-24">
-        <span className="inline-block px-4 py-1.5 rounded-full border border-black/10 bg-neutral-50 text-[10px] font-black tracking-[0.2em] uppercase w-fit">{t('coaches.faculty')}</span>
+        <span className="inline-block px-4 py-1.5 rounded-full border border-black/10 bg-neutral-50 text-[10px] font-black tracking-[0.2em] rtl:tracking-normal uppercase w-fit">{t('coaches.faculty')}</span>
         <h1 className="text-6xl md:text-8xl font-black font-display uppercase tracking-tight text-black leading-[0.9]">{t('coaches.meet_l1')} <br /><span className="text-accent">{t('coaches.meet_l2')}</span></h1>
         <p className="text-xl text-neutral-500 max-w-2xl font-medium leading-relaxed">
           {t('coaches.meet_desc')}
@@ -26,15 +26,15 @@ const Coaches: React.FC = () => {
               
               {/* Bespoke Availability Badge */}
               {coach.isBespokeAuthorized && (
-                <div className="absolute top-10 right-10 flex items-center gap-2 bg-white/20 backdrop-blur-2xl border border-white/30 px-5 py-2.5 rounded-2xl shadow-xl animate-in fade-in zoom-in duration-700">
+                <div className="absolute top-10 end-10 flex items-center gap-2 bg-white/20 backdrop-blur-2xl border border-white/30 px-5 py-2.5 rounded-2xl shadow-xl animate-in fade-in zoom-in duration-700">
                   <span className="material-symbols-outlined text-white text-lg filled">architecture</span>
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">{t('coaches.custom_badge')}</span>
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest rtl:tracking-normal">{t('coaches.custom_badge')}</span>
                 </div>
               )}
 
-              <div className="absolute bottom-12 left-12 right-12 space-y-6">
+              <div className="absolute bottom-12 start-12 end-12 space-y-6">
                 <div className="flex items-center gap-4">
-                  <span className="px-4 py-2 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg">{coach.title}</span>
+                  <span className="px-4 py-2 bg-white text-black text-[10px] font-black uppercase tracking-widest rtl:tracking-normal rounded-xl shadow-lg">{coach.title}</span>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 text-white">
                      <span className="material-symbols-outlined text-[14px] filled text-yellow-400">star</span>
                      <span className="text-[10px] font-black">{coach.rating}</span>
@@ -45,13 +45,13 @@ const Coaches: React.FC = () => {
             </div>
 
             {/* Coach Details Below Image */}
-            <div className="px-6 grid grid-cols-2 gap-12 border-l-4 border-neutral-100 group-hover:border-accent transition-colors">
+            <div className="px-6 grid grid-cols-2 gap-12 border-s-4 border-neutral-100 group-hover:border-accent transition-colors">
               <div className="space-y-2">
-                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('coaches.primary_modality')}</p>
+                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest rtl:tracking-normal">{t('coaches.primary_modality')}</p>
                 <p className="text-xl font-black text-black uppercase tracking-tight">{coach.specialization}</p>
               </div>
               <div className="space-y-2">
-                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('coaches.experience')}</p>
+                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest rtl:tracking-normal">{t('coaches.experience')}</p>
                 <p className="text-xl font-black text-black uppercase tracking-tight">{coach.experience}</p>
               </div>
               <div className="col-span-2">
@@ -67,7 +67,7 @@ const Coaches: React.FC = () => {
         <div className="bg-black rounded-[4rem] p-12 md:p-24 text-white relative overflow-hidden shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-16">
           <div className="relative z-10 max-w-2xl space-y-10">
             <div className="space-y-4">
-              <span className="inline-block px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[10px] font-black tracking-[0.2em] uppercase w-fit text-accent">{t('coaches.personalized_prog')}</span>
+              <span className="inline-block px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[10px] font-black tracking-[0.2em] rtl:tracking-normal uppercase w-fit text-accent">{t('coaches.personalized_prog')}</span>
               <h2 className="text-5xl md:text-7xl font-black font-display uppercase tracking-tight leading-[0.95]">
                 {t('coaches.need_custom_l1')} <br />{t('coaches.need_custom_l2')}
               </h2>
@@ -81,33 +81,33 @@ const Coaches: React.FC = () => {
                 <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-accent shadow-inner">
                   <span className="material-symbols-outlined text-xl">architecture</span>
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-widest">{t('coaches.feature_1to1')}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">{t('coaches.feature_1to1')}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-accent shadow-inner">
                   <span className="material-symbols-outlined text-xl">reviews</span>
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-widest">{t('coaches.feature_feedback')}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">{t('coaches.feature_feedback')}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-accent shadow-inner">
                   <span className="material-symbols-outlined text-xl">query_stats</span>
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-widest">{t('coaches.feature_audits')}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">{t('coaches.feature_audits')}</span>
               </div>
             </div>
           </div>
 
           <div className="relative z-10 shrink-0">
-             <Link to="/custom-course" className="h-24 px-12 bg-white text-black rounded-[2.5rem] flex items-center justify-center gap-4 font-black uppercase tracking-[0.2em] text-sm hover:bg-accent hover:text-white transition shadow-2xl hover:-translate-y-2">
+             <Link to="/custom-course" className="h-24 px-12 bg-white text-black rounded-[2.5rem] flex items-center justify-center gap-4 font-black uppercase tracking-[0.2em] rtl:tracking-normal text-sm hover:bg-accent hover:text-white transition shadow-2xl hover:-translate-y-2">
                 {t('coaches.purchase_custom')}
-                <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+                <span className="material-symbols-outlined text-2xl rtl:-scale-x-100">arrow_forward</span>
              </Link>
           </div>
 
           {/* Decorative Elements */}
-          <span className="material-symbols-outlined text-[300px] absolute -bottom-20 -right-20 text-white/5 select-none rotate-12">design_services</span>
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[120px] -mr-64 -mt-64"></div>
+          <span className="material-symbols-outlined text-[300px] absolute -bottom-20 -end-20 text-white/5 select-none rotate-12">design_services</span>
+          <div className="absolute top-0 end-0 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[120px] -me-64 -mt-64"></div>
         </div>
       </div>
     </div>

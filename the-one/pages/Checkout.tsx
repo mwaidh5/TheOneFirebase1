@@ -187,7 +187,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500 min-h-[70vh] flex flex-col justify-center">
+    <div className="max-w-7xl mx-auto px-6 py-12 text-start animate-in fade-in duration-500 min-h-[70vh] flex flex-col justify-center">
       {paymentStep === 'success' ? (
         <div className="max-w-xl mx-auto text-center space-y-8 animate-in zoom-in-95 duration-500">
            <div className="w-24 h-24 bg-green-500 rounded-[2.5rem] flex items-center justify-center text-white mx-auto shadow-2xl">
@@ -199,7 +199,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
            </div>
            <div className="p-6 bg-accent/5 border border-accent/10 rounded-[2rem] flex flex-col items-center gap-4">
               <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[10px] font-black uppercase text-accent tracking-[0.2em]">{t('checkout.redirecting', { dest: isCustom ? t('checkout.athlete_diag') : t('checkout.my_courses') })}</p>
+              <p className="text-[10px] font-black uppercase text-accent tracking-[0.2em] rtl:tracking-normal">{t('checkout.redirecting', { dest: isCustom ? t('checkout.athlete_diag') : t('checkout.my_courses') })}</p>
            </div>
         </div>
       ) : (
@@ -220,7 +220,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                     <h2 className="text-2xl font-black font-display uppercase tracking-tight text-black">{t('checkout.vault')}</h2>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">{t('checkout.powered_by')}</span>
+                    <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest rtl:tracking-normal">{t('checkout.powered_by')}</span>
                     <span className="text-xs font-black text-black uppercase tracking-tighter">SindiPay</span>
                   </div>
                 </div>
@@ -228,12 +228,12 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('checkout.cardholder')}</label>
+                       <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal ms-1">{t('checkout.cardholder')}</label>
                        <input type="text" defaultValue={currentUser ? `${currentUser.firstName} ${currentUser.lastName}`.toUpperCase() : ''} className="w-full p-5 bg-neutral-50 rounded-2xl border border-neutral-100 font-black uppercase outline-none focus:ring-2 focus:ring-black" />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('checkout.simulation_card')}</label>
-                       <input type="text" value="4444 4444 4444 4444" disabled className="w-full p-5 bg-neutral-100 rounded-2xl border border-neutral-200 font-black outline-none opacity-50" />
+                       <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal ms-1">{t('checkout.simulation_card')}</label>
+                       <input type="text" dir="ltr" value="4444 4444 4444 4444" disabled className="w-full p-5 bg-neutral-100 rounded-2xl border border-neutral-200 font-black outline-none opacity-50" />
                     </div>
                   </div>
                 </div>
@@ -241,7 +241,7 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                 <button 
                   type="submit"
                   disabled={isProcessing}
-                  className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-neutral-800 transition shadow-xl flex items-center justify-center gap-4 disabled:opacity-50"
+                  className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-sm hover:bg-neutral-800 transition shadow-xl flex items-center justify-center gap-4 disabled:opacity-50"
                 >
                   {isProcessing ? (
                     <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> {t('checkout.contacting')}</>
@@ -263,32 +263,32 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                   </div>
                   <div className="flex flex-col justify-center">
                     <p className="font-black text-white uppercase text-base tracking-tight leading-tight">{displayCourse.title}</p>
-                    <p className="text-[10px] text-accent font-black uppercase tracking-widest mt-1">{t('checkout.secure_order')}</p>
+                    <p className="text-[10px] text-accent font-black uppercase tracking-widest rtl:tracking-normal mt-1">{t('checkout.secure_order')}</p>
                   </div>
                 </div>
 
                 <div className="pt-6 border-t border-white/10 space-y-4">
                    <div className="flex justify-between text-sm font-bold text-neutral-400">
                       <span>{t('checkout.subtotal')}</span>
-                      <span>${subtotal}</span>
+                      <span dir="ltr">${subtotal}</span>
                    </div>
                    {appliedDiscount > 0 && (
                      <div className="flex justify-between text-sm font-black text-green-500">
                         <span>{t('checkout.discount_applied')}</span>
-                        <span>-${appliedDiscount}</span>
+                        <span dir="ltr">-${appliedDiscount}</span>
                      </div>
                    )}
                    <div className="flex justify-between text-3xl font-black pt-2">
                       <span className="uppercase font-display tracking-tight">{t('checkout.total')}</span>
-                      <span className="text-accent">${total}</span>
+                      <span className="text-accent" dir="ltr">${total}</span>
                    </div>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-[200px] absolute -bottom-20 -right-20 text-white/5 select-none rotate-12">receipt_long</span>
+              <span className="material-symbols-outlined text-[200px] absolute -bottom-20 -end-20 text-white/5 select-none rotate-12">receipt_long</span>
             </div>
 
             <div className="bg-white rounded-[2.5rem] border border-neutral-100 p-8 shadow-xl space-y-6">
-               <h3 className="text-xs font-black uppercase tracking-widest text-black">{t('checkout.promo_code')}</h3>
+               <h3 className="text-xs font-black uppercase tracking-widest rtl:tracking-normal text-black">{t('checkout.promo_code')}</h3>
                <div className="flex gap-3">
                   <input
                     type="text"
@@ -299,21 +299,21 @@ const Checkout: React.FC<CheckoutProps> = ({ currentUser, onEnroll, courses = []
                   />
                   <button
                     onClick={applyCoupon}
-                    className="px-6 py-3 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition"
+                    className="px-6 py-3 bg-neutral-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-black transition"
                   >
                     {t('checkout.apply')}
                   </button>
                </div>
                {isCouponError && (
-                 <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">{t('checkout.invalid_code')}</p>
+                 <p className="text-[10px] font-black text-red-500 uppercase tracking-widest rtl:tracking-normal">{t('checkout.invalid_code')}</p>
                )}
                {appliedDiscount > 0 && (
-                 <p className="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center gap-1">
+                 <p className="text-[10px] font-black text-green-600 uppercase tracking-widest rtl:tracking-normal flex items-center gap-1">
                    <span className="material-symbols-outlined text-xs filled">check_circle</span>
                    {t('checkout.promo_linked')}
                  </p>
                )}
-               <p className="text-[8px] font-bold text-neutral-300 uppercase leading-relaxed italic">{t('checkout.try_code')}</p>
+               <p className="text-[8px] font-bold text-neutral-300 uppercase leading-relaxed italic rtl:not-italic">{t('checkout.try_code')}</p>
             </div>
           </div>
         </div>

@@ -13,6 +13,9 @@ interface ProfileSettingsProps {
 
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialUser }) => {
   const { t, lang, setLang } = useT();
+  const locale = lang === 'ar' ? 'ar' : 'en-GB';
+  // Device labels are stored as plain English in localStorage; translate the fallbacks at display time.
+  const deviceLabel = (ua: string) => ua.replace('Unknown OS', t('app.settings.unknown_os')).replace('Unknown Browser', t('app.settings.unknown_browser'));
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing' | 'preferences'>('profile');
   const [isMfaSetupOpen, setIsMfaSetupOpen] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(() => localStorage.getItem(`mfa_enabled_${initialUser.id}`) === 'true');
@@ -82,7 +85,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
         location: location,
         ip: 'Current Session',
         isCurrent: true,
-        lastActive: new Date().toLocaleDateString()
+        lastActive: new Date().toLocaleDateString(locale)
     };
     
     if (storedDevices.length === 0) {
@@ -164,13 +167,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
         }
 
         if (auth.currentUser && formData.email !== auth.currentUser.email && !isImpersonating) {
-             alert("Email update requires re-authentication. Please sign out and sign in again to change email safely.");
+             alert(t('app.settings.email_reauth'));
         }
 
-        alert("Profile updated successfully!");
+        alert(t('app.settings.profile_updated'));
     } catch (error: any) {
         console.error("Error updating profile:", error);
-        alert("Failed to update profile: " + error.message);
+        alert(t('app.settings.update_failed', { msg: error.message }));
     }
     setSaving(false);
   };
@@ -181,18 +184,18 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
       setMfaEnabled(true);
       localStorage.setItem(`mfa_enabled_${currentUser.id}`, 'true');
       setIsMfaSetupOpen(false);
-      alert("Logic Secured: Google Authenticator is now linked to your account.");
+      alert(t('app.settings.mfa_linked'));
     } else {
-      alert("Invalid code. Please try 123456 for the demo.");
+      alert(t('app.settings.mfa_invalid'));
     }
   };
 
   const revokeDevice = (deviceId: string) => {
-    if (window.confirm("Revoke access for this device? It will be logged out immediately.")) {
+    if (window.confirm(t('app.settings.revoke_confirm'))) {
         const updatedDevices = devices.filter(d => d.id !== deviceId);
         setDevices(updatedDevices);
         localStorage.setItem(`user_devices_${currentUser.id}`, JSON.stringify(updatedDevices));
-        alert("Device access revoked.");
+        alert(t('app.settings.device_revoked'));
         
         // If they revoked their current device (and aren't impersonating), log them out
         if (deviceId === sessionStorage.getItem(`current_device_id_${currentUser.id}`) && !isImpersonating) {
@@ -215,7 +218,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
   // Add a dummy device for testing if under limit
   const addTestDevice = () => {
       if (devices.length >= 2) {
-          alert("Maximum device limit reached (2). You must revoke a device before adding a new one.");
+          alert(t('app.settings.device_limit_reached', { n: 2 }));
           return;
       }
       const newDevice = {
@@ -224,7 +227,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
           location: 'Europe/London',
           ip: '192.168.2.44',
           isCurrent: false,
-          lastActive: new Date().toLocaleDateString()
+          lastActive: new Date().toLocaleDateString(locale)
       };
       const updated = [...devices, newDevice];
       setDevices(updated);
@@ -236,7 +239,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500">
+    <div className="max-w-5xl mx-auto px-6 py-12 text-start animate-in fade-in duration-500">
       <div className="space-y-2 mb-12">
         <h1 className="text-4xl font-black font-display uppercase tracking-tight text-black leading-none">{t('settings.heading')}</h1>
         <p className="text-neutral-400 font-medium">{t('settings.subheading')}</p>
@@ -244,9 +247,9 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
             <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-3 text-orange-700">
                     <span className="material-symbols-outlined">visibility</span>
-                    <span className="text-xs font-bold uppercase tracking-widest">{t('settings.impersonating_active')}</span>
+                    <span className="text-xs font-bold uppercase tracking-widest rtl:tracking-normal">{t('settings.impersonating_active')}</span>
                 </div>
-                <button onClick={endImpersonation} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-orange-700 transition-colors shadow-md">
+                <button onClick={endImpersonation} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-orange-700 transition-colors shadow-md">
                     {t('settings.end_session')}
                 </button>
             </div>
@@ -265,7 +268,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
              <button 
                key={tab.id}
                onClick={() => setActiveTab(tab.id as any)}
-               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition ${activeTab === tab.id ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50 hover:text-black'}`}
+               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest rtl:tracking-normal transition ${activeTab === tab.id ? 'bg-black text-white shadow-xl' : 'text-neutral-400 hover:bg-neutral-50 hover:text-black'}`}
              >
                <span className={`material-symbols-outlined text-[20px] ${activeTab === tab.id ? 'filled' : ''}`}>{tab.icon}</span>
                {tab.label}
@@ -276,7 +279,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
         {/* Content Area */}
         <div className="lg:col-span-9">
           {activeTab === 'profile' && (
-            <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 duration-500">
+            <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 rtl:slide-in-from-left-4 duration-500">
                <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
                   <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.identity_details')}</h2>
                   <span className="material-symbols-outlined text-neutral-200">badge</span>
@@ -284,7 +287,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                <form onSubmit={handleProfileUpdate} className="space-y-8">
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('auth.first_name')}</label>
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal ms-1">{t('auth.first_name')}</label>
                         <input 
                             type="text" 
                             value={formData.firstName}
@@ -293,7 +296,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('auth.last_name')}</label>
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal ms-1">{t('auth.last_name')}</label>
                         <input 
                             type="text" 
                             value={formData.lastName}
@@ -302,9 +305,9 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         />
                       </div>
                       <div className="md:col-span-2 space-y-2">
-                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{t('auth.email')}</label>
+                        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal ms-1">{t('auth.email')}</label>
                         <input 
-                            type="email" 
+                            type="email" dir="ltr" 
                             value={formData.email}
                             onChange={(e) => setFormData({...formData, email: e.target.value})}
                             className="w-full p-5 bg-neutral-50 rounded-2xl border border-neutral-100 outline-none focus:border-black font-bold" 
@@ -317,7 +320,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                    <button 
                     type="submit" 
                     disabled={saving || isImpersonating}
-                    className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-neutral-800 transition shadow-lg disabled:opacity-50"
+                    className="px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest rtl:tracking-normal text-[10px] hover:bg-neutral-800 transition shadow-lg disabled:opacity-50"
                    >
                      {isImpersonating ? t('settings.disabled_impersonation') : (saving ? t('common.saving') : t('settings.commit_changes'))}
                    </button>
@@ -326,14 +329,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
           )}
 
           {activeTab === 'security' && (
-            <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+            <div className="space-y-8 animate-in slide-in-from-right-4 rtl:slide-in-from-left-4 duration-500">
                <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10">
                   <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
                      <div className="space-y-1">
                         <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.mfa_title')}</h2>
                         <p className="text-xs text-neutral-400 font-medium">{t('settings.mfa_subtitle')}</p>
                      </div>
-                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${mfaEnabled ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-neutral-50 text-neutral-400 border border-neutral-100'}`}>
+                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest rtl:tracking-normal ${mfaEnabled ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-neutral-50 text-neutral-400 border border-neutral-100'}`}>
                         {mfaEnabled ? t('settings.mfa_active') : t('settings.mfa_unprotected')}
                      </span>
                   </div>
@@ -342,7 +345,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                      <div className="w-20 h-20 rounded-[1.5rem] bg-neutral-50 flex items-center justify-center text-accent shrink-0 shadow-inner">
                         <span className="material-symbols-outlined text-4xl filled">google_plus_reshare</span>
                      </div>
-                     <div className="flex-grow space-y-2 text-center md:text-left">
+                     <div className="flex-grow space-y-2 text-center md:text-start">
                         <h3 className="text-lg font-black uppercase text-black">{t('settings.google_auth')}</h3>
                         <p className="text-sm text-neutral-500 font-medium max-w-md">{t('settings.google_auth_desc')}</p>
                      </div>
@@ -350,15 +353,15 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                         <button 
                           onClick={() => setIsMfaSetupOpen(true)}
                           disabled={isImpersonating}
-                          className="px-8 py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition shadow-lg shadow-accent/20 disabled:opacity-50"
+                          className="px-8 py-4 bg-accent text-white rounded-2xl font-black uppercase tracking-widest rtl:tracking-normal text-[10px] hover:bg-blue-600 transition shadow-lg shadow-accent/20 disabled:opacity-50"
                         >
                           {t('settings.setup_protocol')}
                         </button>
                      ) : (
                         <button 
-                          onClick={() => { if(!isImpersonating && window.confirm("Disable MFA protection?")) { setMfaEnabled(false); localStorage.removeItem(`mfa_enabled_${currentUser.id}`); } }}
+                          onClick={() => { if(!isImpersonating && window.confirm(t('app.settings.disable_mfa_confirm'))) { setMfaEnabled(false); localStorage.removeItem(`mfa_enabled_${currentUser.id}`); } }}
                           disabled={isImpersonating}
-                          className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition disabled:opacity-50"
+                          className="px-8 py-4 border border-neutral-100 text-red-500 rounded-2xl font-black uppercase tracking-widest rtl:tracking-normal text-[10px] hover:bg-red-50 transition disabled:opacity-50"
                         >
                           {t('settings.deactivate')}
                         </button>
@@ -372,9 +375,9 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                           <h3 className="text-xl font-black font-display uppercase text-black">{t('settings.device_mgmt')}</h3>
                           <p className="text-xs text-neutral-500 font-medium">{t('settings.device_limit_text', { n: 2 })}</p>
                       </div>
-                      <div className="text-right">
-                          <span className={`text-sm font-black ${devices.length >= 2 ? 'text-red-500' : 'text-green-500'}`}>{devices.length} / 2</span>
-                          <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mt-1">{t('settings.slots_used')}</p>
+                      <div className="text-end">
+                          <span dir="ltr" className={`text-sm font-black ${devices.length >= 2 ? 'text-red-500' : 'text-green-500'}`}>{devices.length} / 2</span>
+                          <p className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 mt-1">{t('settings.slots_used')}</p>
                       </div>
                   </div>
 
@@ -389,13 +392,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                                </div>
                                <div>
                                   <div className="flex items-center gap-2">
-                                     <p className="font-black text-black uppercase text-sm">{device.userAgent}</p>
+                                     <p className="font-black text-black uppercase text-sm">{deviceLabel(device.userAgent)}</p>
                                      {device.isCurrent && (
-                                         <span className="px-2 py-0.5 bg-accent text-white text-[7px] font-black uppercase tracking-widest rounded shadow-sm">{t('settings.current_session')}</span>
+                                         <span className="px-2 py-0.5 bg-accent text-white text-[7px] font-black uppercase tracking-widest rtl:tracking-normal rounded shadow-sm">{t('settings.current_session')}</span>
                                      )}
                                   </div>
-                                  <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mt-1">
-                                      {device.location} • {device.isCurrent ? t('settings.active_now') : t('settings.last_active', { date: device.lastActive })}
+                                  <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest rtl:tracking-normal mt-1">
+                                      <span dir="ltr">{device.location}</span> • {device.isCurrent ? t('settings.active_now') : t('settings.last_active', { date: device.lastActive })}
                                   </p>
                                </div>
                             </div>
@@ -403,14 +406,15 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                               onClick={() => revokeDevice(device.id)}
                               disabled={isImpersonating}
                               className="w-10 h-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition shadow-sm group disabled:opacity-50"
-                              title="Revoke Access"
+                              title={t('app.settings.revoke_access')}
+                              aria-label={t('app.settings.revoke_access')}
                             >
                                <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">delete</span>
                             </button>
                          </div>
                      ))}
                      {devices.length === 0 && (
-                         <p className="text-center text-neutral-400 text-xs italic py-4">{t('settings.no_devices')}</p>
+                         <p className="text-center text-neutral-400 text-xs italic rtl:not-italic py-4">{t('settings.no_devices')}</p>
                      )}
                   </div>
                   
@@ -425,15 +429,15 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
           )}
 
           {activeTab === 'billing' && (
-            <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 duration-500">
+            <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 rtl:slide-in-from-left-4 duration-500">
                <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.platform_ledger')}</h2>
                <div className="overflow-x-auto">
-                 <table className="w-full text-left">
+                 <table className="w-full text-start">
                    <thead className="border-b border-neutral-50">
                      <tr>
-                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('settings.enrollment')}</th>
-                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('settings.cycle_id')}</th>
-                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest text-right">{t('settings.receipt')}</th>
+                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('settings.enrollment')}</th>
+                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('settings.cycle_id')}</th>
+                       <th className="py-4 text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal text-end">{t('settings.receipt')}</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-neutral-50">
@@ -441,11 +445,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                        <tr key={i} className="group hover:bg-neutral-50/50 transition-colors">
                          <td className="py-6">
                            <p className="text-sm font-black text-black uppercase tracking-tight">Engine Builder 101</p>
-                           <p className="text-[10px] text-neutral-400 font-bold uppercase mt-1">Oct 24, 2024 • $149.00</p>
+                           <p className="text-[10px] text-neutral-400 font-bold uppercase mt-1">{new Date(2024, 9, 24).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })} • <span dir="ltr">$149.00</span></p>
                          </td>
-                         <td className="py-6 text-xs font-mono text-neutral-300">ORD-V99212</td>
-                         <td className="py-6 text-right">
-                            <button className="text-neutral-300 hover:text-black transition-colors"><span className="material-symbols-outlined">download</span></button>
+                         <td dir="ltr" className="py-6 text-xs font-mono text-neutral-300 text-start">ORD-V99212</td>
+                         <td className="py-6 text-end">
+                            <button aria-label={t('app.settings.download_receipt')} className="text-neutral-300 hover:text-black transition-colors"><span className="material-symbols-outlined">download</span></button>
                          </td>
                        </tr>
                      ))}
@@ -456,7 +460,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
           )}
 
           {activeTab === 'preferences' && (
-            <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 duration-500">
+            <div className="bg-white rounded-[3rem] border border-neutral-100 p-10 shadow-sm space-y-10 animate-in slide-in-from-right-4 rtl:slide-in-from-left-4 duration-500">
                <div className="flex justify-between items-center border-b border-neutral-50 pb-8">
                   <h2 className="text-2xl font-black font-display uppercase text-black">{t('settings.preferences_heading')}</h2>
                   <span className="material-symbols-outlined text-neutral-200">tune</span>
@@ -477,7 +481,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                          onClick={() => setLang(opt.code)}
                          className={`flex items-center justify-between p-6 rounded-2xl border transition ${lang === opt.code ? 'bg-black text-white border-black shadow-xl' : 'bg-neutral-50 text-black border-neutral-100 hover:border-black'}`}
                        >
-                         <span className="font-black uppercase tracking-widest text-sm">{opt.label}</span>
+                         <span className={`font-black uppercase text-sm ${opt.code === 'ar' ? '' : 'tracking-widest rtl:tracking-normal'}`}>{opt.label}</span>
                          <span className={`material-symbols-outlined ${lang === opt.code ? 'filled' : 'text-neutral-300'}`}>
                            {lang === opt.code ? 'check_circle' : 'radio_button_unchecked'}
                          </span>
@@ -495,11 +499,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
            <div className="bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
               <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 shrink-0">
-                 <div className="text-left space-y-1">
-                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{t('settings.security_setup')}</p>
+                 <div className="text-start space-y-1">
+                    <p className="text-[10px] font-black text-accent uppercase tracking-[0.3em] rtl:tracking-normal">{t('settings.security_setup')}</p>
                     <h3 className="text-3xl font-black font-display uppercase text-black leading-none">{t('settings.auth_link')}</h3>
                  </div>
-                 <button onClick={() => setIsMfaSetupOpen(false)} className="w-12 h-12 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm group">
+                 <button onClick={() => setIsMfaSetupOpen(false)} aria-label={t('common.close')} className="w-12 h-12 bg-white border border-neutral-100 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm group">
                     <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
                  </button>
               </div>
@@ -516,20 +520,21 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                           </div>
                        </div>
                        <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm rounded-[3rem]">
-                          <span className="text-white font-black uppercase text-[10px] tracking-widest bg-black px-4 py-2 rounded-full">{t('settings.scan_protocol')}</span>
+                          <span className="text-white font-black uppercase text-[10px] tracking-widest rtl:tracking-normal bg-black px-4 py-2 rounded-full">{t('settings.scan_protocol')}</span>
                        </div>
                     </div>
                     <div className="space-y-1">
                        <p className="text-sm font-black uppercase tracking-tight text-black">{t('settings.scan_with_google')}</p>
-                       <p className="text-xs text-neutral-400 font-medium">{t('settings.enter_manually')} <span className="font-mono text-accent font-bold">IRON-PULSE-ADMIN-X92</span></p>
+                       <p className="text-xs text-neutral-400 font-medium">{t('settings.enter_manually')} <span dir="ltr" className="font-mono text-accent font-bold">IRON-PULSE-ADMIN-X92</span></p>
                     </div>
                  </div>
 
                  <div className="max-w-xs mx-auto space-y-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest">{t('settings.confirm_sync')}</label>
+                       <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest rtl:tracking-normal">{t('settings.confirm_sync')}</label>
                        <input
                          type="text"
+                         dir="ltr"
                          value={otpValue}
                          onChange={(e) => setOtpValue(e.target.value)}
                          placeholder={t('settings.enter_6digit')}
@@ -539,11 +544,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialU
                     </div>
                     <button
                       onClick={handleActivateMfa}
-                      className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-accent transition shadow-xl"
+                      className="w-full py-6 bg-black text-white rounded-[2rem] font-black uppercase tracking-widest rtl:tracking-normal text-xs hover:bg-accent transition shadow-xl"
                     >
                       {t('settings.authorize')}
                     </button>
-                    <p className="text-[9px] font-bold text-neutral-300 uppercase italic">{t('settings.demo_hint')}</p>
+                    <p className="text-[9px] font-bold text-neutral-300 uppercase italic rtl:not-italic">{t('settings.demo_hint')}</p>
                  </div>
               </div>
            </div>

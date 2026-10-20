@@ -120,7 +120,7 @@ const BarcodeScanner: React.FC<Props> = ({ ar, onDetect, onClose }) => {
       </div>
 
       <div className="relative z-10 flex items-center justify-between p-4" style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}>
-        <span className="text-[11px] font-black uppercase tracking-widest text-white/90">
+        <span className="text-[11px] font-black uppercase tracking-widest rtl:tracking-normal text-white/90">
           {ar ? 'امسح الباركود' : 'Scan barcode'}
         </span>
         <button onClick={onClose} className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur text-white flex items-center justify-center">
@@ -132,7 +132,7 @@ const BarcodeScanner: React.FC<Props> = ({ ar, onDetect, onClose }) => {
         {error ? (
           <div className="space-y-3">
             <p className="text-sm font-bold text-white bg-red-500/80 rounded-2xl px-4 py-3">{error}</p>
-            <button onClick={onClose} className="px-5 py-3 bg-white text-black rounded-2xl text-[11px] font-black uppercase tracking-widest">
+            <button onClick={onClose} className="px-5 py-3 bg-white text-black rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">
               {ar ? 'أدخل الرقم يدوياً' : 'Type it instead'}
             </button>
           </div>

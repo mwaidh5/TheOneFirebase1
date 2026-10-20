@@ -3,6 +3,7 @@ import { collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverT
 import { db } from '../firebase';
 import { User } from '../types';
 import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 interface Props { currentUser: User; }
 
@@ -14,14 +15,16 @@ interface VitalEntry {
   loggedAt?: any;
 }
 
-const METRICS = [
-  { key: 'weight' as const, label: 'Weight', unit: 'kg', icon: 'monitor_weight', goodDown: true },
-  { key: 'bodyFat' as const, label: 'Body Fat', unit: '%', icon: 'percent', goodDown: true },
-  { key: 'restingHr' as const, label: 'Resting HR', unit: 'bpm', icon: 'cardiology', goodDown: true },
+const METRICS: Array<{ key: 'weight' | 'bodyFat' | 'restingHr'; labelKey: TranslationKey; unitKey: TranslationKey | null; unit: string; icon: string; goodDown: boolean }> = [
+  { key: 'weight', labelKey: 'vitals.weight', unitKey: 'app.profile.unit_kg', unit: 'kg', icon: 'monitor_weight', goodDown: true },
+  { key: 'bodyFat', labelKey: 'app.details.body_fat', unitKey: null, unit: '%', icon: 'percent', goodDown: true },
+  { key: 'restingHr', labelKey: 'app.details.resting_hr', unitKey: 'app.details.unit_bpm', unit: 'bpm', icon: 'cardiology', goodDown: true },
 ];
 
 const UserDetails: React.FC<Props> = ({ currentUser }) => {
-  const { t } = useT();
+  const { t, lang } = useT();
+  const locale = lang === 'ar' ? 'ar' : 'en-GB';
+  const unitOf = (m: typeof METRICS[number]) => (m.unitKey ? t(m.unitKey) : m.unit);
   const [entries, setEntries] = useState<VitalEntry[]>([]);
   const [form, setForm] = useState({ weight: '', bodyFat: '', restingHr: '' });
   const [saving, setSaving] = useState(false);
@@ -46,17 +49,17 @@ const UserDetails: React.FC<Props> = ({ currentUser }) => {
       setForm({ weight: '', bodyFat: '', restingHr: '' });
     } catch (err) {
       console.error('save vital', err);
-      alert('Failed to save entry.');
+      alert(t('app.details.save_failed'));
     }
     setSaving(false);
   };
 
   const removeEntry = async (id: string) => {
-    if (!window.confirm('Delete this entry?')) return;
+    if (!window.confirm(t('app.details.delete_confirm'))) return;
     try { await deleteDoc(doc(db, 'users', currentUser.id, 'vitals', id)); } catch (e) { console.error(e); }
   };
 
-  const fmt = (ts: any) => (ts?.toDate ? ts.toDate().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'just now');
+  const fmt = (ts: any) => (ts?.toDate ? ts.toDate().toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('app.details.just_now'));
   const latest = entries[0];
   const prev = entries[1];
   const delta = (key: 'weight' | 'bodyFat' | 'restingHr') =>
@@ -82,26 +85,26 @@ const UserDetails: React.FC<Props> = ({ currentUser }) => {
 
       {/* Log a new entry */}
       <form onSubmit={save} className="bg-white rounded-3xl border border-neutral-100 shadow-sm p-5 md:p-7 space-y-4">
-        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-neutral-400">Log today's vitals</h2>
+        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400">{t('app.details.log_today')}</h2>
         <div className="grid grid-cols-3 gap-3">
           {METRICS.map((m) => (
             <div key={m.key} className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ml-1">{m.label}</label>
+              <label className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 ms-1">{t(m.labelKey)}</label>
               <div className="flex items-baseline gap-1 bg-neutral-50 border border-neutral-100 rounded-2xl px-3 py-2.5 focus-within:border-black">
                 <input
-                  type="number" inputMode="decimal" step="any"
+                  type="number" inputMode="decimal" step="any" dir="ltr"
                   value={(form as any)[m.key]}
                   onChange={(e) => setForm({ ...form, [m.key]: e.target.value })}
                   placeholder="—"
                   className="w-full bg-transparent outline-none font-black text-lg text-black min-w-0"
                 />
-                <span className="text-[9px] font-black uppercase text-neutral-400 shrink-0">{m.unit}</span>
+                <span className="text-[9px] font-black uppercase text-neutral-400 shrink-0">{unitOf(m)}</span>
               </div>
             </div>
           ))}
         </div>
-        <button type="submit" disabled={saving} className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-neutral-800 transition disabled:opacity-50">
-          {saving ? t('common.saving') : 'Save entry'}
+        <button type="submit" disabled={saving} className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest rtl:tracking-normal text-[11px] hover:bg-neutral-800 transition disabled:opacity-50">
+          {saving ? t('common.saving') : t('app.details.save_entry')}
         </button>
       </form>
 
@@ -109,7 +112,7 @@ const UserDetails: React.FC<Props> = ({ currentUser }) => {
       {latest && (
         <div className="bg-black text-white rounded-3xl p-6 shadow-xl space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Latest</h2>
+            <h2 className="text-[11px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-white/50">{t('app.details.latest')}</h2>
             <span className="text-[10px] font-bold text-white/40">{fmt(latest.loggedAt)}</span>
           </div>
           <div className="grid grid-cols-3 gap-4">
@@ -118,8 +121,8 @@ const UserDetails: React.FC<Props> = ({ currentUser }) => {
               const val = latest[m.key];
               return (
                 <div key={m.key}>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40">{m.label}</p>
-                  <p className="text-2xl font-black tabular-nums">{val != null ? val : '—'}<span className="text-xs text-white/40 ml-0.5">{val != null ? m.unit : ''}</span></p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-white/40">{t(m.labelKey)}</p>
+                  <p className="text-2xl font-black tabular-nums">{val != null ? val : '—'}<span className="text-xs text-white/40 ms-0.5">{val != null ? unitOf(m) : ''}</span></p>
                   {d != null && d !== 0 && (
                     <p className={`text-[10px] font-black ${(d < 0) === m.goodDown ? 'text-green-400' : 'text-amber-400'}`}>
                       {d > 0 ? '▲' : '▼'} {Math.abs(d).toFixed(1)}
@@ -131,8 +134,8 @@ const UserDetails: React.FC<Props> = ({ currentUser }) => {
           </div>
           {chart && (
             <div className="pt-2">
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">Weight trend · {chart.min}–{chart.max} kg</p>
-              <svg viewBox={`0 0 ${chart.W} ${chart.H}`} className="w-full h-16" preserveAspectRatio="none">
+              <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-white/40 mb-2">{t('app.details.weight_trend', { min: chart.min, max: chart.max })}</p>
+              <svg viewBox={`0 0 ${chart.W} ${chart.H}`} className="w-full h-16 rtl:-scale-x-100" preserveAspectRatio="none">
                 <polyline points={chart.pts} fill="none" stroke="#137fec" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
@@ -142,20 +145,20 @@ const UserDetails: React.FC<Props> = ({ currentUser }) => {
 
       {/* History */}
       <div className="space-y-3">
-        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">History</h2>
+        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('app.details.history')}</h2>
         {entries.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-neutral-100 p-10 text-center text-neutral-300 text-xs font-black uppercase tracking-widest">No entries yet</div>
+          <div className="bg-white rounded-3xl border border-neutral-100 p-10 text-center text-neutral-300 text-xs font-black uppercase tracking-widest rtl:tracking-normal">{t('app.details.no_entries')}</div>
         ) : (
           <div className="space-y-2">
             {entries.map((e) => (
               <div key={e.id} className="group bg-white rounded-2xl border border-neutral-100 shadow-sm p-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-4 min-w-0 flex-wrap">
-                  <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-widest w-28 shrink-0">{fmt(e.loggedAt)}</span>
+                  <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal w-28 shrink-0">{fmt(e.loggedAt)}</span>
                   {METRICS.map((m) => e[m.key] != null && (
-                    <span key={m.key} className="text-xs font-black text-black">{e[m.key]}<span className="text-[9px] text-neutral-400 ml-0.5 uppercase">{m.unit}</span></span>
+                    <span key={m.key} className="text-xs font-black text-black">{e[m.key]}<span className="text-[9px] text-neutral-400 ms-0.5 uppercase">{unitOf(m)}</span></span>
                   ))}
                 </div>
-                <button onClick={() => removeEntry(e.id)} className="text-neutral-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <button onClick={() => removeEntry(e.id)} aria-label={t('app.details.delete_entry')} title={t('app.details.delete_entry')} className="text-neutral-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <span className="material-symbols-outlined text-[18px]">delete</span>
                 </button>
               </div>
