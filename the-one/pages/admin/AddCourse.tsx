@@ -3,39 +3,56 @@ import { db, storage } from "../../firebase";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useT } from "../../i18n/I18nContext";
+import { translations, TranslationKey } from "../../i18n/translations";
+
+// Display labels — stored values (formats, categories, macro keys) stay English.
+const MACRO_LABEL: Record<string, TranslationKey> = { calories: 'builder.m_calories', protein: 'builder.m_protein', carbs: 'builder.m_carbs', fat: 'builder.m_fat' };
+const CATEGORIES: { value: string; key: TranslationKey }[] = [
+  { value: 'CrossFit', key: 'builder.cat.crossfit' },
+  { value: 'Weightlifting', key: 'builder.cat.weightlifting' },
+  { value: 'Body Building', key: 'builder.cat.bodybuilding' },
+  { value: 'Powerlifting', key: 'builder.cat.powerlifting' },
+  { value: 'Strength & Conditioning', key: 'builder.cat.strength' },
+  { value: 'Muay Thai', key: 'builder.cat.muaythai' },
+  { value: 'General Fitness', key: 'builder.cat.general' },
+  { value: 'Hyrox', key: 'builder.cat.hyrox' },
+  { value: 'Running', key: 'builder.cat.running' },
+];
 
 const SortableExercise = ({ ex, exIdx, updateExercise, setIsPickerOpen, weeks, activeWeekIdx, activeDayIdx, setWeeks }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: ex.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
+  const { t } = useT();
 
   return (
     <div ref={setNodeRef} style={style} className="p-5 md:p-8 bg-neutral-50 rounded-2xl md:rounded-[2.5rem] border border-neutral-100 relative group space-y-6">
-       <div className="absolute top-4 md:top-6 left-4 md:left-6 flex gap-3 cursor-grab" {...attributes} {...listeners}>
+       <div className="absolute top-4 md:top-6 start-4 md:start-6 flex gap-3 cursor-grab" {...attributes} {...listeners}>
           <span className="material-symbols-outlined text-neutral-400 hover:text-black">drag_indicator</span>
        </div>
-       <div className="absolute top-4 md:top-6 right-4 md:right-6 flex gap-3">
-          <button onClick={() => setIsPickerOpen({ type: "exercise", activeExIdx: exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> Exercises Library</button>
+       <div className="absolute top-4 md:top-6 end-4 md:end-6 flex gap-3">
+          <button onClick={() => setIsPickerOpen({ type: "exercise", activeExIdx: exIdx })} className="text-[9px] font-black text-accent uppercase flex items-center gap-1"><span className="material-symbols-outlined text-base">menu_book</span> {t('builder.exercises_library')}</button>
           <button onClick={() => { const n = [...weeks]; n[activeWeekIdx].days[activeDayIdx].exercises.splice(exIdx, 1); setWeeks(n); }} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-lg">delete</span></button>
        </div>
        
        <div className="space-y-6 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div className="space-y-1">
-                <label className="text-[8px] font-black text-neutral-300 ml-1">Name</label>
+                <label className="text-[8px] font-black text-neutral-300 ms-1">{t('builder.name')}</label>
                 <input type="text" value={ex.name} onChange={e => updateExercise(exIdx, "name", e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 font-bold text-xs" />
              </div>
              <div className="space-y-1">
-                <label className="text-[8px] font-black text-neutral-300 ml-1">Type</label>
+                <label className="text-[8px] font-black text-neutral-300 ms-1">{t('builder.type')}</label>
                 <select value={ex.format} onChange={e => updateExercise(exIdx, "format", e.target.value as any)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[9px] font-black uppercase outline-none">
-                   <option value="REGULAR">Standard (Straight Sets)</option>
-                   <option value="SUPER_SET">Superset / Circuit</option>
-                   <option value="EMOM">EMOM</option>
-                   <option value="AMRAP">AMRAP</option>
-                   <option value="HIIT">HIIT (Intervals)</option>
-                   <option value="CARDIO">Cardio (Monostructural)</option>
-                   <option value="MAX_EFFORT">Max Effort (1RM/3RM)</option>
-                   <option value="FOR_TIME">For Time</option>
-                   <option value="HOLD">Hold (Timed Position)</option>
+                   <option value="REGULAR">{t('builder.fmt.REGULAR')}</option>
+                   <option value="SUPER_SET">{t('builder.fmt.SUPER_SET')}</option>
+                   <option value="EMOM">{t('builder.fmt.EMOM')}</option>
+                   <option value="AMRAP">{t('builder.fmt.AMRAP')}</option>
+                   <option value="HIIT">{t('builder.fmt.HIIT')}</option>
+                   <option value="CARDIO">{t('builder.fmt.CARDIO')}</option>
+                   <option value="MAX_EFFORT">{t('builder.fmt.MAX_EFFORT')}</option>
+                   <option value="FOR_TIME">{t('builder.fmt.FOR_TIME')}</option>
+                   <option value="HOLD">{t('builder.fmt.HOLD')}</option>
                 </select>
              </div>
           </div>
@@ -44,67 +61,67 @@ const SortableExercise = ({ ex, exIdx, updateExercise, setIsPickerOpen, weeks, a
              <div className="space-y-4">
                 {(ex.format === "REGULAR" || ex.format === "MAX_EFFORT" || ex.format === "DROP_SET" || ex.format === "SUPER_SET") && (
                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets} onChange={e => updateExercise(exIdx, "sets", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Reps</label><input type="text" value={ex.reps} onChange={e => updateExercise(exIdx, "reps", e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.rest} onChange={e => updateExercise(exIdx, "rest", e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.sets')}</label><input type="number" value={ex.sets} onChange={e => updateExercise(exIdx, "sets", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.reps')}</label><input type="text" value={ex.reps} onChange={e => updateExercise(exIdx, "reps", e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.rest')}</label><input type="text" value={ex.rest} onChange={e => updateExercise(exIdx, "rest", e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                    </div>
                 )}
 
                 {(ex.format === "CARDIO" || ex.format === "FOR_TIME") && (
                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Distance</label><input type="text" value={ex.distance || ""} onChange={e => updateExercise(exIdx, "distance", e.target.value)} placeholder="5km" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Time Cap</label><input type="text" value={ex.time || ""} onChange={e => updateExercise(exIdx, "time", e.target.value)} placeholder="20:00" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Pace/Cals</label><input type="text" value={ex.speed || ex.calories || ""} onChange={e => updateExercise(exIdx, "speed", e.target.value)} placeholder="Zone 2" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.distance')}</label><input type="text" value={ex.distance || ""} onChange={e => updateExercise(exIdx, "distance", e.target.value)} placeholder="5km" dir="ltr" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.time_cap')}</label><input type="text" value={ex.time || ""} onChange={e => updateExercise(exIdx, "time", e.target.value)} placeholder="20:00" dir="ltr" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.pace_cals')}</label><input type="text" value={ex.speed || ex.calories || ""} onChange={e => updateExercise(exIdx, "speed", e.target.value)} placeholder={t('builder.ph_zone2')} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                    </div>
                 )}
 
                 {ex.format === "FOR_TIME" && (
                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-2">
-                      <p className="text-[8px] font-black uppercase text-blue-400">Movements To Complete</p>
+                      <p className="text-[8px] font-black uppercase text-blue-400">{t('builder.movements_to_complete')}</p>
                       {(ex.forTimeItems || []).map((item: any, itemIdx: number) => (
                          <div key={item.id} className="flex gap-2 items-center">
-                            <input type="text" value={item.name} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, "forTimeItems", items); }} placeholder="Exercise name" className="flex-1 bg-white border border-blue-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
-                            <input type="text" value={item.reps || ""} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, "forTimeItems", items); }} placeholder="21 reps" className="w-20 bg-white border border-blue-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
+                            <input type="text" value={item.name} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, "forTimeItems", items); }} placeholder={t('builder.exercise_name')} className="flex-1 bg-white border border-blue-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                            <input type="text" value={item.reps || ""} onChange={e => { const items = [...(ex.forTimeItems || [])]; items[itemIdx] = { ...items[itemIdx], reps: e.target.value }; updateExercise(exIdx, "forTimeItems", items); }} placeholder={t('builder.ph_21_reps')} className="w-20 bg-white border border-blue-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
                             <button onClick={() => updateExercise(exIdx, "forTimeItems", (ex.forTimeItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-blue-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
                          </div>
                       ))}
                       <button onClick={() => updateExercise(exIdx, "forTimeItems", [...(ex.forTimeItems || []), { id: String(Date.now()), name: "", reps: "" }])} className="text-[8px] font-black uppercase text-blue-400 flex items-center gap-1 hover:text-blue-600 transition-colors">
-                         <span className="material-symbols-outlined text-sm">add_circle</span> Add Movement
+                         <span className="material-symbols-outlined text-sm">add_circle</span> {t('builder.add_movement')}
                       </button>
                    </div>
                 )}
 
                 {ex.format === "HOLD" && (
                    <div className="grid grid-cols-2 gap-2">
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Sets</label><input type="number" value={ex.sets || ""} onChange={e => updateExercise(exIdx, "sets", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Target Hold</label><input type="text" value={ex.time || ""} onChange={e => updateExercise(exIdx, "time", e.target.value)} placeholder="01:00 (optional)" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.sets')}</label><input type="number" value={ex.sets || ""} onChange={e => updateExercise(exIdx, "sets", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                      <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.target_hold')}</label><input type="text" value={ex.time || ""} onChange={e => updateExercise(exIdx, "time", e.target.value)} placeholder={t('builder.ph_hold')} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                    </div>
                 )}
 
                 {(ex.format === "EMOM" || ex.format === "AMRAP" || ex.format === "HIIT") && (
                    <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
-                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Total Time (Min)</label><input type="number" value={ex.durationMinutes || ""} onChange={e => updateExercise(exIdx, "durationMinutes", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rounds</label><input type="number" value={ex.rounds || ""} onChange={e => updateExercise(exIdx, "rounds", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.total_time_min')}</label><input type="number" value={ex.durationMinutes || ""} onChange={e => updateExercise(exIdx, "durationMinutes", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                         <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.rounds')}</label><input type="number" value={ex.rounds || ""} onChange={e => updateExercise(exIdx, "rounds", parseInt(e.target.value))} className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                       </div>
                       {ex.format === "HIIT" && (
                          <div className="grid grid-cols-2 gap-2">
-                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Work</label><input type="text" value={ex.workInterval || ""} onChange={e => updateExercise(exIdx, "workInterval", e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
-                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">Rest</label><input type="text" value={ex.restInterval || ""} onChange={e => updateExercise(exIdx, "restInterval", e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.work')}</label><input type="text" value={ex.workInterval || ""} onChange={e => updateExercise(exIdx, "workInterval", e.target.value)} placeholder="20s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
+                            <div className="text-center"><label className="text-[8px] font-black text-neutral-300 uppercase">{t('builder.rest')}</label><input type="text" value={ex.restInterval || ""} onChange={e => updateExercise(exIdx, "restInterval", e.target.value)} placeholder="10s" className="w-full bg-white border border-neutral-100 rounded-xl p-2.5 text-center font-black text-[10px]" /></div>
                          </div>
                       )}
                       {ex.format === "EMOM" && (
                          <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 space-y-2">
-                            <p className="text-[8px] font-black uppercase text-orange-400">Exercises Per Round</p>
+                            <p className="text-[8px] font-black uppercase text-orange-400">{t('builder.emom_exercises')}</p>
                             {(ex.emomItems || []).map((item: any, itemIdx: number) => (
                                <div key={item.id} className="flex gap-2 items-center">
-                                  <input type="text" value={item.name} onChange={e => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, "emomItems", items); }} placeholder="Exercise name" className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
+                                  <input type="text" value={item.name} onChange={e => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; updateExercise(exIdx, "emomItems", items); }} placeholder={t('builder.exercise_name')} className="flex-1 bg-white border border-orange-100 rounded-lg p-2 font-bold text-[10px] outline-none" />
                                   <input type="text" value={item.time} onChange={e => { const items = [...(ex.emomItems || [])]; items[itemIdx] = { ...items[itemIdx], time: e.target.value }; updateExercise(exIdx, "emomItems", items); }} placeholder="30s" className="w-16 bg-white border border-orange-100 rounded-lg p-2 text-center font-black text-[10px] outline-none" />
                                   <button onClick={() => updateExercise(exIdx, "emomItems", (ex.emomItems || []).filter((_: any, i: number) => i !== itemIdx))} className="text-orange-300 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">close</span></button>
                                </div>
                             ))}
                             <button onClick={() => updateExercise(exIdx, "emomItems", [...(ex.emomItems || []), { id: String(Date.now()), name: "", time: "" }])} className="text-[8px] font-black uppercase text-orange-400 flex items-center gap-1 hover:text-orange-600 transition-colors">
-                               <span className="material-symbols-outlined text-sm">add_circle</span> Add Exercise
+                               <span className="material-symbols-outlined text-sm">add_circle</span> {t('builder.add_exercise')}
                             </button>
                          </div>
                       )}
@@ -113,18 +130,18 @@ const SortableExercise = ({ ex, exIdx, updateExercise, setIsPickerOpen, weeks, a
 
                 {ex.format === "SUPER_SET" && (
                     <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 mt-2">
-                        <p className="text-[8px] font-black uppercase text-blue-400 mb-2">Circuit Grouping</p>
-                        <input type="text" value={ex.supersetId || ""} onChange={e => updateExercise(exIdx, "supersetId", e.target.value)} placeholder="Group A" className="w-full bg-white border border-blue-100 rounded-lg p-2 text-[10px] font-bold" />
+                        <p className="text-[8px] font-black uppercase text-blue-400 mb-2">{t('builder.circuit_grouping')}</p>
+                        <input type="text" value={ex.supersetId || ""} onChange={e => updateExercise(exIdx, "supersetId", e.target.value)} placeholder={t('builder.ph_group_a')} className="w-full bg-white border border-blue-100 rounded-lg p-2 text-[10px] font-bold" />
                     </div>
                 )}
              </div>
 
              <div className="space-y-4">
                  <div className="grid grid-cols-2 gap-3">
-                     <button onClick={() => setIsPickerOpen({ type: "media", activeExIdx: exIdx, activeField: "imageUrl" })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.imageUrl ? "bg-accent text-white border-accent" : "bg-white border-neutral-100 text-neutral-300"}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">Photo</span></button>
-                     <button onClick={() => setIsPickerOpen({ type: "media", activeExIdx: exIdx, activeField: "videoUrl" })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.videoUrl ? "bg-accent text-white border-accent" : "bg-white border-neutral-100 text-neutral-300"}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">Video</span></button>
+                     <button onClick={() => setIsPickerOpen({ type: "media", activeExIdx: exIdx, activeField: "imageUrl" })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.imageUrl ? "bg-accent text-white border-accent" : "bg-white border-neutral-100 text-neutral-300"}`}><span className="material-symbols-outlined text-base">image</span><span className="text-[8px] font-black uppercase">{t('builder.photo')}</span></button>
+                     <button onClick={() => setIsPickerOpen({ type: "media", activeExIdx: exIdx, activeField: "videoUrl" })} className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition ${ex.videoUrl ? "bg-accent text-white border-accent" : "bg-white border-neutral-100 text-neutral-300"}`}><span className="material-symbols-outlined text-base">videocam</span><span className="text-[8px] font-black uppercase">{t('builder.video')}</span></button>
                  </div>
-                 <textarea rows={2} value={ex.description} onChange={e => updateExercise(exIdx, "description", e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[10px] font-medium resize-none" placeholder="Coaching Notes..." />
+                 <textarea rows={2} value={ex.description} onChange={e => updateExercise(exIdx, "description", e.target.value)} className="w-full bg-white border border-neutral-100 rounded-xl p-3 text-[10px] font-medium resize-none" placeholder={t('builder.coaching_notes')} />
              </div>
           </div>
        </div>
@@ -152,6 +169,8 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
+  const { t } = useT();
+  const fmtShort = (f: string) => { const k = `builder.fmts.${f}`; return k in translations ? t(k as TranslationKey) : f; };
 
   const [courseData, setCourseData] = useState({
     id: isEdit ? id : String(Date.now()),
@@ -281,8 +300,8 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   };
 
   const deleteWeek = (weekIdx: number) => {
-    if (weeks.length <= 1) return alert("You must have at least one week.");
-    if (window.confirm(`Delete Week ${weeks[weekIdx].weekNumber}?`)) {
+    if (weeks.length <= 1) return alert(t('builder.at_least_one_week'));
+    if (window.confirm(t('builder.confirm_delete_week_n', { n: weeks[weekIdx].weekNumber }))) {
         const updated = weeks.filter((_, i) => i !== weekIdx).map((w, i) => ({ ...w, weekNumber: i + 1 }));
         setWeeks(updated);
         setActiveWeekIdx(0);
@@ -370,7 +389,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   };
 
   const handlePublish = async () => {
-    if (!courseData.title) return alert("Title required");
+    if (!courseData.title) return alert(t('builder.title_required'));
     
     // Explicitly set mealPlan to null if it's undefined/null to satisfy Firestore
     const newCourse: any = {
@@ -392,16 +411,16 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
             await updateDoc(clientRef, {
                 enrolledCourseIds: arrayUnion(newCourse.id)
             });
-            alert(`Course Published and assigned to client!`);
+            alert(t('builder.published_assigned'));
         } else {
-            alert("System Course Published to Database");
+            alert(t('builder.published_system'));
         }
         
         unsaved.markSaved();
         navigate('/admin/courses');
     } catch (error: any) {
         console.error("Error publishing course: ", error);
-        alert(`Failed to publish course: ${error.message}`);
+        alert(t('builder.publish_course_failed', { msg: error.message }));
     }
   };
 
@@ -432,7 +451,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       setIsPickerOpen({ type: "exercise", activeExIdx: null }); 
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Upload failed.");
+      alert(t('builder.upload_failed'));
     } finally {
       setIsUploadingMedia(false);
     }
@@ -440,20 +459,20 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
 
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 md:space-y-12 pb-24 text-left animate-in fade-in duration-500 px-4 md:px-0">
-      <UnsavedChangesDialog blocker={unsaved.blocker} onSave={handlePublish} saveLabel="Deploy now" saveNavigates />
+    <div className="max-w-7xl mx-auto space-y-6 md:space-y-12 pb-24 text-start animate-in fade-in duration-500 px-4 md:px-0">
+      <UnsavedChangesDialog blocker={unsaved.blocker} onSave={handlePublish} saveLabel={t('builder.deploy_now')} saveNavigates />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4">
-          <button onClick={() => navigate('/admin/courses')} className="flex items-center gap-2 text-neutral-400 hover:text-black text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"><span className="material-symbols-outlined text-base">arrow_back</span> Back</button>
-          <h1 className="text-2xl md:text-4xl font-black font-display tracking-tight text-black uppercase leading-none">{isEdit ? 'Update Track' : 'Global Track Architect'}</h1>
+          <button onClick={() => navigate('/admin/courses')} className="flex items-center gap-2 text-neutral-400 hover:text-black text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"><span className="material-symbols-outlined text-base rtl:rotate-180">arrow_back</span> {t('common.back')}</button>
+          <h1 className="text-2xl md:text-4xl font-black font-display tracking-tight text-black uppercase leading-none">{isEdit ? t('builder.update_track') : t('builder.global_track_architect')}</h1>
         </div>
         
         <div className="flex items-center gap-4">
            <div className="flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 bg-white border border-neutral-100 rounded-2xl shadow-sm">
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-neutral-400">Meal Plan</p>
-              <div onClick={handleMealPlanToggle} className={`w-10 md:w-12 h-5 md:h-6 rounded-full relative transition-colors cursor-pointer ${courseData.hasMealPlan ? 'bg-accent' : 'bg-neutral-200'}`}><div className={`absolute top-0.5 md:top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${courseData.hasMealPlan ? 'translate-x-5 md:translate-x-7' : 'translate-x-1'}`}></div></div>
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('builder.meal_plan')}</p>
+              <div onClick={handleMealPlanToggle} className={`w-10 md:w-12 h-5 md:h-6 rounded-full relative transition-colors cursor-pointer ${courseData.hasMealPlan ? 'bg-accent' : 'bg-neutral-200'}`}><div className={`absolute start-0 top-0.5 md:top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${courseData.hasMealPlan ? 'translate-x-5 md:translate-x-7 rtl:-translate-x-5 md:rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'}`}></div></div>
            </div>
-           <button onClick={handlePublish} className="flex-1 md:flex-none px-6 md:px-10 py-4 md:py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl">Deploy</button>
+           <button onClick={handlePublish} className="flex-1 md:flex-none px-6 md:px-10 py-4 md:py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl">{t('builder.deploy')}</button>
         </div>
       </div>
 
@@ -461,10 +480,10 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         <div className="lg:col-span-3">
            <div className="bg-white rounded-[2rem] p-4 md:p-8 border border-neutral-100 shadow-sm flex flex-col">
               <div className="flex overflow-x-auto no-scrollbar gap-2 md:flex-col md:overflow-visible">
-                 <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'settings' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">settings</span> Settings</button>
-                 <button onClick={() => setActiveTab('workouts')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">calendar_view_week</span> Workouts</button>
+                 <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'settings' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">settings</span> {t('builder.tab_settings')}</button>
+                 <button onClick={() => setActiveTab('workouts')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">calendar_view_week</span> {t('builder.tab_workouts')}</button>
                  {courseData.hasMealPlan && (
-                    <button onClick={() => setActiveTab('nutrition')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'nutrition' ? 'bg-accent text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">restaurant</span> Plan</button>
+                    <button onClick={() => setActiveTab('nutrition')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'nutrition' ? 'bg-accent text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">restaurant</span> {t('builder.tab_plan')}</button>
                  )}
               </div>
            </div>
@@ -473,40 +492,32 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         <div className="lg:col-span-9 space-y-6">
            {activeTab === 'settings' && (
               <div className="bg-white rounded-[2.5rem] p-6 md:p-12 border border-neutral-100 shadow-xl space-y-8 animate-in fade-in">
-                 <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">Track Identity</h2>
+                 <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">{t('builder.track_identity')}</h2>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4 text-left">
-                       <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Title</label><input type="text" value={courseData.title} onChange={e => setCourseData({...courseData, title: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm md:text-lg outline-none" /></div>
+                    <div className="space-y-4 text-start">
+                       <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.title')}</label><input type="text" value={courseData.title} onChange={e => setCourseData({...courseData, title: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm md:text-lg outline-none" /></div>
                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Category</label>
+                              <label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.category')}</label>
                               <select 
                                 value={courseData.category} 
                                 onChange={e => setCourseData({...courseData, category: e.target.value})} 
                                 className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black uppercase text-xs outline-none"
                               >
-                                <option>CrossFit</option>
-                                <option>Weightlifting</option>
-                                <option>Body Building</option>
-                                <option>Powerlifting</option>
-                                <option>Strength & Conditioning</option>
-                                <option>Muay Thai</option>
-                                <option>General Fitness</option>
-                                <option>Hyrox</option>
-                                <option>Running</option>
+                                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{t(c.key)}</option>)}
                               </select>
                             </div>
-                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Price</label><input type="number" value={courseData.price} onChange={e => setCourseData({...courseData, price: parseInt(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm outline-none" /></div>
+                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.price')}</label><input type="number" value={courseData.price} onChange={e => setCourseData({...courseData, price: parseInt(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm outline-none" /></div>
                        </div>
                        
                        <div className="space-y-1">
-                           <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Assigned Coach</label>
+                           <label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.assigned_coach')}</label>
                            <select 
                                 value={courseData.assignedCoachId} 
                                 onChange={e => setCourseData({...courseData, assignedCoachId: e.target.value})} 
                                 className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-bold text-sm outline-none"
                            >
-                               <option value="">-- Assign a Coach --</option>
+                               <option value="">{t('builder.assign_coach_opt')}</option>
                                {coaches.map(coach => (
                                    <option key={coach.id} value={coach.id}>{coach.firstName} {coach.lastName}</option>
                                ))}
@@ -514,13 +525,13 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                        </div>
 
                        <div className="space-y-1">
-                           <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Grant Access To Client</label>
+                           <label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.grant_access_client')}</label>
                            <select 
                                 value={courseData.assignedClientId} 
                                 onChange={e => setCourseData({...courseData, assignedClientId: e.target.value})} 
                                 className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-bold text-sm outline-none"
                            >
-                               <option value="">-- Select Client (Optional) --</option>
+                               <option value="">{t('builder.select_client_opt')}</option>
                                {clients.map(client => (
                                    <option key={client.id} value={client.id}>{client.firstName} {client.lastName} ({client.email})</option>
                                ))}
@@ -529,24 +540,24 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                     </div>
                     
                     <div className="space-y-6">
-                       <div className="space-y-1 text-left">
-                          <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Cover Image</label>
+                       <div className="space-y-1 text-start">
+                          <label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.cover_image')}</label>
                           <button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: null, activeField: 'courseImage' })} className={`w-full aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition ${courseData.image ? 'border-transparent' : 'border-neutral-200 bg-neutral-50'}`}>
                              {courseData.image ? <img src={courseData.image} className="w-full h-full object-cover rounded-2xl" /> : <span className="material-symbols-outlined text-3xl text-neutral-200">image</span>}
                           </button>
                        </div>
-                       <div className="space-y-1 text-left">
-                          <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Explanation Video (Library)</label>
+                       <div className="space-y-1 text-start">
+                          <label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.explanation_video')}</label>
                           <button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: null, activeField: 'courseVideo' })} className={`w-full h-20 rounded-2xl border-2 border-dashed flex items-center justify-center transition gap-3 ${courseData.videoUrl ? 'bg-accent/5 border-accent text-accent' : 'border-neutral-200 bg-neutral-50 text-neutral-300'}`}>
                              <span className="material-symbols-outlined">{courseData.videoUrl ? 'check_circle' : 'videocam'}</span>
-                             <span className="text-[10px] font-black uppercase">{courseData.videoUrl ? 'Video Linked' : 'Select Explanation Video'}</span>
+                             <span className="text-[10px] font-black uppercase">{courseData.videoUrl ? t('builder.video_linked') : t('builder.select_video')}</span>
                           </button>
                        </div>
                     </div>
                  </div>
-                 <div className="space-y-1 text-left">
-                    <label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Description</label>
-                    <textarea rows={4} value={courseData.description} onChange={e => setCourseData({...courseData, description: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-4 font-medium text-sm outline-none resize-none" placeholder="Explain the stimulus and intended results of this track..." />
+                 <div className="space-y-1 text-start">
+                    <label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.description')}</label>
+                    <textarea rows={4} value={courseData.description} onChange={e => setCourseData({...courseData, description: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-4 font-medium text-sm outline-none resize-none" placeholder={t('builder.description_ph')} />
                  </div>
               </div>
            )}
@@ -566,12 +577,12 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
            {activeTab === 'nutrition' && attachedMealPlan && (
               <div className="bg-white rounded-[2.5rem] p-6 md:p-12 border border-neutral-100 shadow-xl space-y-10 animate-in fade-in">
                  <div className="flex justify-between items-center border-b border-neutral-100 pb-6">
-                    <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">Macro Strategy</h2>
-                    <button onClick={() => setIsPickerOpen({ type: 'meal', activeExIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 border border-neutral-100"><span className="material-symbols-outlined text-base">library_add</span> Import</button>
+                    <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">{t('builder.macro_strategy')}</h2>
+                    <button onClick={() => setIsPickerOpen({ type: 'meal', activeExIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 border border-neutral-100"><span className="material-symbols-outlined text-base">library_add</span> {t('builder.import')}</button>
                  </div>
                  <div className="space-y-8">
                     {attachedMealPlan.meals.map((meal, mIdx) => (
-                       <div key={meal.id} className="p-6 bg-neutral-50 rounded-[2rem] border border-neutral-100 space-y-6 text-left">
+                       <div key={meal.id} className="p-6 bg-neutral-50 rounded-[2rem] border border-neutral-100 space-y-6 text-start">
                           <div className="flex justify-between items-center">
                              <input type="text" value={meal.label} onChange={e => { const n = {...attachedMealPlan}; n.meals[mIdx].label = e.target.value; setAttachedMealPlan(n); }} className="text-lg font-black uppercase bg-transparent outline-none w-full" />
                              <div className="flex gap-2">
@@ -582,11 +593,11 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                           <div className="space-y-3">
                              {meal.items.map((food, fIdx) => (
                                 <div key={food.id} className="flex flex-col md:grid md:grid-cols-12 gap-3 bg-white p-3 rounded-xl border border-neutral-50">
-                                   <div className="md:col-span-4"><label className="text-[7px] font-black uppercase text-neutral-300">Food</label><input type="text" value={food.name} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].name = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
-                                   <div className="md:col-span-2"><label className="text-[7px] font-black uppercase text-neutral-300">Amount</label><input type="text" value={food.amount} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].amount = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
+                                   <div className="md:col-span-4"><label className="text-[7px] font-black uppercase text-neutral-300">{t('builder.food')}</label><input type="text" value={food.name} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].name = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
+                                   <div className="md:col-span-2"><label className="text-[7px] font-black uppercase text-neutral-300">{t('builder.amount')}</label><input type="text" value={food.amount} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].amount = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
                                    <div className="md:col-span-5 grid grid-cols-4 gap-2">
                                       {['calories', 'protein', 'carbs', 'fat'].map(m => (
-                                        <div key={m} className="text-center"><label className="text-[7px] font-black uppercase text-neutral-300">{m.substr(0,1)}</label><input type="number" value={(food as any)[m]} onChange={e => { const n = {...attachedMealPlan}; (n.meals[mIdx].items[fIdx] as any)[m] = parseInt(e.target.value); setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[9px] font-black text-center border-none outline-none" /></div>
+                                        <div key={m} className="text-center"><label className="text-[7px] font-black uppercase text-neutral-300">{t(MACRO_LABEL[m])}</label><input type="number" value={(food as any)[m]} onChange={e => { const n = {...attachedMealPlan}; (n.meals[mIdx].items[fIdx] as any)[m] = parseInt(e.target.value); setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[9px] font-black text-center border-none outline-none" /></div>
                                       ))}
                                    </div>
                                    <div className="md:col-span-1 flex justify-end items-center"><button onClick={() => { const n = {...attachedMealPlan}; n.meals[mIdx].items.splice(fIdx, 1); setAttachedMealPlan(n); }} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-base">close</span></button></div>
@@ -595,7 +606,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                           </div>
                        </div>
                     ))}
-                    <button onClick={() => { setAttachedMealPlan({...attachedMealPlan!, meals: [...attachedMealPlan!.meals, { id: Math.random().toString(), label: `Meal ${attachedMealPlan!.meals.length+1}`, items: [] }]}); }} className="w-full py-3 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400">+ Add Meal Block</button>
+                    <button onClick={() => { setAttachedMealPlan({...attachedMealPlan!, meals: [...attachedMealPlan!.meals, { id: Math.random().toString(), label: `Meal ${attachedMealPlan!.meals.length+1}`, items: [] }]}); }} className="w-full py-3 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400">{t('builder.add_meal_block')}</button>
                  </div>
               </div>
            )}
@@ -606,14 +617,14 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       {isPickerOpen.type !== 'media' && isPickerOpen.activeExIdx !== null && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
            <div className="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-              <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left"><h3 className="text-xl font-black uppercase text-black">{isPickerOpen.type === 'exercise' ? 'Exercises' : isPickerOpen.type === 'workout' ? 'Workouts' : 'Meal Plans'}</h3><button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
+              <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-start"><h3 className="text-xl font-black uppercase text-black">{isPickerOpen.type === 'exercise' ? t('builder.exercises') : isPickerOpen.type === 'workout' ? t('builder.workouts_lib') : t('builder.meal_plans')}</h3><button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                  {isPickerOpen.type === 'exercise' ? exerciseLibrary.map(ex => (
-                    <button key={ex.id} onClick={() => { updateExercise(isPickerOpen.activeExIdx!, 'name', ex.name); updateExercise(isPickerOpen.activeExIdx!, 'format', ex.defaultFormat); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{ex.defaultFormat}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                    <button key={ex.id} onClick={() => { updateExercise(isPickerOpen.activeExIdx!, 'name', ex.name); updateExercise(isPickerOpen.activeExIdx!, 'format', ex.defaultFormat); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{fmtShort(ex.defaultFormat)}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 )) : isPickerOpen.type === 'workout' ? workoutLibrary.map(wo => (
-                    <button key={wo.id} onClick={() => applyWorkoutBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                    <button key={wo.id} onClick={() => applyWorkoutBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 )) : mealPlanLibrary.map(plan => (
-                    <button key={plan.id} onClick={() => { setAttachedMealPlan({...plan, id: 'mp-'+Math.random()}); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{plan.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{plan.totalCalories} kcal</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                    <button key={plan.id} onClick={() => { setAttachedMealPlan({...plan, id: 'mp-'+Math.random()}); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{plan.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{t('builder.kcal', { n: plan.totalCalories })}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 ))}
               </div>
            </div>
@@ -623,11 +634,11 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       {isPickerOpen.type === 'media' && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
           <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left">
-                <h3 className="text-xl font-black uppercase tracking-tight">Library Gallery</h3>
+            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-start">
+                <h3 className="text-xl font-black uppercase tracking-tight">{t('builder.library_gallery')}</h3>
                 <div className="flex items-center gap-4">
                     <label className="cursor-pointer px-4 py-2 bg-black text-white rounded-xl text-[9px] font-black uppercase flex items-center gap-2">
-                        {isUploadingMedia ? "Uploading..." : <><span className="material-symbols-outlined text-base">upload</span> Upload New</>}
+                        {isUploadingMedia ? t('builder.uploading') : <><span className="material-symbols-outlined text-base">upload</span> {t('builder.upload_new')}</>}
                         <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileUpload} disabled={isUploadingMedia} />
                     </label>
                     <button onClick={() => setIsPickerOpen({ type: "exercise", activeExIdx: null })} className="w-10 h-10 rounded-xl bg-white border border-neutral-100 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined">close</span></button>
@@ -648,7 +659,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                   ) : (
                     <img src={asset.data} className="w-full h-full object-cover" />
                   )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[8px] font-black uppercase text-white tracking-widest px-3 py-1.5 bg-accent rounded-full">Apply</span></div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[8px] font-black uppercase text-white tracking-widest px-3 py-1.5 bg-accent rounded-full">{t('builder.apply')}</span></div>
                 </div>
               ))}
             </div>

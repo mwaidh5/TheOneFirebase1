@@ -5,6 +5,7 @@ import { jsonrepair } from 'jsonrepair';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
 import { AI_PROTOCOL, applyAiResult, hasProgram, slimWeeks, streamProgress, type AiResult } from '../utils/aiProgram';
+import { useT } from '../i18n/I18nContext';
 
 interface AICourseGeneratorProps {
   onGenerated: (weeks: WeekProgram[]) => void;
@@ -13,34 +14,13 @@ interface AICourseGeneratorProps {
   currentWeeks?: WeekProgram[];
 }
 
-const EXAMPLE_PROMPT = `Week 1:
-  Monday (Session A - Lower Body):
-    Back Squat 5 sets x 5 reps, rest 3 min
-    Romanian Deadlift 3 sets x 10 reps, rest 90s
-    Leg Press 3 sets x 12 reps, rest 60s
-  Wednesday (Session B - Upper Push):
-    Bench Press 4 sets x 8 reps, rest 2 min
-    Overhead Press 3 sets x 10 reps, rest 90s
-    Tricep Dips 3 sets x AMRAP, rest 60s
-  Friday (Session C - Pull):
-    Deadlift 4 sets x 5 reps, rest 3 min
-    Pull-ups 3 sets x AMRAP, rest 90s
-    Barbell Row 3 sets x 8 reps, rest 90s
-
-Week 2:
-  Monday: Same as Week 1 Session A but add 2.5kg to squat
-
---- Surgical edit examples ---
-Add a Saturday cardio day to week 4 only.
-Change week 2 day 3 to focus on shoulders.
-Add week 5 with a deload structure.`;
-
 const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
   onGenerated,
   onClose,
   context = 'course',
   currentWeeks,
 }) => {
+  const { t, lang } = useT();
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [preview, setPreview] = useState<WeekProgram[] | null>(null);
@@ -117,7 +97,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
       }
 
       if (!parsed || !Array.isArray(parsed.weeks) || parsed.weeks.length === 0) {
-        throw new Error('Claude returned an empty or invalid program.');
+        throw new Error(t('builder.ai_err_empty'));
       }
 
       const result = applyAiResult(currentWeeks, parsed);
@@ -126,7 +106,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
       setPreview(result.weeks);
     } catch (err: any) {
       console.error('AI generation error:', err);
-      setError(err.message ?? 'Unknown error occurred.');
+      setError(err.message ?? t('builder.ai_err_unknown'));
     } finally {
       setIsGenerating(false);
     }
@@ -154,10 +134,10 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
               <div className="w-8 h-8 bg-accent rounded-xl flex items-center justify-center">
                 <span className="material-symbols-outlined text-white text-lg">auto_awesome</span>
               </div>
-              <h3 className="text-xl font-black font-display uppercase text-white tracking-tight">AI Course Generator</h3>
+              <h3 className="text-xl font-black font-display uppercase text-white tracking-tight">{t('builder.ai_title')}</h3>
             </div>
-            <p className="text-neutral-400 text-xs font-medium ml-11">
-              Paste your program or describe changes — Claude will handle it precisely.
+            <p className="text-neutral-400 text-xs font-medium ms-11">
+              {t('builder.ai_sub')}
             </p>
           </div>
           <button onClick={onClose} className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition">
@@ -172,19 +152,19 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                    Your Program or Edit Instructions
+                    {t('builder.ai_input_label')}
                   </label>
                   <button
                     onClick={() => setShowExample(!showExample)}
                     className="text-[9px] font-black uppercase tracking-widest text-accent hover:underline"
                   >
-                    {showExample ? 'Hide Example' : 'See Example Format'}
+                    {showExample ? t('builder.ai_hide_example') : t('builder.ai_see_example')}
                   </button>
                 </div>
 
                 {showExample && (
                   <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 text-[10px] font-mono text-neutral-500 whitespace-pre-wrap">
-                    {EXAMPLE_PROMPT}
+                    {t('builder.ai_example')}
                   </div>
                 )}
 
@@ -192,7 +172,7 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                   <div className="flex items-center gap-2 p-3 bg-violet-50 rounded-2xl border border-violet-100">
                     <span className="material-symbols-outlined text-violet-500 text-sm">edit_note</span>
                     <p className="text-[10px] font-bold text-violet-600">
-                      Existing program detected — you can describe surgical changes (e.g. "add a cardio day to week 4 only") and all other weeks will be preserved.
+                      {t('builder.ai_existing')}
                     </p>
                   </div>
                 )}
@@ -200,12 +180,13 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={`Describe your program or edit in plain English...\n\nExamples:\n• "Week 1, Monday (Leg Day): Back Squat 5x5, rest 3 min..."\n• "Add a Saturday HIIT day to week 4 only"\n• "Change week 2 day 3 to a full upper body session"\n• "Add a deload week 5 with 60% intensity across all exercises"`}
+                  placeholder={t('builder.ai_placeholder')}
+                  dir={prompt ? 'auto' : undefined}
                   rows={12}
                   className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-5 text-sm font-medium resize-none outline-none focus:border-black transition leading-relaxed"
                 />
                 <p className="text-[9px] text-neutral-300 font-medium">
-                  {prompt.length} characters · Be as specific as you like
+                  {t('builder.ai_chars', { n: prompt.length })}
                 </p>
               </div>
 
@@ -225,14 +206,14 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                   <>
                     <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                     {progress.exercises > 0
-                      ? `Writing${progress.week ? ` week ${progress.week}` : ''} · ${progress.exercises} exercise${progress.exercises === 1 ? '' : 's'}`
-                      : 'Generating with Claude'}
-                    <span className="text-white/40 tabular-nums">{Math.max(0, Math.round((Date.now() - startedAt) / 1000))}s</span>
+                      ? `${progress.week ? t('builder.ai_writing_week', { n: progress.week }) : t('builder.ai_writing')} · ${progress.exercises === 1 ? t('builder.ai_ex_one', { n: 1 }) : t('builder.ai_ex_many', { n: progress.exercises })}`
+                      : t('builder.ai_generating')}
+                    <span className="text-white/40 tabular-nums">{t('builder.ai_seconds', { n: Math.max(0, Math.round((Date.now() - startedAt) / 1000)) })}</span>
                   </>
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-lg">auto_awesome</span>
-                    Generate Program
+                    {t('builder.ai_generate_program')}
                   </>
                 )}
               </button>
@@ -245,24 +226,24 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                 <div className="flex items-center gap-2 p-3 bg-violet-50 rounded-2xl border border-violet-100">
                   <span className="material-symbols-outlined text-violet-500 text-sm">merge</span>
                   <p className="text-[10px] font-bold text-violet-600">
-                    Surgical edit — only Week{changedWeekNums.length > 1 ? 's' : ''} {changedWeekNums.join(', ')} modified. All other weeks preserved.
+                    {t(changedWeekNums.length > 1 ? 'builder.ai_surgical_many' : 'builder.ai_surgical_one', { list: changedWeekNums.join(lang === 'ar' ? '، ' : ', ') })}
                   </p>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
                   <span className="material-symbols-outlined text-neutral-400 text-sm">refresh</span>
-                  <p className="text-[10px] font-bold text-neutral-500">Full program generated.</p>
+                  <p className="text-[10px] font-bold text-neutral-500">{t('builder.ai_full_generated')}</p>
                 </div>
               )}
 
               {/* Stats bar */}
               <div className="flex gap-4">
                 {[
-                  { label: 'Weeks', value: preview.length, icon: 'calendar_month' },
-                  { label: 'Days', value: preview.reduce((s, w) => s + w.days.length, 0), icon: 'today' },
-                  { label: 'Exercises', value: totalExercises, icon: 'fitness_center' },
+                  { label: t('builder.ai_weeks'), value: preview.length, icon: 'calendar_month' },
+                  { label: t('builder.ai_days'), value: preview.reduce((s, w) => s + w.days.length, 0), icon: 'today' },
+                  { label: t('builder.exercises'), value: totalExercises, icon: 'fitness_center' },
                 ].map(stat => (
-                  <div key={stat.label} className="flex-1 bg-neutral-50 rounded-2xl p-4 border border-neutral-100 text-center">
+                  <div key={stat.icon} className="flex-1 bg-neutral-50 rounded-2xl p-4 border border-neutral-100 text-center">
                     <span className="material-symbols-outlined text-accent text-lg">{stat.icon}</span>
                     <p className="text-2xl font-black text-black">{stat.value}</p>
                     <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{stat.label}</p>
@@ -277,19 +258,19 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                   return (
                     <div key={week.id} className={`border rounded-2xl overflow-hidden ${isChanged ? 'border-violet-300' : 'border-neutral-100'}`}>
                       <div className={`px-5 py-3 flex items-center justify-between ${isChanged ? 'bg-violet-600' : 'bg-neutral-900'}`}>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white">Week {week.weekNumber}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white">{t('builder.week_n', { n: week.weekNumber })}</p>
                         {isChanged && (
                           <span className="text-[9px] font-black uppercase tracking-widest text-violet-200 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-xs">edit</span> Modified
+                            <span className="material-symbols-outlined text-xs">edit</span> {t('builder.ai_modified')}
                           </span>
                         )}
                       </div>
                       <div className="divide-y divide-neutral-50">
                         {week.days.map((day) => (
                           <div key={day.id} className="px-5 py-3">
-                            <p className="text-xs font-black uppercase text-black mb-2">Day {day.dayNumber}: {day.title}</p>
+                            <p className="text-xs font-black uppercase text-black mb-2">{t('builder.day_title', { n: day.dayNumber, title: day.title })}</p>
                             {day.exercises.length === 0 ? (
-                              <p className="text-[10px] text-neutral-300 font-medium italic">Rest Day</p>
+                              <p className="text-[10px] text-neutral-300 font-medium italic">{t('builder.ai_rest_day')}</p>
                             ) : (
                               <div className="space-y-1">
                                 {day.exercises.map((ex) => (
@@ -297,9 +278,9 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                                     <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                                     <span className="font-bold text-black">{ex.name}</span>
                                     {ex.sets && ex.reps && (
-                                      <span className="text-neutral-400">{ex.sets}×{ex.reps}</span>
+                                      <span className="text-neutral-400" dir="ltr">{ex.sets}×{ex.reps}</span>
                                     )}
-                                    {ex.rest && <span className="text-neutral-300">· {ex.rest} rest</span>}
+                                    {ex.rest && <span className="text-neutral-300">· {t('builder.ai_rest_suffix', { v: ex.rest })}</span>}
                                   </div>
                                 ))}
                               </div>
@@ -317,14 +298,14 @@ const AICourseGenerator: React.FC<AICourseGeneratorProps> = ({
                   onClick={() => { setPreview(null); setMergeMode(false); setChangedWeekNums([]); }}
                   className="flex-1 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition"
                 >
-                  Regenerate
+                  {t('builder.ai_regenerate')}
                 </button>
                 <button
                   onClick={handleApply}
                   className="flex-1 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-accent transition shadow-xl flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-lg">check_circle</span>
-                  Apply to Builder
+                  {t('builder.ai_apply')}
                 </button>
               </div>
             </div>

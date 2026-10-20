@@ -7,6 +7,11 @@ import { Course, Exercise, WeekProgram, MealPlan, CourseLevel, MediaAsset, Exerc
 import AICourseGenerator from '../../components/AICourseGenerator';
 import CourseWeekBoard from '../../components/CourseWeekBoard';
 import { useUnsavedChanges, UnsavedChangesDialog } from '../../hooks/useUnsavedChanges';
+import { useT } from '../../i18n/I18nContext';
+import { translations, TranslationKey } from '../../i18n/translations';
+
+// Display labels — stored values (formats, categories, macro keys) stay English.
+const MACRO_LABEL: Record<string, TranslationKey> = { calories: 'builder.m_calories', protein: 'builder.m_protein', carbs: 'builder.m_carbs', fat: 'builder.m_fat' };
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -21,6 +26,8 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
+  const { t } = useT();
+  const fmtShort = (f: string) => { const k = `builder.fmts.${f}`; return k in translations ? t(k as TranslationKey) : f; };
 
   const [courseData, setCourseData] = useState({
     id: isEdit ? id : String(Date.now()),
@@ -108,8 +115,8 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   };
 
   const deleteWeek = (weekIdx: number) => {
-    if (weeks.length <= 1) return alert("You must have at least one week.");
-    if (window.confirm(`Delete Week ${weeks[weekIdx].weekNumber}?`)) {
+    if (weeks.length <= 1) return alert(t('builder.at_least_one_week'));
+    if (window.confirm(t('builder.confirm_delete_week_n', { n: weeks[weekIdx].weekNumber }))) {
         const updated = weeks.filter((_, i) => i !== weekIdx).map((w, i) => ({ ...w, weekNumber: i + 1 }));
         setWeeks(updated);
         setActiveWeekIdx(0);
@@ -237,12 +244,12 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
 
   const handlePublish = async () => {
     console.log("Publishing course...");
-    if (!courseData.title) return alert("Title required");
+    if (!courseData.title) return alert(t('builder.title_required'));
     
     // Check if user is actually authenticated with Firebase (for real writes)
     // Note: If impersonating, auth.currentUser is Admin, so writes succeed.
     if (!auth.currentUser) {
-        const confirm = window.confirm("You are not signed in to Firebase. This save will likely fail if Security Rules are active. Continue anyway?");
+        const confirm = window.confirm(t('builder.not_signed_in'));
         if (!confirm) return;
     }
 
@@ -300,26 +307,26 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         navigate(-1);
     } catch (error: any) {
         console.error("CRITICAL ERROR: Failed to save course to Firebase:", error);
-        alert(`Failed to publish track: ${error.code || 'Unknown Error'} - ${error.message}`);
+        alert(t('builder.publish_track_failed', { code: error.code || t('builder.unknown_error'), msg: error.message }));
     }
   };
 
   const activeDay = weeks[activeWeekIdx]?.days[activeDayIdx];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 md:space-y-12 pb-24 text-left animate-in fade-in duration-500 px-4 md:px-0">
-      <UnsavedChangesDialog blocker={unsaved.blocker} onSave={handlePublish} saveLabel="Publish now" saveNavigates />
+    <div className="max-w-7xl mx-auto space-y-6 md:space-y-12 pb-24 text-start animate-in fade-in duration-500 px-4 md:px-0">
+      <UnsavedChangesDialog blocker={unsaved.blocker} onSave={handlePublish} saveLabel={t('builder.publish_now')} saveNavigates />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-neutral-400 hover:text-black text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"><span className="material-symbols-outlined text-base">arrow_back</span> Back</button>
-          <h1 className="text-2xl md:text-4xl font-black font-display tracking-tight text-black uppercase leading-none">{isEdit ? 'Edit Track' : 'New Track'}</h1>
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-neutral-400 hover:text-black text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"><span className="material-symbols-outlined text-base rtl:rotate-180">arrow_back</span> {t('common.back')}</button>
+          <h1 className="text-2xl md:text-4xl font-black font-display tracking-tight text-black uppercase leading-none">{isEdit ? t('builder.edit_track') : t('builder.new_track')}</h1>
         </div>
         <div className="flex items-center gap-4">
            <div className="flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 bg-white border border-neutral-100 rounded-2xl shadow-sm">
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-neutral-400">Meal Plan</p>
-              <div onClick={handleMealPlanToggle} className={`w-10 md:w-12 h-5 md:h-6 rounded-full relative transition-colors cursor-pointer ${courseData.hasMealPlan ? 'bg-accent' : 'bg-neutral-200'}`}><div className={`absolute top-0.5 md:top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${courseData.hasMealPlan ? 'translate-x-5 md:translate-x-7' : 'translate-x-1'}`}></div></div>
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('builder.meal_plan')}</p>
+              <div onClick={handleMealPlanToggle} className={`w-10 md:w-12 h-5 md:h-6 rounded-full relative transition-colors cursor-pointer ${courseData.hasMealPlan ? 'bg-accent' : 'bg-neutral-200'}`}><div className={`absolute start-0 top-0.5 md:top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${courseData.hasMealPlan ? 'translate-x-5 md:translate-x-7 rtl:-translate-x-5 md:rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'}`}></div></div>
            </div>
-           <button onClick={handlePublish} className="flex-1 md:flex-none px-6 md:px-10 py-4 md:py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl transition active:scale-95">Publish to Database</button>
+           <button onClick={handlePublish} className="flex-1 md:flex-none px-6 md:px-10 py-4 md:py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl transition active:scale-95">{t('builder.publish_db')}</button>
         </div>
       </div>
 
@@ -327,10 +334,10 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         <div className="lg:col-span-3">
            <div className="bg-white rounded-[2rem] p-4 md:p-8 border border-neutral-100 shadow-sm flex flex-col">
               <div className="flex overflow-x-auto no-scrollbar gap-2 md:flex-col md:overflow-visible">
-                 <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'settings' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">settings</span> Settings</button>
-                 <button onClick={() => setActiveTab('workouts')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">calendar_view_week</span> Workouts</button>
+                 <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'settings' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">settings</span> {t('builder.tab_settings')}</button>
+                 <button onClick={() => setActiveTab('workouts')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'workouts' ? 'bg-black text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">calendar_view_week</span> {t('builder.tab_workouts')}</button>
                  {courseData.hasMealPlan && (
-                    <button onClick={() => setActiveTab('nutrition')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'nutrition' ? 'bg-accent text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">restaurant</span> Plan</button>
+                    <button onClick={() => setActiveTab('nutrition')} className={`whitespace-nowrap flex items-center gap-3 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${activeTab === 'nutrition' ? 'bg-accent text-white shadow-lg' : 'text-neutral-400 bg-neutral-50 md:bg-transparent'}`}><span className="material-symbols-outlined text-base">restaurant</span> {t('builder.tab_plan')}</button>
                  )}
               </div>
            </div>
@@ -339,17 +346,17 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
         <div className="lg:col-span-9 space-y-6">
            {activeTab === 'settings' && (
               <div className="bg-white rounded-[2.5rem] p-6 md:p-12 border border-neutral-100 shadow-xl space-y-8 animate-in fade-in">
-                 <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">Track Identity</h2>
+                 <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">{t('builder.track_identity')}</h2>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                       <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Title</label><input type="text" value={courseData.title} onChange={e => setCourseData({...courseData, title: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm md:text-lg outline-none" /></div>
+                       <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.title')}</label><input type="text" value={courseData.title} onChange={e => setCourseData({...courseData, title: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm md:text-lg outline-none" /></div>
                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Category</label><select value={courseData.category} onChange={e => setCourseData({...courseData, category: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black uppercase text-xs outline-none"><option>CrossFit</option><option>Weightlifting</option></select></div>
-                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Price</label><input type="number" value={courseData.price} onChange={e => setCourseData({...courseData, price: parseInt(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm outline-none" /></div>
+                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.category')}</label><select value={courseData.category} onChange={e => setCourseData({...courseData, category: e.target.value})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black uppercase text-xs outline-none"><option value="CrossFit">{t('builder.cat.crossfit')}</option><option value="Weightlifting">{t('builder.cat.weightlifting')}</option></select></div>
+                            <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.price')}</label><input type="number" value={courseData.price} onChange={e => setCourseData({...courseData, price: parseInt(e.target.value)})} className="w-full bg-neutral-50 border border-neutral-100 rounded-xl p-3 md:p-4 font-black text-sm outline-none" /></div>
                        </div>
                     </div>
                     <div className="space-y-4">
-                       <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ml-1">Cover Asset</label><button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: 999 })} className={`w-full aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition ${courseData.image ? 'border-transparent' : 'border-neutral-200 bg-neutral-50'}`}>{courseData.image ? <img src={courseData.image} className="w-full h-full object-cover rounded-2xl" /> : <span className="material-symbols-outlined text-3xl text-neutral-200">image</span>}</button></div>
+                       <div className="space-y-1"><label className="text-[9px] font-black uppercase text-neutral-400 ms-1">{t('builder.cover_image')}</label><button onClick={() => setIsPickerOpen({ type: 'media', activeExIdx: 999 })} className={`w-full aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition ${courseData.image ? 'border-transparent' : 'border-neutral-200 bg-neutral-50'}`}>{courseData.image ? <img src={courseData.image} className="w-full h-full object-cover rounded-2xl" /> : <span className="material-symbols-outlined text-3xl text-neutral-200">image</span>}</button></div>
                     </div>
                  </div>
               </div>
@@ -370,12 +377,12 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
            {activeTab === 'nutrition' && attachedMealPlan && (
               <div className="bg-white rounded-[2.5rem] p-6 md:p-12 border border-neutral-100 shadow-xl space-y-10 animate-in fade-in">
                  <div className="flex justify-between items-center border-b border-neutral-100 pb-6">
-                    <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">Macro Strategy</h2>
-                    <button onClick={() => setIsPickerOpen({ type: 'meal', activeExIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 border border-neutral-100"><span className="material-symbols-outlined text-base">library_add</span> Import</button>
+                    <h2 className="text-xl md:text-3xl font-black font-display uppercase tracking-tight">{t('builder.macro_strategy')}</h2>
+                    <button onClick={() => setIsPickerOpen({ type: 'meal', activeExIdx: null })} className="px-4 py-2 bg-neutral-50 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 border border-neutral-100"><span className="material-symbols-outlined text-base">library_add</span> {t('builder.import')}</button>
                  </div>
                  <div className="space-y-8">
                     {attachedMealPlan.meals.map((meal, mIdx) => (
-                       <div key={meal.id} className="p-6 bg-neutral-50 rounded-[2rem] border border-neutral-100 space-y-6 text-left">
+                       <div key={meal.id} className="p-6 bg-neutral-50 rounded-[2rem] border border-neutral-100 space-y-6 text-start">
                           <div className="flex justify-between items-center">
                              <input type="text" value={meal.label} onChange={e => { const n = {...attachedMealPlan}; n.meals[mIdx].label = e.target.value; setAttachedMealPlan(n); }} className="text-lg font-black uppercase bg-transparent outline-none w-full" />
                              <div className="flex gap-2">
@@ -386,11 +393,11 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                           <div className="space-y-3">
                              {meal.items.map((food, fIdx) => (
                                 <div key={food.id} className="flex flex-col md:grid md:grid-cols-12 gap-3 bg-white p-3 rounded-xl border border-neutral-50">
-                                   <div className="md:col-span-4"><label className="text-[7px] font-black uppercase text-neutral-300">Food</label><input type="text" value={food.name} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].name = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
-                                   <div className="md:col-span-2"><label className="text-[7px] font-black uppercase text-neutral-300">Amount</label><input type="text" value={food.amount} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].amount = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
+                                   <div className="md:col-span-4"><label className="text-[7px] font-black uppercase text-neutral-300">{t('builder.food')}</label><input type="text" value={food.name} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].name = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
+                                   <div className="md:col-span-2"><label className="text-[7px] font-black uppercase text-neutral-300">{t('builder.amount')}</label><input type="text" value={food.amount} onChange={e => { if(!attachedMealPlan)return; const n = {...attachedMealPlan}; n.meals[mIdx].items[fIdx].amount = e.target.value; setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[10px] font-bold border-none outline-none" /></div>
                                    <div className="md:col-span-5 grid grid-cols-4 gap-2">
                                       {['calories', 'protein', 'carbs', 'fat'].map(m => (
-                                        <div key={m} className="text-center"><label className="text-[7px] font-black uppercase text-neutral-300">{m.substr(0,1)}</label><input type="number" value={(food as any)[m]} onChange={e => { const n = {...attachedMealPlan}; (n.meals[mIdx].items[fIdx] as any)[m] = parseInt(e.target.value); setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[9px] font-black text-center border-none outline-none" /></div>
+                                        <div key={m} className="text-center"><label className="text-[7px] font-black uppercase text-neutral-300">{t(MACRO_LABEL[m])}</label><input type="number" value={(food as any)[m]} onChange={e => { const n = {...attachedMealPlan}; (n.meals[mIdx].items[fIdx] as any)[m] = parseInt(e.target.value); setAttachedMealPlan(n); }} className="w-full bg-neutral-50 p-2 rounded-lg text-[9px] font-black text-center border-none outline-none" /></div>
                                       ))}
                                    </div>
                                    <div className="md:col-span-1 flex justify-end items-center"><button onClick={() => { const n = {...attachedMealPlan}; n.meals[mIdx].items.splice(fIdx, 1); setAttachedMealPlan(n); }} className="text-neutral-300 hover:text-red-500"><span className="material-symbols-outlined text-base">close</span></button></div>
@@ -399,7 +406,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
                           </div>
                        </div>
                     ))}
-                    <button onClick={() => { setAttachedMealPlan({...attachedMealPlan!, meals: [...attachedMealPlan!.meals, { id: Math.random().toString(), label: `Meal ${attachedMealPlan!.meals.length+1}`, items: [] }]}); }} className="w-full py-3 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400">+ Add Meal Block</button>
+                    <button onClick={() => { setAttachedMealPlan({...attachedMealPlan!, meals: [...attachedMealPlan!.meals, { id: Math.random().toString(), label: `Meal ${attachedMealPlan!.meals.length+1}`, items: [] }]}); }} className="w-full py-3 border-2 border-dashed border-neutral-200 rounded-2xl text-[10px] font-black uppercase text-neutral-400">{t('builder.add_meal_block')}</button>
                  </div>
               </div>
            )}
@@ -410,16 +417,16 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       {isPickerOpen.type !== 'media' && isPickerOpen.activeExIdx !== null && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
            <div className="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-              <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left"><h3 className="text-xl font-black uppercase text-black">{isPickerOpen.type === 'exercise' ? 'Exercises' : isPickerOpen.type === 'workout' ? 'Workouts' : 'Meal Plans'}</h3><button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
+              <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-start"><h3 className="text-xl font-black uppercase text-black">{isPickerOpen.type === 'exercise' ? t('builder.exercises') : isPickerOpen.type === 'workout' ? t('builder.workouts_lib') : t('builder.meal_plans')}</h3><button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: null })} className="w-10 h-10 bg-white border border-neutral-100 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">close</span></button></div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                  {isPickerOpen.type === 'exercise' ? exerciseLibrary.map(ex => (
-                    <button key={ex.id} onClick={() => { updateExercise(isPickerOpen.activeExIdx!, 'name', ex.name); updateExercise(isPickerOpen.activeExIdx!, 'format', ex.defaultFormat); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{ex.defaultFormat}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                    <button key={ex.id} onClick={() => { updateExercise(isPickerOpen.activeExIdx!, 'name', ex.name); updateExercise(isPickerOpen.activeExIdx!, 'format', ex.defaultFormat); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{ex.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{fmtShort(ex.defaultFormat)}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 )) : isPickerOpen.type === 'workout' ? workoutLibrary.map(wo => (
-                    <button key={wo.id} onClick={() => applyWorkoutBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                    <button key={wo.id} onClick={() => applyWorkoutBlueprint(wo)} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{wo.name}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 )) : mealPlanLibrary.map(plan => (
-                    <button key={plan.id} onClick={() => { setAttachedMealPlan({...plan, id: 'mp-'+Math.random()}); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-left"><div><p className="text-sm font-black uppercase">{plan.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{plan.totalCalories} kcal</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
+                    <button key={plan.id} onClick={() => { setAttachedMealPlan({...plan, id: 'mp-'+Math.random()}); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100 hover:border-black transition group text-start"><div><p className="text-sm font-black uppercase">{plan.name}</p><p className="text-[8px] font-bold text-neutral-400 uppercase">{t('builder.kcal', { n: plan.totalCalories })}</p></div><span className="material-symbols-outlined text-neutral-300 group-hover:text-black">add</span></button>
                 ))}
-                {((isPickerOpen.type === 'exercise' && exerciseLibrary.length === 0) || (isPickerOpen.type === 'workout' && workoutLibrary.length === 0) || (isPickerOpen.type === 'meal' && mealPlanLibrary.length === 0)) && <p className="text-center text-xs text-neutral-400 py-10">Library is empty.</p>}
+                {((isPickerOpen.type === 'exercise' && exerciseLibrary.length === 0) || (isPickerOpen.type === 'workout' && workoutLibrary.length === 0) || (isPickerOpen.type === 'meal' && mealPlanLibrary.length === 0)) && <p className="text-center text-xs text-neutral-400 py-10">{t('builder.library_empty')}</p>}
               </div>
            </div>
         </div>
@@ -428,15 +435,15 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
       {isPickerOpen.type === 'media' && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
           <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left"><h3 className="text-xl font-black uppercase tracking-tight">Library Gallery</h3><button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: null })} className="w-10 h-10 rounded-xl bg-white border border-neutral-100 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined">close</span></button></div>
+            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-start"><h3 className="text-xl font-black uppercase tracking-tight">{t('builder.library_gallery')}</h3><button onClick={() => setIsPickerOpen({ type: 'exercise', activeExIdx: null })} className="w-10 h-10 rounded-xl bg-white border border-neutral-100 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined">close</span></button></div>
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 md:grid-cols-4 gap-4 no-scrollbar">
               {library.filter(a => a.category === 'WORKOUT').map(asset => (
                 <div key={asset.id} onClick={() => { if(isPickerOpen.activeExIdx === 999) setCourseData({...courseData, image: asset.data}); else updateExercise(isPickerOpen.activeExIdx!, isPickerOpen.activeField!, asset.data); setIsPickerOpen({ type: 'exercise', activeExIdx: null }); }} className="aspect-square rounded-2xl overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-2 hover:ring-accent transition relative group">
                   <img src={asset.data} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[8px] font-black uppercase text-white tracking-widest px-3 py-1.5 bg-accent rounded-full">Apply</span></div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[8px] font-black uppercase text-white tracking-widest px-3 py-1.5 bg-accent rounded-full">{t('builder.apply')}</span></div>
                 </div>
               ))}
-              {library.filter(a => a.category === 'WORKOUT').length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-10">No workout media found.</p>}
+              {library.filter(a => a.category === 'WORKOUT').length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-10">{t('builder.no_workout_media')}</p>}
             </div>
           </div>
         </div>
