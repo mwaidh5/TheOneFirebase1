@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- Shown inside the iOS app when the live site can't be reached (no signal in
+     the gym). Bundled with the app build via capacitor.config.ts server.errorPath. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>The One Training</title>
+  <style>
+    html, body { height: 100%; margin: 0; background: #fff; color: #000; }
+    body {
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      font-family: -apple-system, system-ui, 'Segoe UI', sans-serif;
+      padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
+    }
+    .box { max-width: 320px; }
+    .brand { font-size: 11px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
+    h1 { font-size: 22px; font-weight: 900; margin: 28px 0 8px; }
+    p { font-size: 14px; color: #737373; line-height: 1.5; margin: 0 0 28px; }
+    button {
+      width: 100%; padding: 16px; border: 0; border-radius: 16px; background: #000; color: #fff;
+      font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase;
+    }
+    [dir="rtl"] button { letter-spacing: 0; font-family: 'Cairo', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="brand">The One Training</div>
+    <h1 id="t">No connection</h1>
+    <p id="m">The app needs the internet to load. Check your Wi-Fi or mobile data and try again.</p>
+    <button id="b" onclick="retry()">Try again</button>
+  </div>
+  <script>
+    var LIVE = 'https://theonefirebase1-42441499-db7a8.web.app/';
+    function retry() { location.href = LIVE; }
+    try {
+      var l = localStorage.getItem('theone_lang') || ((navigator.language || '').toLowerCase().indexOf('ar') === 0 ? 'ar' : 'en');
+      if (l === 'ar') {
+        document.documentElement.lang = 'ar';
+        document.documentElement.dir = 'rtl';
+        document.getElementById('t').textContent = 'لا يوجد اتصال';
+        document.getElementById('m').textContent = 'يحتاج التطبيق إلى الإنترنت ليعمل. تحقق من الواي فاي أو بيانات الجوال وحاول مرة أخرى.';
+        document.getElementById('b').textContent = 'حاول مرة أخرى';
+      }
+    } catch (e) {}
+    // Come back on its own once the connection returns.
+    window.addEventListener('online', retry);
+  </script>
+</body>
+</html>
