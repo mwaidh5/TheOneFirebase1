@@ -3,6 +3,11 @@
 // AI-generated text, user-entered data) is NEVER translated — those come from
 // Firestore as-is.
 
+import { adminTranslations } from './dict/admin';
+import { builderTranslations } from './dict/builder';
+import { coachTranslations } from './dict/coach';
+import { appTranslations } from './dict/app';
+
 export interface Entry { en: string; ar: string; }
 
 export const translations = {
@@ -885,6 +890,12 @@ export const translations = {
   'status.diagnostic': { en: 'Diagnostic', ar: 'تقييم' },
   'status.building': { en: 'Building', ar: 'قيد الإعداد' },
   'status.completed': { en: 'Completed', ar: 'منجز' },
+
+  // Per-area dictionaries (dashboards, builders, remaining app strings).
+  ...adminTranslations,
+  ...builderTranslations,
+  ...coachTranslations,
+  ...appTranslations,
 } as const;
 
 export type TranslationKey = keyof typeof translations;
