@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
+
+// Stored role enum values → display keys (the stored value never changes).
+const ROLE_KEYS: Record<string, TranslationKey> = {
+  [UserRole.CLIENT]: 'app.more.role_client',
+  [UserRole.COACH]: 'app.more.role_coach',
+  [UserRole.ADMIN]: 'app.more.role_admin',
+  [UserRole.SUPPORT]: 'app.more.role_support',
+};
 
 interface MorePageProps {
   currentUser: User | null;
@@ -26,8 +35,8 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
         <h1 className="text-2xl font-black font-display uppercase">{t('nav.account')}</h1>
         <p className="text-neutral-400 text-sm font-medium">{t('auth.login_sub')}</p>
         <div className="flex gap-3 justify-center">
-          <Link to="/login" className="px-6 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest">{t('nav.login')}</Link>
-          <Link to="/signup" className="px-6 py-3 bg-neutral-100 text-black rounded-2xl text-[11px] font-black uppercase tracking-widest">{t('nav.signup')}</Link>
+          <Link to="/login" className="px-6 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">{t('nav.login')}</Link>
+          <Link to="/signup" className="px-6 py-3 bg-neutral-100 text-black rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">{t('nav.signup')}</Link>
         </div>
       </div>
     );
@@ -58,7 +67,7 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
     <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
       <button onClick={() => toggle(id)} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-neutral-50 transition-colors">
         <span className="material-symbols-outlined text-[20px] text-neutral-500">{icon}</span>
-        <span className="flex-1 text-start text-xs font-black uppercase tracking-widest text-black">{title}</span>
+        <span className="flex-1 text-start text-xs font-black uppercase tracking-widest rtl:tracking-normal text-black">{title}</span>
         <span className={`material-symbols-outlined text-neutral-300 text-[20px] transition-transform ${open[id] ? 'rotate-180' : ''}`}>expand_more</span>
       </button>
       {open[id] && (
@@ -66,8 +75,8 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
           {rows.map((r) => (
             <Link key={r.to} to={r.to} className="press flex items-center gap-3 ps-6 pe-4 py-3 hover:bg-neutral-50 transition-colors">
               <span className={`material-symbols-outlined text-[19px] ${r.accent ? 'text-accent filled' : 'text-neutral-400'}`}>{r.icon}</span>
-              <span className={`flex-1 text-[13px] font-bold ${r.accent ? 'text-accent uppercase tracking-wide' : 'text-black'}`}>{r.label}</span>
-              <span className="material-symbols-outlined text-neutral-300 text-[18px]">chevron_right</span>
+              <span className={`flex-1 text-[13px] font-bold ${r.accent ? 'text-accent uppercase tracking-wide rtl:tracking-normal' : 'text-black'}`}>{r.label}</span>
+              <span className="material-symbols-outlined text-neutral-300 text-[18px] rtl:rotate-180">chevron_right</span>
             </Link>
           ))}
           {extra}
@@ -83,17 +92,17 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
         <img src={currentUser.avatar} alt="" className="w-12 h-12 rounded-2xl object-cover border border-neutral-200" />
         <div className="flex-1 min-w-0">
           <p className="text-base font-black uppercase text-black leading-tight truncate">{currentUser.firstName} {currentUser.lastName}</p>
-          <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{currentUser.role}</p>
+          <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal mt-0.5">{ROLE_KEYS[currentUser.role] ? t(ROLE_KEYS[currentUser.role]) : currentUser.role}</p>
         </div>
-        <span className="material-symbols-outlined text-neutral-300 text-[20px]">chevron_right</span>
+        <span className="material-symbols-outlined text-neutral-300 text-[20px] rtl:rotate-180">chevron_right</span>
       </Link>
 
       {/* Role dashboard stays one tap away (not buried in a group) */}
       {rolePanel && (
         <Link to={rolePanel.to} className="press flex items-center gap-3 px-4 py-3.5 bg-accent text-white rounded-2xl shadow-lg shadow-accent/20">
           <span className="material-symbols-outlined text-[20px] filled">{rolePanel.icon}</span>
-          <span className="flex-1 text-xs font-black uppercase tracking-widest">{rolePanel.label}</span>
-          <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+          <span className="flex-1 text-xs font-black uppercase tracking-widest rtl:tracking-normal">{rolePanel.label}</span>
+          <span className="material-symbols-outlined text-[20px] rtl:rotate-180">chevron_right</span>
         </Link>
       )}
 
@@ -112,7 +121,8 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
                 <button
                   key={code}
                   onClick={() => setLang(code)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition ${lang === code ? 'bg-black text-white' : 'text-neutral-400'}`}
+                  aria-label={code === 'en' ? t('app.more.lang_en') : t('app.more.lang_ar')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest rtl:tracking-normal transition ${lang === code ? 'bg-black text-white' : 'text-neutral-400'}`}
                 >
                   {code === 'en' ? 'EN' : 'ع'}
                 </button>
@@ -125,9 +135,9 @@ const MorePage: React.FC<MorePageProps> = ({ currentUser, onLogout }) => {
       {/* Logout */}
       <button
         onClick={() => { onLogout(); navigate('/login'); }}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest text-xs hover:bg-red-500 hover:text-white transition"
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-red-50 text-red-600 font-black uppercase tracking-widest rtl:tracking-normal text-xs hover:bg-red-500 hover:text-white transition"
       >
-        <span className="material-symbols-outlined text-[20px]">logout</span>
+        <span className="material-symbols-outlined text-[20px] rtl:-scale-x-100">logout</span>
         {t('nav.logout')}
       </button>
     </div>

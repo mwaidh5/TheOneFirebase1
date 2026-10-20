@@ -1,4 +1,14 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { translations, type TranslationKey } from '../i18n/translations';
+
+// A class component can't use the useT hook, so read the language the
+// I18nProvider already set on <html lang> (falls back to the saved choice).
+const tr = (key: TranslationKey): string => {
+  let lang = document.documentElement.lang;
+  if (lang !== 'ar' && lang !== 'en') { try { lang = localStorage.getItem('theone_lang') || 'en'; } catch { lang = 'en'; } }
+  const entry = translations[key] as { en: string; ar: string } | undefined;
+  return entry ? (lang === 'ar' ? entry.ar : entry.en) || entry.en : key;
+};
 
 interface Props {
   children: ReactNode;
@@ -35,9 +45,9 @@ export default class ErrorBoundary extends Component<Props, State> {
           <div className="mx-auto w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center">
             <span className="material-symbols-outlined text-3xl">error</span>
           </div>
-          <h1 className="text-xl font-black font-display uppercase tracking-tight text-black">Something went wrong</h1>
+          <h1 className="text-xl font-black font-display uppercase tracking-tight text-black">{tr('app.error.title')}</h1>
           <p className="text-sm text-neutral-500 font-medium">
-            This screen hit an error. Your progress is saved — try again, or head back home.
+            {tr('app.error.body')}
           </p>
           <p className="text-[11px] font-mono text-neutral-400 bg-neutral-50 rounded-xl px-3 py-2 break-words text-start" dir="ltr">
             {this.state.error.message}
@@ -45,12 +55,12 @@ export default class ErrorBoundary extends Component<Props, State> {
           <div className="flex gap-2 justify-center pt-1">
             <button
               onClick={this.reset}
-              className="px-5 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest"
+              className="px-5 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal"
             >
-              Try again
+              {tr('app.error.try_again')}
             </button>
-            <a href="/" className="px-5 py-3 bg-neutral-100 text-black rounded-2xl text-[11px] font-black uppercase tracking-widest">
-              Home
+            <a href="/" className="px-5 py-3 bg-neutral-100 text-black rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">
+              {tr('nav.home')}
             </a>
           </div>
         </div>

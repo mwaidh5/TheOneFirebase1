@@ -60,7 +60,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
       className={`relative flex flex-col items-center justify-center flex-1 gap-1 transition-colors ${opts.active ? 'text-accent' : 'text-gray-400 hover:text-black'}`}
     >
       <span className={`material-symbols-outlined text-[24px] ${opts.active ? 'filled' : ''}`}>{opts.icon}</span>
-      <span className="text-[9px] font-bold tracking-wide">{opts.label}</span>
+      <span className="text-[9px] font-bold tracking-wide rtl:tracking-normal">{opts.label}</span>
     </button>
   );
 
@@ -82,16 +82,16 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
             className={`w-full flex items-center gap-4 p-4 rounded-2xl text-white shadow-lg transition active:scale-[0.98] ${isResume ? 'bg-accent shadow-accent/30' : 'bg-black'}`}
           >
             <span className="material-symbols-outlined text-[26px] filled">{isResume ? 'play_arrow' : 'exercise'}</span>
-            <span className="flex-1 text-start text-sm font-black uppercase tracking-widest">{isResume ? t('nav.resume') : t('nav.start')}</span>
-            <span className="material-symbols-outlined">chevron_right</span>
+            <span className="flex-1 text-start text-sm font-black uppercase tracking-widest rtl:tracking-normal">{isResume ? t('nav.resume') : t('nav.start')}</span>
+            <span className="material-symbols-outlined rtl:-scale-x-100">chevron_right</span>
           </button>
           <button
             onClick={goNutrition}
             className="w-full flex items-center gap-4 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-100 transition active:scale-[0.98]"
           >
             <span className="material-symbols-outlined text-[26px] filled">restaurant</span>
-            <span className="flex-1 text-start text-sm font-black uppercase tracking-widest">{t('nav.nutrition')}</span>
-            <span className="material-symbols-outlined">chevron_right</span>
+            <span className="flex-1 text-start text-sm font-black uppercase tracking-widest rtl:tracking-normal">{t('nav.nutrition')}</span>
+            <span className="material-symbols-outlined rtl:-scale-x-100">chevron_right</span>
           </button>
         </div>
       </div>
@@ -111,7 +111,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, currentUser }) => {
             <span className={`absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full text-white shadow-lg shadow-accent/30 ${isResume ? 'bg-accent animate-pulse' : 'bg-black'}`}>
               <span className="material-symbols-outlined text-[28px] filled">{isResume ? 'play_arrow' : 'exercise'}</span>
             </span>
-            <span className="text-[9px] font-bold tracking-wide mt-9 text-gray-500">{isResume ? t('nav.resume') : t('nav.start')}</span>
+            <span className="text-[9px] font-bold tracking-wide rtl:tracking-normal mt-9 text-gray-500">{isResume ? t('nav.resume') : t('nav.start')}</span>
           </button>
         </div>
 

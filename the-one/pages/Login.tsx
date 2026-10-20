@@ -252,6 +252,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           setError(t('auth.wrong_credentials', { n: MAX_ATTEMPTS - newCount }));
         } else if (err.code === 'auth/too-many-requests') {
           setError(t('auth.too_many', { secs: 60 }));
+        } else if (err.code === 'auth/network-request-failed') {
+          setError(t('app.auth.err_network'));
         } else {
           setError(t('auth.generic_error'));
         }
@@ -274,7 +276,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         await syncUserToFirestore(userCred.user);
       } catch (err: any) {
         console.error('Native Google sign-in error:', err);
-        setError(err?.message ? `Google: ${err.message}` : t('auth.google_failed'));
+        setError(err?.message ? t('app.auth.google_error_detail', { msg: err.message }) : t('auth.google_failed'));
         setLoading(false);
       }
       return;
@@ -290,6 +292,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError(t('auth.google_unauthorized'));
       } else if (err.code === 'auth/popup-closed-by-user') {
         setError(t('auth.google_cancelled'));
+      } else if (err.code === 'auth/network-request-failed') {
+        setError(t('app.auth.err_network'));
       } else {
         setError(t('auth.google_failed'));
       }
@@ -336,10 +340,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               aria-hidden="true"
               style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
             />
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">{t('auth.email')}</label>
+            <div className="space-y-2 text-start">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.email')}</label>
               <input 
                 type="email" 
+                dir="ltr"
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -348,16 +353,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               />
             </div>
             
-            <div className="space-y-2 text-left">
-              <div className="flex justify-between items-center ml-1">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">{t('auth.password')}</label>
-                <button type="button" onClick={() => navigate('/forgot-password')} className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-black">
+            <div className="space-y-2 text-start">
+              <div className="flex justify-between items-center ms-1">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400">{t('auth.password')}</label>
+                <button type="button" onClick={() => navigate('/forgot-password')} className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 hover:text-black">
                   {t('auth.forgot_short')}
                 </button>
               </div>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
+                  dir="ltr"
                   required 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -367,7 +373,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <button 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center px-4 text-neutral-400 hover:text-black"
+                  aria-label={showPassword ? t('app.auth.hide_password') : t('app.auth.show_password')}
+                  className="absolute inset-y-0 end-0 flex items-center px-4 text-neutral-400 hover:text-black"
                 >
                   <span className="material-symbols-outlined text-lg">
                     {showPassword ? 'visibility_off' : 'visibility'}
@@ -377,7 +384,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
 
             {error && (
-              <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-shake">
+              <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest rtl:tracking-normal animate-shake">
                 {error}
               </p>
             )}
@@ -385,7 +392,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {lockoutRemaining > 0 && (
               <div className="flex items-center gap-3 p-4 bg-red-50 rounded-2xl border border-red-100">
                 <span className="material-symbols-outlined text-red-500 text-lg">timer</span>
-                <p className="text-xs font-black text-red-500 uppercase tracking-widest">
+                <p className="text-xs font-black text-red-500 uppercase tracking-widest rtl:tracking-normal">
                   {t('auth.locked_msg', { secs: lockoutRemaining })}
                 </p>
               </div>
@@ -394,13 +401,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <button 
               type="submit" 
               disabled={loading || showDeviceLimitModal || lockoutRemaining > 0}
-              className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-neutral-800 shadow-xl transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] rtl:tracking-normal text-xs hover:bg-neutral-800 shadow-xl transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-lg">login</span>
+                  <span className="material-symbols-outlined text-lg rtl:-scale-x-100">login</span>
                   {t('auth.sign_in')}
                 </>
               )}
@@ -410,7 +417,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <p className="text-center text-sm font-medium text-neutral-400">
           {t('auth.no_account')}
-          <button onClick={() => navigate('/signup')} className="font-black text-black hover:underline uppercase tracking-widest text-xs ml-1">
+          <button onClick={() => navigate('/signup')} className="font-black text-black hover:underline uppercase tracking-widest rtl:tracking-normal text-xs ms-1">
             {t('auth.signup_free')}
           </button>
         </p>
@@ -419,7 +426,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       {/* DEVICE LIMIT MODAL */}
       {showDeviceLimitModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden text-left flex flex-col">
+           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden text-start flex flex-col">
               <div className="p-8 border-b border-neutral-100 bg-neutral-50/50 flex items-start gap-4">
                  <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-2xl">important_devices</span>
@@ -431,7 +438,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
 
               <div className="p-8 space-y-4">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('auth.active_devices')}</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{t('auth.active_devices')}</p>
                  <div className="space-y-3">
                      {existingDevices.map((device) => (
                          <div key={device.id} className="flex items-center justify-between p-4 rounded-2xl border border-neutral-200 bg-white">
@@ -441,12 +448,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 </span>
                                 <div>
                                     <p className="text-sm font-black uppercase text-black">{device.userAgent}</p>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-0.5">{device.location} • {t('auth.last')} {device.lastActive}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest rtl:tracking-normal text-neutral-400 mt-0.5">{device.location} • {t('auth.last')} <span dir="ltr">{device.lastActive}</span></p>
                                 </div>
                              </div>
                              <button 
                                 onClick={() => handleRevokeDeviceAndLogin(device.id)}
-                                className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors"
+                                className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest rtl:tracking-normal transition-colors"
                              >
                                 {t('auth.revoke')}
                              </button>
@@ -458,7 +465,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end">
                   <button 
                     onClick={handleCancelDeviceLimit}
-                    className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-black transition-colors"
+                    className="px-6 py-3 text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-500 hover:text-black transition-colors"
                   >
                     {t('auth.cancel_login')}
                   </button>

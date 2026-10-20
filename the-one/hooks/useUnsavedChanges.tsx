@@ -88,14 +88,14 @@ export const UnsavedChangesDialog: React.FC<DialogProps> = ({ blocker, onSave, s
         </div>
         <div className="space-y-2">
           {onSave && (
-            <button onClick={save} disabled={saving} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest disabled:opacity-40">
+            <button onClick={save} disabled={saving} className="w-full py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal disabled:opacity-40">
               {saving ? '…' : (saveLabel ?? (ar ? 'احفظ' : 'Save'))}
             </button>
           )}
-          <button onClick={() => blocker.reset()} className="w-full py-4 bg-neutral-100 text-black rounded-2xl text-[11px] font-black uppercase tracking-widest">
+          <button onClick={() => blocker.reset()} className="w-full py-4 bg-neutral-100 text-black rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">
             {ar ? 'تابع التعديل' : 'Keep editing'}
           </button>
-          <button onClick={() => blocker.proceed()} className="w-full py-3 text-red-600 text-[11px] font-black uppercase tracking-widest">
+          <button onClick={() => blocker.proceed()} className="w-full py-3 text-red-600 text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">
             {ar ? 'اخرج بدون حفظ' : 'Leave without saving'}
           </button>
         </div>

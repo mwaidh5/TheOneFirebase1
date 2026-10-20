@@ -7,6 +7,7 @@ import { Course, User, UserRole, Coach, CustomCourseRequest } from '../types';
 import { COACHES } from '../constants';
 import LazyImage from '../components/LazyImage';
 import { useT } from '../i18n/I18nContext';
+import { sportLabel } from './Courses';
 
 interface MyCoursesProps {
   currentUser?: User | null;
@@ -15,7 +16,7 @@ interface MyCoursesProps {
 
 const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
   const navigate = useNavigate();
-  const { t } = useT();
+  const { t, lang } = useT();
   const [customRequests, setCustomRequests] = useState<CustomCourseRequest[]>([]);
   const [courseProgress, setCourseProgress] = useState<Record<string, { days: string[]; weeks: string[]; exercises: string[] }>>({});
 
@@ -105,11 +106,11 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
     <div className="w-full max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 text-start animate-in fade-in duration-500 min-h-[80vh] overflow-x-clip">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
         <div className="space-y-2">
-          <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{t('mycourses.header_label')}</span>
+          <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em] rtl:tracking-normal">{t('mycourses.header_label')}</span>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-black font-display uppercase">{t('mycourses.title')}</h1>
           <p className="text-neutral-400 font-medium max-w-xl">{t('mycourses.subtitle')}</p>
         </div>
-        <Link to="/courses" className="w-fit px-8 py-4 bg-neutral-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-xl flex items-center gap-2">
+        <Link to="/courses" className="w-fit px-8 py-4 bg-neutral-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-black transition shadow-xl flex items-center gap-2">
           <span className="material-symbols-outlined text-lg">explore</span>
           {t('mycourses.browse_all')}
         </Link>
@@ -118,24 +119,24 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
       {/* Next session — continue straight into the upcoming workout */}
       {heroCourse && heroNext && (
         <div className="mb-12 relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-neutral-900 to-black text-white p-6 md:p-8 shadow-2xl">
-          <div className="absolute -top-10 -right-10 w-48 h-48 bg-accent/20 rounded-full blur-3xl" />
+          <div className="absolute -top-10 -end-10 w-48 h-48 bg-accent/20 rounded-full blur-3xl" />
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-5">
             <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-accent text-white shrink-0 shadow-lg shadow-accent/30">
               <span className="material-symbols-outlined text-3xl filled">event_upcoming</span>
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50">{t('mycourses.next_session')}</p>
-              <p className="text-xl md:text-2xl font-black uppercase tracking-tight truncate mt-0.5">{heroNext.dayTitle || `Day ${heroNext.dayNumber}`}</p>
-              <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mt-1 truncate">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] rtl:tracking-normal text-white/50">{t('mycourses.next_session')}</p>
+              <p className="text-xl md:text-2xl font-black uppercase tracking-tight truncate mt-0.5">{heroNext.dayTitle || t('app.mycourses.day_n', { n: heroNext.dayNumber })}</p>
+              <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest rtl:tracking-normal mt-1 truncate">
                 {heroCourse.title} · {t('mycourses.week_day', { week: heroNext.weekNumber, day: heroNext.dayNumber })}
               </p>
             </div>
             <Link
               to={`/workout/${heroCourse.id}?week=${heroNext.weekNumber}&day=${heroNext.dayId}`}
-              className="shrink-0 px-8 py-4 bg-accent text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition shadow-lg shadow-accent/30 flex items-center justify-center gap-2"
+              className="shrink-0 px-8 py-4 bg-accent text-white rounded-2xl text-xs font-black uppercase tracking-widest rtl:tracking-normal hover:bg-blue-500 transition shadow-lg shadow-accent/30 flex items-center justify-center gap-2"
             >
               {t('mycourses.continue')}
-              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+              <span className="material-symbols-outlined text-lg rtl:-scale-x-100">arrow_forward</span>
             </Link>
           </div>
         </div>
@@ -153,7 +154,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                  <p className="text-xs text-neutral-500 font-medium leading-relaxed">{t('mycourses.diag_required_sub')}</p>
               </div>
            </div>
-           <Link to="/profile/courses" className="whitespace-nowrap px-8 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition shadow-lg">
+           <Link to="/profile/courses" className="whitespace-nowrap px-8 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-red-600 transition shadow-lg">
               {t('mycourses.view_requests')}
            </Link>
         </div>
@@ -168,30 +169,30 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                       <div key={req.id} className="bg-neutral-50 rounded-[2.5rem] overflow-hidden border border-neutral-100 p-8 flex flex-col justify-between h-full relative group shadow-sm hover:shadow-xl transition">
                           <div className="space-y-4">
                               <div className="flex justify-between items-start">
-                                  <span className="bg-purple-600 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">{t('mycourses.bespoke')}</span>
+                                  <span className="bg-purple-600 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest rtl:tracking-normal shadow-sm">{t('mycourses.bespoke')}</span>
                                   {req.status === 'DIAGNOSTIC' ? (
-                                      <span className="text-red-500 text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
+                                      <span className="text-red-500 text-[10px] font-black uppercase tracking-widest rtl:tracking-normal animate-pulse flex items-center gap-1">
                                           <span className="material-symbols-outlined text-xs">warning</span> {t('mycourses.action_required')}
                                       </span>
                                   ) : (
-                                      <span className="text-orange-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                                      <span className="text-orange-500 text-[10px] font-black uppercase tracking-widest rtl:tracking-normal flex items-center gap-1">
                                           <span className="material-symbols-outlined text-xs">construction</span> {t('mycourses.in_production')}
                                       </span>
                                   )}
                               </div>
                               <div className="text-start">
                                   <h3 className="text-xl font-black text-black uppercase tracking-tight">{req.goal}</h3>
-                                  <p className="text-xs text-neutral-400 font-medium mt-1">{t('mycourses.sport')} {req.sport.toUpperCase()}</p>
+                                  <p className="text-xs text-neutral-400 font-medium mt-1">{t('mycourses.sport')} {lang === 'ar' ? sportLabel(t, lang, req.sport) : req.sport.toUpperCase()}</p>
                               </div>
                           </div>
 
                           <div className="mt-8 pt-6 border-t border-neutral-200/50">
                               {req.status === 'DIAGNOSTIC' ? (
-                                  <Link to={`/athlete/diagnostic/${req.id}`} className="w-full bg-black text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent transition text-center shadow-lg block">
+                                  <Link to={`/athlete/diagnostic/${req.id}`} className="w-full bg-black text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-accent transition text-center shadow-lg block">
                                       {t('mycourses.resume_intake')}
                                   </Link>
                               ) : (
-                                  <div className="w-full bg-neutral-200 text-neutral-500 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                                  <div className="w-full bg-neutral-200 text-neutral-500 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-center flex items-center justify-center gap-2">
                                       <span className="material-symbols-outlined text-sm animate-spin">autorenew</span>
                                       {t('mycourses.coach_building')}
                                   </div>
@@ -212,15 +213,15 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
               <div className="relative h-56 md:h-64 overflow-hidden shrink-0">
                 <LazyImage src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" displayWidth={600} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
-                  <span className="bg-white/90 backdrop-blur-md text-black text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">{course.category}</span>
-                  <span className="bg-green-500 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg">{t('courses.enrolled')}</span>
+                <div className="absolute top-4 start-4 md:top-6 md:start-6 flex gap-2">
+                  <span className="bg-white/90 backdrop-blur-md text-black text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest rtl:tracking-normal shadow-sm">{sportLabel(t, lang, course.category)}</span>
+                  <span className="bg-green-500 text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest rtl:tracking-normal shadow-lg">{t('courses.enrolled')}</span>
                 </div>
-                <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 flex items-center gap-3">
+                <div className="absolute bottom-4 start-4 md:bottom-6 md:start-6 flex items-center gap-3">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white overflow-hidden shadow-lg shrink-0">
-                    <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar || 'https://picsum.photos/100'} alt="Coach" className="w-full h-full object-cover" />
+                    <img src={COACHES.find(c => c.name.includes(course.instructor.split(' ')[0]))?.avatar || 'https://picsum.photos/100'} alt={t('app.course.coach_alt')} className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest truncate">{t('mycourses.lead')} {course.instructor}</span>
+                  <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest rtl:tracking-normal truncate">{t('mycourses.lead')} {course.instructor}</span>
                 </div>
               </div>
 
@@ -229,8 +230,8 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                   <h3 className="text-xl md:text-2xl font-black text-black uppercase tracking-tight font-display leading-tight line-clamp-2">{course.title}</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">{t('mycourses.days_done', { done: completedDays, total: totalDays })}</span>
-                      <span className="text-xs md:text-sm font-black text-black">{pct}%</span>
+                      <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest rtl:tracking-normal">{t('mycourses.days_done', { done: completedDays, total: totalDays })}</span>
+                      <span dir="ltr" className="text-xs md:text-sm font-black text-black">{pct}%</span>
                     </div>
                     <div className="w-full bg-neutral-50 rounded-full h-1.5 overflow-hidden">
                       <div className="bg-black h-full rounded-full transition-[width] duration-1000" style={{ width: `${pct}%` }}></div>
@@ -241,12 +242,13 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                 <div className="mt-auto pt-4 md:pt-6 flex gap-3">
                    <Link
                      to={nextSession ? `/workout/${course.id}?week=${nextSession.weekNumber}&day=${nextSession.dayId}` : `/workout/${course.id}`}
-                     className="flex-1 bg-black text-white py-3.5 md:py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition text-center shadow-lg"
+                     className="flex-1 bg-black text-white py-3.5 md:py-4 rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-neutral-800 transition text-center shadow-lg"
                    >
                       {t('mycourses.resume')}
                    </Link>
                    <button 
                      onClick={() => handleMessageCoach(course.instructor)}
+                     aria-label={t('app.mycourses.message_coach')}
                      className="px-4 py-3.5 md:py-4 bg-neutral-50 text-neutral-400 rounded-xl hover:bg-accent hover:text-white transition border border-neutral-100 flex items-center justify-center group"
                    >
                      <span className="material-symbols-outlined text-[18px] filled">chat</span>
@@ -266,7 +268,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
             <h2 className="text-xl md:text-2xl font-black uppercase text-neutral-400 tracking-tight">{t('mycourses.no_enrollments')}</h2>
             <p className="text-neutral-400 font-medium max-w-sm px-6">{t('mycourses.empty_explain')}</p>
           </div>
-          <Link to="/courses" className="px-10 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-neutral-800 transition">
+          <Link to="/courses" className="px-10 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest rtl:tracking-normal text-[10px] shadow-xl hover:bg-neutral-800 transition">
             {t('mycourses.empty_cta')}
           </Link>
         </div>
@@ -289,14 +291,14 @@ const MyCourses: React.FC<MyCoursesProps> = ({ currentUser, courses = [] }) => {
                     <div className="absolute inset-0 bg-green-600/30" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest rtl:tracking-normal">
                       <span className="material-symbols-outlined text-[12px] filled">check_circle</span>
                       {t('mycourses.completed')} · 100%
                     </span>
                     <h3 className="text-base font-black text-black uppercase tracking-tight leading-tight truncate mt-1.5">{course.title}</h3>
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{t('mycourses.days_done', { done: totalDays, total: totalDays })}</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal mt-0.5">{t('mycourses.days_done', { done: totalDays, total: totalDays })}</p>
                   </div>
-                  <span className="material-symbols-outlined text-neutral-300 group-hover:text-black transition-colors shrink-0">chevron_right</span>
+                  <span className="material-symbols-outlined text-neutral-300 group-hover:text-black transition-colors shrink-0 rtl:-scale-x-100">chevron_right</span>
                 </Link>
               );
             })}

@@ -118,7 +118,7 @@
         <div id="boot-slow" style="font-size:12px;font-weight:600;color:#888;opacity:0;transition:opacity .3s;">Slow connection &mdash; still loading&hellip;</div>
         <style>@keyframes boot-spin{to{transform:rotate(360deg)}}</style>
       </div>
-      <script>setTimeout(function(){var e=document.getElementById('boot-slow');if(e)e.style.opacity='1';},4000);</script>
+      <script>(function(){var l='en';try{l=localStorage.getItem('theone_lang')||((navigator.language||'').toLowerCase().indexOf('ar')===0?'ar':'en');}catch(x){}if(l==='ar'){var s=document.getElementById('boot-slow');if(s){s.dir='rtl';s.style.fontFamily="'Cairo',system-ui,sans-serif";s.textContent='الاتصال بطيء — ما زال التحميل جارياً…';}}})();setTimeout(function(){var e=document.getElementById('boot-slow');if(e)e.style.opacity='1';},4000);</script>
     </div>
 <script type="module" src="/index.tsx"></script>
 </body>

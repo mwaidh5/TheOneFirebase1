@@ -24,6 +24,12 @@ interface Meal {
   label: string;
   title: string;
   items: string[];
+  // Arabic for display only. The English values above stay as they are: the
+  // title is saved as the logged entry's name and the items key the grocery
+  // ticks (planItemKey), so they must not change with the language.
+  labelAr?: string;
+  titleAr?: string;
+  itemsAr?: string[];
   kcal: number;
   protein: number;
   carbs: number;
@@ -32,24 +38,33 @@ interface Meal {
 }
 
 const TRAINING_PLAN: Meal[] = [
-  { id: 'breakfast', slot: 'breakfast', label: 'Breakfast', title: 'Protein pancakes', items: ['Protein pancakes'], kcal: 400, protein: 40, carbs: 40, fat: 8, fiber: 3 },
-  { id: 'lunch', slot: 'lunch', label: 'Lunch', title: 'Chicken + rice + salad', items: ['Chicken 200g', 'Rice', 'Salad'], kcal: 650, protein: 55, carbs: 80, fat: 10, fiber: 3 },
-  { id: 'snack1', slot: 'snack', label: 'Snack 1', title: 'Protein bar', items: ['Protein bar'], kcal: 220, protein: 18, carbs: 22, fat: 7, fiber: 5 },
-  { id: 'snack2', slot: 'snack', label: 'Snack 2', title: 'Laban', items: ['Laban 250g'], kcal: 150, protein: 15, carbs: 12, fat: 4, fiber: 0 },
-  { id: 'dinner', slot: 'dinner', label: 'Dinner', title: 'Fish / beef / chicken + lentils + salad', items: ['Fish, beef or chicken 200g', 'Lentils', 'Salad'], kcal: 600, protein: 50, carbs: 50, fat: 20, fiber: 12 },
+  { id: 'breakfast', slot: 'breakfast', label: 'Breakfast', title: 'Protein pancakes', items: ['Protein pancakes'], labelAr: 'فطور', titleAr: 'بان كيك بروتين', itemsAr: ['بان كيك بروتين'], kcal: 400, protein: 40, carbs: 40, fat: 8, fiber: 3 },
+  { id: 'lunch', slot: 'lunch', label: 'Lunch', title: 'Chicken + rice + salad', items: ['Chicken 200g', 'Rice', 'Salad'], labelAr: 'غداء', titleAr: 'دجاج + رز + سلطة', itemsAr: ['دجاج 200 غ', 'رز', 'سلطة'], kcal: 650, protein: 55, carbs: 80, fat: 10, fiber: 3 },
+  { id: 'snack1', slot: 'snack', label: 'Snack 1', title: 'Protein bar', items: ['Protein bar'], labelAr: 'سناك 1', titleAr: 'بروتين بار', itemsAr: ['بروتين بار'], kcal: 220, protein: 18, carbs: 22, fat: 7, fiber: 5 },
+  { id: 'snack2', slot: 'snack', label: 'Snack 2', title: 'Laban', items: ['Laban 250g'], labelAr: 'سناك 2', titleAr: 'لبن', itemsAr: ['لبن 250 غ'], kcal: 150, protein: 15, carbs: 12, fat: 4, fiber: 0 },
+  { id: 'dinner', slot: 'dinner', label: 'Dinner', title: 'Fish / beef / chicken + lentils + salad', items: ['Fish, beef or chicken 200g', 'Lentils', 'Salad'], labelAr: 'عشاء', titleAr: 'سمك / لحم / دجاج + عدس + سلطة', itemsAr: ['سمك أو لحم أو دجاج 200 غ', 'عدس', 'سلطة'], kcal: 600, protein: 50, carbs: 50, fat: 20, fiber: 12 },
 ];
 
 const OFF_PLAN: Meal[] = [
-  { id: 'off_breakfast', slot: 'breakfast', label: 'Breakfast', title: 'Protein pancakes (lighter)', items: ['Protein pancakes — smaller portion'], kcal: 320, protein: 35, carbs: 28, fat: 7, fiber: 2 },
-  { id: 'off_lunch', slot: 'lunch', label: 'Lunch', title: 'Chicken + salad + half rice', items: ['Chicken 200g', 'Rice — half portion', 'Salad'], kcal: 520, protein: 55, carbs: 48, fat: 12, fiber: 3 },
-  { id: 'off_snack', slot: 'snack', label: 'Snack', title: 'Laban', items: ['Laban 250g'], kcal: 150, protein: 15, carbs: 12, fat: 4, fiber: 0 },
-  { id: 'off_dinner', slot: 'dinner', label: 'Dinner', title: 'Fish / beef / chicken + lentils + salad', items: ['Fish, beef or chicken 200g', 'Lentils — small portion', 'Salad'], kcal: 520, protein: 50, carbs: 40, fat: 18, fiber: 9 },
+  { id: 'off_breakfast', slot: 'breakfast', label: 'Breakfast', title: 'Protein pancakes (lighter)', items: ['Protein pancakes — smaller portion'], labelAr: 'فطور', titleAr: 'بان كيك بروتين (أخف)', itemsAr: ['بان كيك بروتين — حصة أصغر'], kcal: 320, protein: 35, carbs: 28, fat: 7, fiber: 2 },
+  { id: 'off_lunch', slot: 'lunch', label: 'Lunch', title: 'Chicken + salad + half rice', items: ['Chicken 200g', 'Rice — half portion', 'Salad'], labelAr: 'غداء', titleAr: 'دجاج + سلطة + نصف رز', itemsAr: ['دجاج 200 غ', 'رز — نصف حصة', 'سلطة'], kcal: 520, protein: 55, carbs: 48, fat: 12, fiber: 3 },
+  { id: 'off_snack', slot: 'snack', label: 'Snack', title: 'Laban', items: ['Laban 250g'], labelAr: 'سناك', titleAr: 'لبن', itemsAr: ['لبن 250 غ'], kcal: 150, protein: 15, carbs: 12, fat: 4, fiber: 0 },
+  { id: 'off_dinner', slot: 'dinner', label: 'Dinner', title: 'Fish / beef / chicken + lentils + salad', items: ['Fish, beef or chicken 200g', 'Lentils — small portion', 'Salad'], labelAr: 'عشاء', titleAr: 'سمك / لحم / دجاج + عدس + سلطة', itemsAr: ['سمك أو لحم أو دجاج 200 غ', 'عدس — حصة صغيرة', 'سلطة'], kcal: 520, protein: 50, carbs: 40, fat: 18, fiber: 9 },
 ];
 
 // Fibre target is a health target (adults: roughly 25–38 g), not the plan's sum.
 const FIBER_TARGET = 30;
 
 const planFor = (mode: DayMode): Meal[] => (mode === 'off' ? OFF_PLAN : TRAINING_PLAN);
+
+// Display-only Arabic lookups for the plan: a grocery item by its English name,
+// and a logged plan meal by its foodId ("plan:<meal id>").
+const ALL_MEALS = [...TRAINING_PLAN, ...OFF_PLAN];
+const ITEM_AR = new Map<string, string>(
+  ALL_MEALS.flatMap(m => m.items.map((it, i): [string, string] => [it, m.itemsAr?.[i] ?? it])),
+);
+const planTitleAr = (foodId: string): string | undefined =>
+  foodId.startsWith('plan:') ? ALL_MEALS.find(m => `plan:${m.id}` === foodId)?.titleAr : undefined;
 const sumOf = (p: Meal[], k: 'kcal' | 'protein' | 'carbs' | 'fat') => p.reduce((s, m) => s + m[k], 0);
 
 // Open the logger on the meal that fits the time of day.
@@ -134,7 +149,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
     const key = dateKey(selectedDate);
     if (loading || planEaten.size === 0 || absorbedFor.current === key) return;
     absorbedFor.current = key;
-    const all = [...TRAINING_PLAN, ...OFF_PLAN];
+    const all = ALL_MEALS;
     const converted: LogEntry[] = Array.from(planEaten)
       .map(id => all.find(m => m.id === id))
       .filter((m): m is Meal => !!m)
@@ -153,10 +168,16 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
     fat: Math.round(entries.reduce((s, e) => s + (e.fat || 0), 0)),
     fiber: Math.round(entries.reduce((s, e) => s + (e.fiber || 0), 0)),
   };
+  // Units shown next to numbers (Arabic keeps a space before the unit).
+  const KCAL = ar ? 'سعرة' : 'kcal';
+  const G = ar ? ' غ' : 'g';
+  // A logged plan meal is saved under its English title; show it in Arabic.
+  const nameOf = (e: LogEntry) => (ar ? planTitleAr(e.foodId) ?? e.name : e.name);
   const pct = (v: number, t: number) => (t > 0 ? Math.min(100, Math.round((v / t) * 100)) : 0);
 
   const recommended: RecommendedMeal[] = mode === 'cheat' ? [] : plan.map(m => ({
     id: m.id, title: m.title, detail: m.items.join(' · '), slot: m.slot,
+    titleAr: m.titleAr, detailAr: m.itemsAr?.join(' · '),
     kcal: m.kcal, protein: m.protein, carbs: m.carbs, fat: m.fat, fiber: m.fiber,
   }));
   const loggedFoodIds = new Set(entries.map(e => e.foodId));
@@ -225,11 +246,13 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
             <span className="material-symbols-outlined text-[16px]">restaurant_menu</span>
             {mode === 'cheat'
               ? <span>{ar ? 'يوم حر' : 'Cheat day'}</span>
-              : <span dir="ltr">{targetKcal} kcal · {targetProtein}g protein</span>}
+              : ar
+                ? <span>{targetKcal} سعرة · {targetProtein} غ بروتين</span>
+                : <span dir="ltr">{targetKcal} kcal · {targetProtein}g protein</span>}
           </div>
           <h1 className="text-3xl md:text-4xl font-black font-display tracking-tight text-black uppercase">{t('meal.my_nutrition')}</h1>
         </div>
-        <button onClick={() => setShowGrocery(true)} className="shrink-0 flex items-center gap-2 px-4 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg">
+        <button onClick={() => setShowGrocery(true)} className="shrink-0 flex items-center gap-2 px-4 py-3 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal shadow-lg">
           <span className="material-symbols-outlined text-[18px]">shopping_basket</span>
           <span className="hidden sm:inline">{t('meal.grocery_list')}</span>
         </button>
@@ -249,7 +272,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
                   sel ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-neutral-100 text-neutral-400'
                 }`}
               >
-                <span className="text-[10px] font-black uppercase tracking-widest">{t(dayKeys[i])}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">{t(dayKeys[i])}</span>
                 <span className={`text-base font-black mt-0.5 ${!sel && isD ? 'text-accent' : ''}`}>{d.getDate()}</span>
               </button>
             );
@@ -259,7 +282,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
 
       {/* Day mode — decided on the day itself, switchable any time */}
       <div className="mb-5">
-        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2 ms-1">
+        <p className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 mb-2 ms-1">
           {ar ? 'كيف هو هذا اليوم؟' : 'How is this day going?'}
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -272,7 +295,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
               }`}
             >
               <span className="material-symbols-outlined text-[22px]">{m.icon}</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">{m.label}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">{m.label}</span>
             </button>
           ))}
         </div>
@@ -281,13 +304,13 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
       {/* Daily totals */}
       <div className="bg-white border border-neutral-100 rounded-3xl p-5 shadow-sm mb-5">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+          <p className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">
             {isToday
               ? (ar ? 'اليوم' : 'Today')
-              : selectedDate.toLocaleDateString(ar ? 'ar' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
+              : selectedDate.toLocaleDateString(ar ? 'ar' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
           </p>
           {mode === 'off' && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+            <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
               {ar ? 'سعرات أقل' : 'Lighter day'}
             </span>
           )}
@@ -303,12 +326,12 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{t('meal.calories')}</span>
-                <span className="text-sm font-black text-black tabular-nums" dir="ltr">
-                  {eaten.kcal} / {target.kcal}
+                <span className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{t('meal.calories')}</span>
+                <span className="text-sm font-black text-black tabular-nums">
+                  <span dir="ltr">{eaten.kcal} / {target.kcal}</span>
                   <span className="text-[10px] text-neutral-400 font-bold ms-1.5">
                     {target.kcal - eaten.kcal >= 0
-                      ? `${target.kcal - eaten.kcal} ${ar ? 'متبقي' : 'left'}`
+                      ? `${target.kcal - eaten.kcal} ${ar ? 'متبقية' : 'left'}`
                       : `${eaten.kcal - target.kcal} ${ar ? 'زيادة' : 'over'}`}
                   </span>
                 </span>
@@ -326,8 +349,8 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
               ] as const).map(x => (
                 <div key={x.k} className="space-y-1">
                   <div className="flex justify-between items-end">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{x.l}</span>
-                    <span className="text-[11px] font-black text-black tabular-nums" dir="ltr">{eaten[x.k]}<span className="text-neutral-400">/{target[x.k]}g</span></span>
+                    <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{x.l}</span>
+                    <span className="text-[11px] font-black text-black tabular-nums"><span dir="ltr">{eaten[x.k]}<span className="text-neutral-400">/{target[x.k]}</span></span><span className="text-neutral-400">{G}</span></span>
                   </div>
                   <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full transition-[width] duration-500 ${x.c}`} style={{ width: `${pct(eaten[x.k], target[x.k])}%` }} />
@@ -342,7 +365,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
       {/* Log anything — search, barcode, photo, or your own foods */}
       <button
         onClick={() => setLogSlot(slotForNow())}
-        className="w-full mb-5 flex items-center justify-center gap-2 py-4 rounded-2xl bg-accent text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-accent/20"
+        className="w-full mb-5 flex items-center justify-center gap-2 py-4 rounded-2xl bg-accent text-white text-[11px] font-black uppercase tracking-widest rtl:tracking-normal shadow-lg shadow-accent/20"
       >
         <span className="material-symbols-outlined text-[20px]">add</span>
         {ar ? 'سجّل طعاماً' : 'Log food'}
@@ -360,10 +383,10 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
                 <div className="flex items-center justify-between ms-1">
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[16px] text-neutral-400">{s.icon}</span>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{ar ? s.ar : s.en}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{ar ? s.ar : s.en}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-neutral-400 tabular-nums" dir="ltr">{slotKcal} kcal</span>
+                    <span className="text-[10px] font-black text-neutral-400 tabular-nums">{slotKcal} {KCAL}</span>
                     <button onClick={() => setLogSlot(s.id)} className="w-6 h-6 rounded-lg bg-neutral-100 text-neutral-500 flex items-center justify-center">
                       <span className="material-symbols-outlined text-[15px]">add</span>
                     </button>
@@ -372,12 +395,14 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
                 {rows.map(e => (
                   <div key={e.id} className="flex items-center gap-2 rounded-2xl bg-white border border-neutral-100">
                     <button onClick={() => openEdit(e)} className="flex-1 min-w-0 text-start p-3">
-                      <p className="text-sm font-bold text-black truncate">{e.name}</p>
-                      <p className="text-[11px] font-medium text-neutral-400 truncate" dir="ltr">
+                      <p className="text-sm font-bold text-black truncate">{nameOf(e)}</p>
+                      <p className="text-[11px] font-medium text-neutral-400 truncate" dir={ar ? undefined : 'ltr'}>
                         {e.qty && e.unitLabel && e.unitLabel !== 'g'
-                          ? `${e.qty} ${e.unitLabel}${e.grams > 0 ? ` (${e.grams}g)` : ''}`
-                          : `${e.grams}g`}
-                        {' · '}{e.kcal} kcal · {e.protein}P · {e.carbs}C{typeof e.fiber === 'number' ? ` · ${e.fiber}fib` : ''}
+                          ? `${e.qty} ${e.unitLabel}${e.grams > 0 ? ` (${e.grams}${G})` : ''}`
+                          : `${e.grams}${G}`}
+                        {ar
+                          ? ` · ${e.kcal} سعرة · بروتين ${e.protein} · كارب ${e.carbs}${typeof e.fiber === 'number' ? ` · ألياف ${e.fiber}` : ''}`
+                          : <>{' · '}{e.kcal} kcal · {e.protein}P · {e.carbs}C{typeof e.fiber === 'number' ? ` · ${e.fiber}fib` : ''}</>}
                       </p>
                     </button>
                     <button
@@ -403,6 +428,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
           loggedFoodIds={loggedFoodIds}
           customFoods={customFoods}
           recents={allRecents}
+          nameOf={nameOf}
           previousDays={history.filter(d => d.date < dateKey(selectedDate))}
           dayKey={dateKey(selectedDate)}
           ar={ar}
@@ -426,8 +452,8 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{ar ? 'تعديل' : 'Edit'}</p>
-                  <p className="text-base font-black text-black leading-tight">{editing.name}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{ar ? 'تعديل' : 'Edit'}</p>
+                  <p className="text-base font-black text-black leading-tight">{nameOf(editing)}</p>
                 </div>
                 <button onClick={() => setEditing(null)} className="w-8 h-8 rounded-lg bg-neutral-50 flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[18px]">close</span>
@@ -435,13 +461,13 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
               </div>
 
               <div className="space-y-1.5">
-                <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{ar ? 'الوجبة' : 'Meal'}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{ar ? 'الوجبة' : 'Meal'}</p>
                 <div className="grid grid-cols-4 gap-1.5">
                   {SLOTS.map(sl => (
                     <button
                       key={sl.id}
                       onClick={() => setEditSlot(sl.id)}
-                      className={`flex flex-col items-center gap-0.5 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition ${
+                      className={`flex flex-col items-center gap-0.5 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest rtl:tracking-normal transition ${
                         editSlot === sl.id ? 'bg-black text-white border-black' : 'bg-white text-neutral-400 border-neutral-200'
                       }`}
                     >
@@ -453,7 +479,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
               </div>
 
               <div className="space-y-1.5">
-                <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">{ar ? 'الكمية' : 'Amount'}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{ar ? 'الكمية' : 'Amount'}</p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setEditAmount(String(Math.max(byQty ? 0.5 : 5, r1(amount - (byQty ? 0.5 : 10)))))}
@@ -476,25 +502,25 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
                   >
                     <span className="material-symbols-outlined">add</span>
                   </button>
-                  <span className="text-xs font-black text-neutral-400 shrink-0 min-w-[2.5rem]">{byQty ? editing.unitLabel : 'g'}</span>
+                  <span className="text-xs font-black text-neutral-400 shrink-0 min-w-[2.5rem]">{byQty ? editing.unitLabel : G}</span>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between bg-black text-white rounded-xl px-4 py-2.5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/60">{ar ? 'السعرات' : 'Calories'}</span>
-                  <span className="text-xl font-black tabular-nums" dir="ltr">{m.kcal} <span className="text-[10px] text-white/60">kcal</span></span>
+                  <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-white/60">{ar ? 'السعرات' : 'Calories'}</span>
+                  <span className="text-xl font-black tabular-nums"><span dir="ltr">{m.kcal}</span> <span className="text-[10px] text-white/60">{KCAL}</span></span>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[
-                    { l: ar ? 'بروتين' : 'Protein', v: `${m.protein}g` },
-                    { l: ar ? 'كارب' : 'Carbs', v: `${m.carbs}g` },
-                    { l: ar ? 'ألياف' : 'Fibre', v: typeof m.fiber === 'number' ? `${m.fiber}g` : '—' },
-                    { l: ar ? 'دهون' : 'Fat', v: `${m.fat}g` },
+                    { l: ar ? 'بروتين' : 'Protein', v: `${m.protein}${G}` },
+                    { l: ar ? 'كارب' : 'Carbs', v: `${m.carbs}${G}` },
+                    { l: ar ? 'ألياف' : 'Fibre', v: typeof m.fiber === 'number' ? `${m.fiber}${G}` : '—' },
+                    { l: ar ? 'دهون' : 'Fat', v: `${m.fat}${G}` },
                   ].map(x => (
                     <div key={x.l} className="bg-neutral-50 rounded-xl py-2.5 text-center">
-                      <p className="text-sm font-black text-black tabular-nums" dir="ltr">{x.v}</p>
-                      <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mt-0.5">{x.l}</p>
+                      <p className="text-sm font-black text-black tabular-nums" dir={ar ? undefined : 'ltr'}>{x.v}</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 mt-0.5">{x.l}</p>
                     </div>
                   ))}
                 </div>
@@ -503,11 +529,11 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
               <div className="flex gap-2">
                 <button
                   onClick={() => { removeEntry(editing.id); setEditing(null); }}
-                  className="px-4 py-4 rounded-2xl bg-red-50 text-red-600 text-[11px] font-black uppercase tracking-widest"
+                  className="px-4 py-4 rounded-2xl bg-red-50 text-red-600 text-[11px] font-black uppercase tracking-widest rtl:tracking-normal"
                 >
                   {ar ? 'حذف' : 'Delete'}
                 </button>
-                <button onClick={saveEdit} className="flex-1 py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest">
+                <button onClick={saveEdit} className="flex-1 py-4 bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest rtl:tracking-normal">
                   {ar ? 'حفظ' : 'Save'}
                 </button>
               </div>
@@ -547,7 +573,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
               {mode === 'cheat' && (
-                <p className="text-center text-neutral-400 text-xs font-black uppercase tracking-widest py-4">
+                <p className="text-center text-neutral-400 text-xs font-black uppercase tracking-widest rtl:tracking-normal py-4">
                   {ar ? 'يوم حر — لا قائمة من الخطة' : 'Cheat day — no plan items'}
                 </p>
               )}
@@ -557,12 +583,12 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
                 return (
                   <label key={key} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100">
                     <input type="checkbox" checked={on} onChange={() => grocery.toggle(key)} className="w-5 h-5 rounded-md accent-black shrink-0" />
-                    <span className={`flex-1 text-sm font-bold ${on ? 'text-neutral-400 line-through' : 'text-black'}`}>{name}</span>
+                    <span className={`flex-1 text-sm font-bold ${on ? 'text-neutral-400 line-through' : 'text-black'}`}>{ar ? ITEM_AR.get(name) ?? name : name}</span>
                   </label>
                 );
               })}
               {grocery.custom.length > 0 && (
-                <p className="pt-3 px-1 text-[10px] font-black uppercase tracking-widest text-neutral-400">{ar ? 'أغراضي' : 'My items'}</p>
+                <p className="pt-3 px-1 text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">{ar ? 'أغراضي' : 'My items'}</p>
               )}
               {grocery.custom.map((item) => {
                 const key = customItemKey(item.id);
@@ -593,7 +619,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
               <div className="px-4 pb-4 pt-2 border-t border-neutral-100">
                 <button
                   onClick={grocery.clearTicked}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-neutral-50 text-[11px] font-black uppercase tracking-widest text-neutral-600 hover:bg-black hover:text-white transition"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-neutral-50 text-[11px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-600 hover:bg-black hover:text-white transition"
                 >
                   <span className="material-symbols-outlined text-[18px]">done_all</span>
                   {ar ? `مسح المشترى (${groceryTicked})` : `Clear ticked (${groceryTicked})`}

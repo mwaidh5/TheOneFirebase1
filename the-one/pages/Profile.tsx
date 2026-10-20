@@ -8,6 +8,7 @@ import { doc, onSnapshot, setDoc, collection, query, orderBy } from 'firebase/fi
 import { db, storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useT } from '../i18n/I18nContext';
+import type { TranslationKey } from '../i18n/translations';
 
 interface ProfileProps {
   currentUser: User;
@@ -46,9 +47,20 @@ interface ChartEntry {
   isToday: boolean;
 }
 
-const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// Stored fitnessLevel / trainingGoal values (fixed English enums) → display keys.
+const LEVEL_KEYS: Record<string, TranslationKey> = {
+  Beginner: 'app.profile.level_beginner',
+  Intermediate: 'app.profile.level_intermediate',
+  Advanced: 'app.profile.level_advanced',
+  Elite: 'app.profile.level_elite',
+};
+const GOAL_KEYS: Record<string, TranslationKey> = {
+  Hypertrophy: 'app.profile.goal_hypertrophy',
+  Strength: 'app.profile.goal_strength',
+  Endurance: 'app.profile.goal_endurance',
+  'Weight Loss': 'app.profile.goal_weight_loss',
+  'Athletic Performance': 'app.profile.goal_performance',
+};
 
 function getWeekMonday(weekOffset: number): Date {
   const now = new Date();
@@ -64,12 +76,14 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function fmtShort(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function fmtShort(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
-  const { t } = useT();
+  const { t, lang, isRtl } = useT();
+  const locale = lang === 'ar' ? 'ar' : 'en-GB';
+  const unitLabel = (u: string) => u === 'kg' ? t('app.profile.unit_kg') : (u === 'lbs' || u === 'lb') ? t('app.profile.unit_lbs') : u;
   const [userData, setUserData] = useState<UserProfile>(currentUser as UserProfile);
   const [isUploading, setIsUploading] = useState(false);
   const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
@@ -142,7 +156,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
       const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
       const mins = minutesByDay.get(key) ?? 0;
       return {
-        name: `${DAY_LETTERS[day.getDay()]}|${day.getDate()}`,
+        name: `${day.toLocaleDateString(locale, { weekday: 'narrow' })}|${day.getDate()}`,
         // Trained days always show a visible bar (min 5) even with 0 logged minutes.
         val: mins > 0 ? mins : (trainedDays.has(key) ? 5 : 0),
         isToday: isSameCalendarDay(day, today),
@@ -151,9 +165,9 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
 
     return {
       weeklyData: days,
-      weekLabel: `${fmtShort(monday)} – ${fmtShort(new Date(monday.getTime() + 6 * 86400000))}`,
+      weekLabel: `${fmtShort(monday, locale)} – ${fmtShort(new Date(monday.getTime() + 6 * 86400000), locale)}`,
     };
-  }, [allLogs, weekOffset]);
+  }, [allLogs, weekOffset, locale]);
 
   // ── Monthly chart ─────────────────────────────────────────────────────────────
   const { monthlyData, monthLabel } = useMemo(() => {
@@ -184,8 +198,8 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
       cursor = new Date(cursor.getTime() + 7 * 86400000);
     }
 
-    return { monthlyData: weeks, monthLabel: `${MONTH_NAMES[month]} ${year}` };
-  }, [allLogs, monthOffset]);
+    return { monthlyData: weeks, monthLabel: target.toLocaleDateString(locale, { month: 'long', year: 'numeric' }) };
+  }, [allLogs, monthOffset, locale]);
 
   // ── Lift history (all logged weight entries across all sessions) ─────────────
   const liftHistory = useMemo(() => {
@@ -209,18 +223,18 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
         entries.push({
           date,
           exerciseId: exId,
-          name: r.name || 'Exercise',
+          name: r.name || t('profile.exercise'),
           weight: r.weight,
           unit: r.unit || 'kg',
           reps: r.reps || '—',
-          courseTitle: log.courseTitle || 'Session',
+          courseTitle: log.courseTitle || t('profile.session'),
           dayTitle: log.dayTitle || '',
           logId: log.id,
         });
       });
     });
     return entries.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [allLogs]);
+  }, [allLogs, t]);
 
   const chartData = activityView === 'weekly' ? weeklyData : monthlyData;
   const navLabel = activityView === 'weekly' ? weekLabel : monthLabel;
@@ -263,20 +277,20 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
       await setDoc(doc(db, 'users', currentUser.id), { avatar: url }, { merge: true });
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
-      alert('Firebase rejected the upload: ' + err.code + ' - ' + err.message);
+      alert(t('app.profile.upload_failed', { code: String(err.code), msg: String(err.message) }));
     } finally {
       setIsUploading(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 text-left animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto px-6 py-12 text-start animate-in fade-in duration-500">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-12">
         <div className="space-y-2">
           <h1 className="text-5xl font-black tracking-tight text-black font-display uppercase">{t('profile.athlete_profile')}</h1>
           <p className="text-neutral-400 font-medium">{t('profile.path_sub')}</p>
         </div>
-        <Link to="/profile/settings" className="text-[10px] font-black uppercase tracking-widest text-black hover:bg-neutral-50 px-6 py-3 border border-neutral-100 rounded-xl transition flex items-center gap-3">
+        <Link to="/profile/settings" className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-black hover:bg-neutral-50 px-6 py-3 border border-neutral-100 rounded-xl transition flex items-center gap-3">
           <span className="material-symbols-outlined text-[18px]">settings</span>
           {t('profile.manage_account')}
         </Link>
@@ -289,12 +303,12 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
             <div className="relative mb-8">
               <div className="w-40 h-40 rounded-[2.5rem] overflow-hidden border-8 border-neutral-50 shadow-2xl relative bg-neutral-100 flex items-center justify-center">
                 {userData.avatar ? (
-                  <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={userData.avatar} alt={t('settings.avatar')} className="w-full h-full object-cover" />
                 ) : (
                   <span className="material-symbols-outlined text-[64px] text-neutral-300">person</span>
                 )}
               </div>
-              <label className={`absolute -bottom-2 -right-2 bg-black text-white p-3 rounded-2xl shadow-xl hover:bg-accent transition cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <label title={t('app.profile.change_photo')} className={`absolute -bottom-2 -end-2 bg-black text-white p-3 rounded-2xl shadow-xl hover:bg-accent transition cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                 <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
                 {isUploading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -304,10 +318,10 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
               </label>
             </div>
             <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">{userData.firstName} {userData.lastName}</h2>
-            <p className="text-sm font-bold text-neutral-400 mt-1 uppercase tracking-widest">{userData.email}</p>
+            <p dir="ltr" className="text-sm font-bold text-neutral-400 mt-1 uppercase tracking-widest rtl:tracking-normal">{userData.email}</p>
             <div className="mt-8 flex gap-3">
-              <span className="bg-neutral-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">{t('profile.athlete_level', { level: userData.fitnessLevel || 'Athlete' })}</span>
-              <span className="bg-accent text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">{t('profile.active_member')}</span>
+              <span className="bg-neutral-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">{t('profile.athlete_level', { level: userData.fitnessLevel ? (LEVEL_KEYS[userData.fitnessLevel] ? t(LEVEL_KEYS[userData.fitnessLevel]) : userData.fitnessLevel) : t('app.profile.athlete') })}</span>
+              <span className="bg-accent text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal">{t('profile.active_member')}</span>
             </div>
           </div>
 
@@ -318,13 +332,13 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
             </h3>
             <div className="space-y-6">
               {[
-                { label: t('profile.body_weight'), val: userData.weight ? `${userData.weight} lbs` : '—' },
+                { label: t('profile.body_weight'), val: userData.weight ? t('app.profile.weight_lbs', { n: userData.weight }) : '—' },
                 { label: t('profile.body_fat'), val: userData.bodyFat ? `${userData.bodyFat}%` : '—' },
-                { label: t('profile.training_goal'), val: userData.trainingGoal || t('profile.general') },
+                { label: t('profile.training_goal'), val: userData.trainingGoal ? (GOAL_KEYS[userData.trainingGoal] ? t(GOAL_KEYS[userData.trainingGoal]) : userData.trainingGoal) : t('profile.general') },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between pb-6 border-b border-neutral-50 last:border-0 last:pb-0">
                   <div>
-                    <p className="text-[10px] text-neutral-300 uppercase font-black tracking-widest mb-1">{stat.label}</p>
+                    <p className="text-[10px] text-neutral-300 uppercase font-black tracking-widest rtl:tracking-normal mb-1">{stat.label}</p>
                     <p className="text-xl font-black text-black uppercase">{stat.val}</p>
                   </div>
                 </div>
@@ -345,11 +359,11 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 <div className="flex gap-2 bg-white/5 p-1 rounded-2xl">
                   <button
                     onClick={() => setActivityView('weekly')}
-                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition ${activityView === 'weekly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
+                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest rtl:tracking-normal transition ${activityView === 'weekly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
                   >{t('profile.weekly')}</button>
                   <button
                     onClick={() => setActivityView('monthly')}
-                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest transition ${activityView === 'monthly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
+                    className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase tracking-widest rtl:tracking-normal transition ${activityView === 'monthly' ? 'bg-white text-black shadow-xl' : 'text-white/50 hover:text-white'}`}
                   >{t('profile.monthly')}</button>
                 </div>
               </div>
@@ -362,10 +376,10 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                   { l: t('profile.calories'), v: userData.caloriesBurned ?? 0, tag: userData.caloriesBurned ? t('profile.optimal') : t('profile.baseline') },
                 ].map(s => (
                   <div key={s.l} className="p-8 bg-white/5 rounded-[2rem] border border-white/5 space-y-2">
-                    <p className="text-[10px] text-neutral-500 font-black uppercase tracking-[0.2em]">{s.l}</p>
+                    <p className="text-[10px] text-neutral-500 font-black uppercase tracking-[0.2em] rtl:tracking-normal">{s.l}</p>
                     <div className="flex items-baseline gap-3">
                       <span className="text-4xl font-black text-white font-display">{s.v}</span>
-                      <span className="text-[10px] font-black text-accent uppercase tracking-widest">{s.tag}</span>
+                      <span className="text-[10px] font-black text-accent uppercase tracking-widest rtl:tracking-normal">{s.tag}</span>
                     </div>
                   </div>
                 ))}
@@ -375,17 +389,19 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={() => activityView === 'weekly' ? setWeekOffset(w => w - 1) : setMonthOffset(m => m - 1)}
+                  aria-label={t('app.profile.prev_period')}
                   className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition"
                 >
-                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  <span className="material-symbols-outlined text-sm rtl:rotate-180">chevron_left</span>
                 </button>
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/70">{navLabel}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-white/70">{navLabel}</span>
                 <button
                   onClick={() => activityView === 'weekly' ? setWeekOffset(w => Math.min(w + 1, 0)) : setMonthOffset(m => Math.min(m + 1, 0))}
                   disabled={isCurrentPeriod}
+                  aria-label={t('app.profile.next_period')}
                   className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  <span className="material-symbols-outlined text-sm rtl:rotate-180">chevron_right</span>
                 </button>
               </div>
 
@@ -395,6 +411,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                   <BarChart data={chartData} margin={{ bottom: 16 }}>
                     <XAxis
                       dataKey="name"
+                      reversed={isRtl}
                       axisLine={false}
                       tickLine={false}
                       tick={(props: { x: number; y: number; payload: { value: string; index: number } }) => renderTick(props)}
@@ -424,7 +441,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 </ResponsiveContainer>
               </div>
             </div>
-            <span className="material-symbols-outlined text-[200px] absolute -bottom-20 -right-20 text-white/5 rotate-12">analytics</span>
+            <span className="material-symbols-outlined text-[200px] absolute -bottom-20 -end-20 text-white/5 rotate-12">analytics</span>
           </div>
 
           {/* ── Recent Activity ── */}
@@ -435,19 +452,19 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
             {allLogs.length === 0 ? (
               <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
                 <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">fitness_center</span>
-                <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">{t('profile.no_sessions')}<br />{t('profile.complete_to_see')}</p>
+                <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('profile.no_sessions')}<br />{t('profile.complete_to_see')}</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {logsToShow.map((log) => {
                   const mins = Math.round((log.durationSeconds ?? 0) / 60);
                   const secs = (log.durationSeconds ?? 0) % 60;
-                  const durationStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                  const durationStr = mins > 0 ? t('app.profile.dur_min_sec', { m: mins, s: secs }) : t('app.profile.dur_sec', { s: secs });
                   const logDate = log.loggedAt ? new Date(log.loggedAt) : null;
                   const dateStr = logDate
-                    ? logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    ? logDate.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
                     : '—';
-                  const dayAbbrev = logDate ? DAY_ABBREVS[logDate.getDay()] : (log.loggedDayName?.slice(0, 3) ?? '—');
+                  const dayAbbrev = logDate ? logDate.toLocaleDateString(locale, { weekday: 'short' }) : (log.loggedDayName?.slice(0, 3) ?? '—');
                   // Show duration only for completed workouts (completed !== false handles old logs without the field)
                   const showDuration = log.completed !== false && (log.durationSeconds ?? 0) > 0;
                   const resultEntries = log.results ? Object.entries(log.results) : [];
@@ -456,47 +473,47 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                     <div key={log.id} className="bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden hover:shadow-md transition">
                       <div className="flex items-center gap-4 p-5">
                         <div className="w-12 h-12 bg-black text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-lg">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-white/50 leading-none">{dayAbbrev}</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal text-white/50 leading-none">{dayAbbrev}</span>
                           <span className="text-lg font-black leading-tight">{logDate?.getDate() ?? '—'}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mb-0.5">{log.courseTitle || t('profile.session')} · {t('profile.wk')} {log.weekNum} · {t('profile.day_short')} {log.dayNumber}</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 mb-0.5">{t('app.profile.log_meta', { course: log.courseTitle || t('profile.session'), week: log.weekNum ?? '—', day: log.dayNumber ?? '—' })}</p>
                           <p className="text-base font-black uppercase text-black leading-tight truncate">{log.dayTitle || t('profile.training_session')}</p>
                           <p className="text-[9px] font-bold text-neutral-400 mt-0.5">{dateStr}</p>
                         </div>
                         {showDuration ? (
-                          <div className="text-right shrink-0">
+                          <div className="text-end shrink-0">
                             <div className="flex items-center gap-1 justify-end">
                               <span className="material-symbols-outlined text-xs text-accent">timer</span>
                               <span className="text-sm font-black text-black tabular-nums">{durationStr}</span>
                             </div>
-                            <p className="text-[8px] font-black uppercase tracking-widest text-neutral-300">{t('profile.duration')}</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-300">{t('profile.duration')}</p>
                             {log.rpe && (
-                              <span className="inline-block mt-1 px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest text-neutral-500">{t('profile.rpe')} {log.rpe}</span>
+                              <span className="inline-block mt-1 px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-500">{t('profile.rpe')} {log.rpe}</span>
                             )}
                           </div>
                         ) : log.rpe ? (
-                          <div className="text-right shrink-0">
-                            <span className="px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest text-neutral-500">{t('profile.rpe')} {log.rpe}</span>
+                          <div className="text-end shrink-0">
+                            <span className="px-2 py-0.5 bg-neutral-100 rounded-full text-[7px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-500">{t('profile.rpe')} {log.rpe}</span>
                           </div>
                         ) : null}
                       </div>
 
                       {resultEntries.length > 0 && (
                         <div className="border-t border-neutral-50 px-5 py-3 bg-neutral-50/50 flex items-center gap-2 flex-wrap">
-                          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-neutral-300 shrink-0">{t('profile.movements_label')}</span>
+                          <span className="text-[8px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-300 shrink-0">{t('profile.movements_label')}</span>
                           {resultEntries.slice(0, 4).map(([exId, result]) => {
                             const name = (typeof result === 'object' && result !== null)
                               ? (result as { name?: string }).name
                               : null;
                             return name ? (
-                              <span key={exId} className="text-[8px] font-black uppercase tracking-wide text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-lg">
+                              <span key={exId} className="text-[8px] font-black uppercase tracking-wide rtl:tracking-normal text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-lg">
                                 {name}
                               </span>
                             ) : null;
                           })}
                           {resultEntries.length > 4 && (
-                            <span className="text-[8px] font-black uppercase tracking-wide text-neutral-400">+{resultEntries.length - 4} {t('profile.more')}</span>
+                            <span className="text-[8px] font-black uppercase tracking-wide rtl:tracking-normal text-neutral-400">{t('app.profile.plus_more', { n: resultEntries.length - 4 })}</span>
                           )}
                         </div>
                       )}
@@ -507,7 +524,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 {allLogs.length > visibleCount && (
                   <button
                     onClick={() => setVisibleCount(c => c + 10)}
-                    className="w-full py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100"
+                    className="w-full py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100"
                   >
                     {t('profile.show_more_remaining', { n: allLogs.length - visibleCount })}
                   </button>
@@ -525,7 +542,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
               <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">{t('profile.lift_history')}</h2>
               <div className="flex items-center gap-3">
                 {liftHistory.length > 0 && (
-                  <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{liftHistory.length} {t('profile.entries')}</span>
+                  <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('app.profile.entries_count', { n: liftHistory.length })}</span>
                 )}
                 <div className="w-9 h-9 rounded-xl bg-neutral-100 group-hover:bg-neutral-200 flex items-center justify-center transition">
                   <span className={`material-symbols-outlined text-base text-neutral-500 transition-transform duration-300 ${liftHistoryOpen ? 'rotate-180' : ''}`}>expand_more</span>
@@ -538,12 +555,12 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 {liftHistory.length === 0 ? (
                   <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
                     <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">fitness_center</span>
-                    <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">{t('profile.no_lifts')}<br />{t('profile.lifts_sub')}</p>
+                    <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('profile.no_lifts')}<br />{t('profile.lifts_sub')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {liftHistory.slice(0, liftVisibleCount).map((entry: typeof liftHistory[0], idx: number) => {
-                      const dateStr = entry.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                      const dateStr = entry.date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
                       return (
                         <div key={`${entry.logId}_${entry.exerciseId}_${idx}`} className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4 flex items-center gap-4 hover:shadow-md transition">
                           <div className="w-10 h-10 bg-neutral-900 text-white rounded-xl flex items-center justify-center shrink-0">
@@ -551,13 +568,13 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-black uppercase text-black leading-tight truncate">{entry.name}</p>
-                            <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">{entry.courseTitle}{entry.dayTitle ? ` · ${entry.dayTitle}` : ''} · {dateStr}</p>
+                            <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal mt-0.5">{entry.courseTitle}{entry.dayTitle ? ` · ${entry.dayTitle}` : ''} · {dateStr}</p>
                           </div>
-                          <div className="text-right shrink-0">
+                          <div className="text-end shrink-0">
                             <p className="text-xl font-black text-black tabular-nums leading-none">
-                              {entry.weight} <span className="text-xs font-bold text-neutral-400">{entry.unit}</span>
+                              {entry.weight} <span className="text-xs font-bold text-neutral-400">{unitLabel(entry.unit)}</span>
                             </p>
-                            <p className="text-[8px] font-black uppercase tracking-widest text-neutral-400 mt-0.5">{entry.reps} {t('profile.reps_unit')}</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 mt-0.5">{entry.reps} {t('profile.reps_unit')}</p>
                           </div>
                         </div>
                       );
@@ -566,14 +583,14 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                       {liftHistory.length > liftVisibleCount && (
                         <button
                           onClick={() => setLiftVisibleCount((c: number) => c + 10)}
-                          className="flex-1 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100"
+                          className="flex-1 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100"
                         >
                           {t('profile.show_more_remaining', { n: liftHistory.length - liftVisibleCount })}
                         </button>
                       )}
                       <button
                         onClick={() => { setLiftHistoryOpen(false); setLiftVisibleCount(5); }}
-                        className="px-6 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100 flex items-center gap-2"
+                        className="px-6 py-4 bg-neutral-50 rounded-3xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400 hover:bg-neutral-100 transition border border-neutral-100 flex items-center gap-2"
                       >
                         <span className="material-symbols-outlined text-sm">expand_less</span>
                         {t('profile.collapse')}
@@ -589,7 +606,7 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
           <div>
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-black text-black font-display uppercase tracking-tight">{t('profile.active_programs')}</h2>
-              <Link to="/courses" className="text-[10px] font-black text-accent uppercase tracking-[0.3em] hover:underline">{t('profile.browse_all')}</Link>
+              <Link to="/courses" className="text-[10px] font-black text-accent uppercase tracking-[0.3em] rtl:tracking-normal hover:underline">{t('profile.browse_all')}</Link>
             </div>
 
             {(() => {
@@ -600,8 +617,8 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                 return (
                   <div className="bg-neutral-50 rounded-[2rem] p-10 border border-neutral-100 text-center">
                     <span className="material-symbols-outlined text-4xl text-neutral-300 mb-3 block">menu_book</span>
-                    <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">{t('profile.no_active_programs')}<br />{t('profile.enroll_to_start')}</p>
-                    <Link to="/courses" className="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition">{t('profile.browse_courses')}</Link>
+                    <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest rtl:tracking-normal">{t('profile.no_active_programs')}<br />{t('profile.enroll_to_start')}</p>
+                    <Link to="/courses" className="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-neutral-800 transition">{t('profile.browse_courses')}</Link>
                   </div>
                 );
               }
@@ -631,25 +648,25 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                           <div className="relative h-56 overflow-hidden">
                             <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                            <div className="absolute bottom-6 left-6 flex items-center gap-3">
+                            <div className="absolute bottom-6 start-6 flex items-center gap-3">
                               {coachAvatar && (
                                 <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg">
-                                  <img src={coachAvatar} alt="Coach" className="w-full h-full object-cover" />
+                                  <img src={coachAvatar} alt={t('profile.coach')} className="w-full h-full object-cover" />
                                 </div>
                               )}
-                              <span className="text-[10px] font-black text-white uppercase tracking-widest">{t('profile.coach_label')} {course.instructor.split(' ')[0]}</span>
+                              <span className="text-[10px] font-black text-white uppercase tracking-widest rtl:tracking-normal">{t('app.profile.coach_name', { name: course.instructor.split(' ')[0] })}</span>
                             </div>
                           </div>
                         ) : (
                           <div className="h-24 bg-neutral-900 flex items-center px-10">
-                            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{t('profile.coach_label')} {course.instructor.split(' ')[0]}</span>
+                            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest rtl:tracking-normal">{t('app.profile.coach_name', { name: course.instructor.split(' ')[0] })}</span>
                           </div>
                         )}
                         <div className="p-10 space-y-8">
                           <div>
                             <h3 className="text-2xl font-black text-black uppercase tracking-tight mb-2 font-display">{course.title}</h3>
                             <div className="flex justify-between items-end mb-2">
-                              <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('profile.progress')}</span>
+                              <span className="text-[10px] font-black text-neutral-300 uppercase tracking-widest rtl:tracking-normal">{t('profile.progress')}</span>
                               <span className="text-sm font-black text-black">{progress}%</span>
                             </div>
                             <div className="w-full bg-neutral-50 rounded-full h-2 border border-neutral-100 overflow-hidden">
@@ -657,11 +674,12 @@ const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
                             </div>
                           </div>
                           <div className="flex gap-4">
-                            <Link to={`/workout/${course.id}`} className="flex-[2] text-center bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition shadow-xl">
+                            <Link to={`/workout/${course.id}`} className="flex-[2] text-center bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest rtl:tracking-normal hover:bg-neutral-800 transition shadow-xl">
                               {t('profile.resume')}
                             </Link>
                             <button
                               onClick={() => handleMessageCoach(course.instructor)}
+                              aria-label={t('app.profile.message_coach')}
                               className="flex-1 bg-neutral-50 text-black py-4 rounded-2xl hover:bg-accent hover:text-white transition border border-neutral-100 flex items-center justify-center"
                             >
                               <span className="material-symbols-outlined text-[20px] filled">chat</span>

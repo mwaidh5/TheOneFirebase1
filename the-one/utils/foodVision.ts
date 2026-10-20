@@ -22,8 +22,8 @@ const clampNum = (v: unknown, max: number): number => {
   return Math.round(Math.min(n, max) * 10) / 10;
 };
 
-/** Identify the foods in a meal photo. `base64` must be the raw data, no data: prefix. */
-export async function analyzePlate(base64: string, mimeType: string): Promise<GuessedFood[]> {
+/** Identify the foods in a meal photo. `base64` must be the raw data, no data: prefix. `ar` picks the language of the error messages. */
+export async function analyzePlate(base64: string, mimeType: string, ar = false): Promise<GuessedFood[]> {
   const call = httpsCallable<{ image: string; mimeType: string }, { items?: unknown[] }>(
     getFunctions(getApp(), 'me-central1'), 'analyzeFoodPhoto', { timeout: 60000 },
   );
@@ -33,9 +33,10 @@ export async function analyzePlate(base64: string, mimeType: string): Promise<Gu
     items = Array.isArray(data?.items) ? data.items : [];
   } catch (e) {
     const code = (e as { code?: string }).code ?? '';
-    if (code.endsWith('unauthenticated')) throw new Error('Sign in again to scan food.');
-    if (code.endsWith('resource-exhausted')) throw new Error('The food scanner is busy — try again in a moment.');
-    throw new Error((e as Error).message || 'Could not analyse that photo.');
+    if (code.endsWith('unauthenticated')) throw new Error(ar ? 'سجّل الدخول مجدداً لتحليل الطعام.' : 'Sign in again to scan food.');
+    if (code.endsWith('resource-exhausted')) throw new Error(ar ? 'محلل الطعام مشغول — حاول بعد قليل.' : 'The food scanner is busy — try again in a moment.');
+    // The server's own message is English, so Arabic gets the generic one.
+    throw new Error(ar ? 'تعذّر تحليل الصورة.' : ((e as Error).message || 'Could not analyse that photo.'));
   }
 
   return items
@@ -65,7 +66,7 @@ const MAX_SIDE = 1280;
  * downscaled to at most 1280 px on the long side as a JPEG. Falls back to the
  * original bytes if the browser can't decode it.
  */
-export async function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+export async function fileToBase64(file: File, ar = false): Promise<{ base64: string; mimeType: string }> {
   try {
     const bitmap = await createImageBitmap(file);
     const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
@@ -81,14 +82,14 @@ export async function fileToBase64(file: File): Promise<{ base64: string; mimeTy
     const url = canvas.toDataURL('image/jpeg', 0.82);
     return { base64: url.slice(url.indexOf(',') + 1), mimeType: 'image/jpeg' };
   } catch {
-    return readRaw(file);
+    return readRaw(file, ar);
   }
 }
 
-function readRaw(file: File): Promise<{ base64: string; mimeType: string }> {
+function readRaw(file: File, ar = false): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Could not read that image.'));
+    reader.onerror = () => reject(new Error(ar ? 'تعذّرت قراءة الصورة.' : 'Could not read that image.'));
     reader.onload = () => {
       const url = String(reader.result || '');
       const comma = url.indexOf(',');
