@@ -4,6 +4,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
 import LanguageToggle from './LanguageToggle';
+import UpdateBanner from './UpdateBanner';
 import ErrorBoundary from './ErrorBoundary';
 import { Capacitor } from '@capacitor/core';
 import { User } from '../types';
@@ -71,6 +72,7 @@ const AppShell: React.FC<AppShellProps> = ({
         </div>
         <main className="flex-grow flex flex-col"><ErrorBoundary key={path}>{children}</ErrorBoundary></main>
         <Footer logo={logo} />
+        <UpdateBanner bottom="1.25rem" />
       </div>
     );
   }
@@ -144,6 +146,8 @@ const AppShell: React.FC<AppShellProps> = ({
 
       {showFooter && <Footer logo={logo} />}
       {showBottomNav && <BottomNav isLoggedIn={isLoggedIn} currentUser={currentUser} />}
+      {/* Sits just above the tab bar (h-16 plus the raised centre button). */}
+      <UpdateBanner bottom={showBottomNav ? 'calc(5.75rem + env(safe-area-inset-bottom))' : 'calc(1rem + env(safe-area-inset-bottom))'} />
     </div>
   );
 };

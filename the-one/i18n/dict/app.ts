@@ -244,4 +244,6 @@ export const appTranslations = {
   'app.error.title': { en: 'Something went wrong', ar: 'حدث خطأ ما' },
   'app.error.body': { en: 'This screen hit an error. Your progress is saved — try again, or head back home.', ar: 'واجهت هذه الشاشة خطأً. تقدّمك محفوظ — حاول مجدداً أو عُد إلى الرئيسية.' },
   'app.error.try_again': { en: 'Try again', ar: 'حاول مجدداً' },
+  'app.update.ready': { en: 'A new version is ready', ar: 'يتوفر إصدار جديد' },
+  'app.update.refresh': { en: 'Refresh', ar: 'تحديث' },
 } as const;
