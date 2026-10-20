@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { createHashRouter, RouterProvider, Routes, Route, Navigate } from 'react-router-dom';
 import { collection, onSnapshot, setDoc, doc, updateDoc, deleteDoc, query } from 'firebase/firestore';
 import { db } from './firebase';
 import { useNotifications } from './hooks/useNotifications';
@@ -63,6 +63,14 @@ import SupportCourseCatalog from './pages/support/CourseCatalog';
 import SupportDiagnosticLogic from './pages/support/DiagnosticLogic';
 import { User, UserRole, MediaAsset, Course, ExerciseTemplate, WorkoutTemplate, MealPlan as MealPlanType } from './types';
 import { I18nProvider } from './i18n/I18nContext';
+
+// A data router is what lets an editor stop a navigation (useBlocker) to warn
+// about unsaved changes. Routes are still declared in App's JSX below: the one
+// catch-all route renders that tree, handed over through context so it keeps
+// App's state. Same hash URLs as the HashRouter this replaces.
+const AppTree = React.createContext<React.ReactNode>(null);
+const RouterRoot: React.FC = () => <>{React.useContext(AppTree)}</>;
+const router = createHashRouter([{ path: '*', element: <RouterRoot /> }]);
 
 const App: React.FC = () => {
   // PERSIST CURRENT USER (Auth is still local for session)
@@ -177,7 +185,7 @@ const App: React.FC = () => {
 
   return (
     <I18nProvider>
-    <Router>
+    <AppTree.Provider value={
       <AppShell
         isLoggedIn={isLoggedIn}
         currentUser={currentUser}
@@ -267,7 +275,9 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
       </AppShell>
-    </Router>
+    }>
+      <RouterProvider router={router} />
+    </AppTree.Provider>
     </I18nProvider>
   );
 };

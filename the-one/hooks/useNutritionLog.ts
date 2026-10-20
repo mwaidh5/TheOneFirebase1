@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { doc, collection, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, collection, onSnapshot, setDoc, deleteDoc, query, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Food, Macros } from '../utils/foodDb';
 
@@ -134,6 +134,28 @@ export function useNutritionLog(uid: string | undefined, date: Date) {
   };
 
   return { mode, setMode, planEaten, togglePlanMeal, entries, addEntry, removeEntry, updateEntry, absorbPlanTicks, loading };
+}
+
+export interface DayLog { date: string; entries: LogEntry[] }
+
+/**
+ * The most recent logged days (newest first), for "recent foods" and "same as
+ * yesterday's lunch". Day docs are keyed YYYY-MM-DD, so ordering by id is
+ * ordering by date.
+ */
+export function useFoodHistory(uid: string | undefined, days = 30) {
+  const [history, setHistory] = useState<DayLog[]>([]);
+  useEffect(() => {
+    if (!uid) { setHistory([]); return; }
+    const q = query(collection(db, 'users', uid, 'nutrition_log'), orderBy(documentId(), 'desc'), limit(days));
+    const unsub = onSnapshot(q, (snap) => {
+      setHistory(snap.docs
+        .map(d => ({ date: d.id, entries: ((d.data() as { entries?: LogEntry[] }).entries ?? []) }))
+        .filter(d => d.entries.length > 0));
+    }, () => setHistory([]));
+    return () => unsub();
+  }, [uid, days]);
+  return history;
 }
 
 /**

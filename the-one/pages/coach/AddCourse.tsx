@@ -6,6 +6,7 @@ import { db, auth } from '../../firebase';
 import { Course, Exercise, WeekProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, User } from '../../types';
 import AICourseGenerator from '../../components/AICourseGenerator';
 import CourseWeekBoard from '../../components/CourseWeekBoard';
+import { useUnsavedChanges, UnsavedChangesDialog } from '../../hooks/useUnsavedChanges';
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -46,11 +47,17 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const [activeTab, setActiveTab] = useState<'settings' | 'workouts' | 'nutrition'>('workouts');
   const [isPickerOpen, setIsPickerOpen] = useState<{ type: 'exercise' | 'workout' | 'meal' | 'media', activeExIdx: number | null, activeField?: 'imageUrl' | 'videoUrl' }>({ type: 'exercise', activeExIdx: null });
   const [isAIOpen, setIsAIOpen] = useState(false);
+  // Warn before leaving with edits that were never published.
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const unsaved = useUnsavedChanges({ courseData, weeks, attachedMealPlan }, loadedId);
 
   useEffect(() => {
     if (isEdit) {
       const existing = courses.find(c => c.id === id);
-      if (existing) {
+      // Load once per course: `courses` is a live snapshot, and re-filling the
+      // form on every change to any course would wipe edits in progress.
+      if (existing && loadedId !== id) {
+        setLoadedId(id ?? null);
         setCourseData({
           id: existing.id,
           title: existing.title,
@@ -289,6 +296,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
     try {
         console.log("Attempting to save course to Firestore:", finalCourse);
         await setDoc(doc(db, 'courses', finalCourse.id), finalCourse);
+        unsaved.markSaved();
         navigate(-1);
     } catch (error: any) {
         console.error("CRITICAL ERROR: Failed to save course to Firebase:", error);
@@ -300,6 +308,7 @@ const CoachAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 md:space-y-12 pb-24 text-left animate-in fade-in duration-500 px-4 md:px-0">
+      <UnsavedChangesDialog blocker={unsaved.blocker} onSave={handlePublish} saveLabel="Publish now" saveNavigates />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-neutral-400 hover:text-black text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"><span className="material-symbols-outlined text-base">arrow_back</span> Back</button>
