@@ -4,6 +4,7 @@ import { setDoc, doc, deleteDoc, onSnapshot, collection } from 'firebase/firesto
 import { db } from '../../firebase';
 import { CustomDiscipline } from '../../types';
 import { COACHES } from '../../constants';
+import { useT } from '../../i18n/I18nContext';
 
 interface SiteSettings {
   logo: string;
@@ -20,6 +21,7 @@ interface AdminSiteSettingsProps {
 }
 
 const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, setSiteSettings, library }) => {
+  const { t } = useT();
   const [localSettings, setLocalSettings] = useState<SiteSettings>(siteSettings);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -58,13 +60,13 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert(`Failed to save site settings: ${(error as Error).message}`);
+      alert(t('admin.settings.save_failed', { error: (error as Error).message }));
       setSaveStatus('idle');
     }
   };
 
   const purgeCache = async () => {
-    if (window.confirm("Purge all system cache? This will force-reload all assets, clear local storage, and terminate active sessions.")) {
+    if (window.confirm(t('admin.settings.confirm_purge'))) {
       setIsPurging(true);
       
       try {
@@ -84,30 +86,30 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
           
           setTimeout(() => {
             setIsPurging(false);
-            alert("Cache purged successfully. The application will now reload.");
+            alert(t('admin.settings.purge_success'));
             window.location.reload();
           }, 1500);
       } catch (e) {
           console.error("Cache purge failed", e);
           setIsPurging(false);
-          alert("Failed to purge complete cache.");
+          alert(t('admin.settings.purge_failed'));
       }
     }
   };
 
   return (
-    <div className="space-y-12 pb-40 text-left relative animate-in fade-in duration-500">
+    <div className="space-y-12 pb-40 text-start relative animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Platform Infrastructure</h1>
-          <p className="text-neutral-400 font-medium">Control global assets and system performance.</p>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('admin.settings.title')}</h1>
+          <p className="text-neutral-400 font-medium">{t('admin.settings.subtitle')}</p>
         </div>
         <button 
           onClick={handleSave}
           className="px-10 py-5 bg-black text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-accent transition shadow-xl disabled:opacity-50"
           disabled={saveStatus === 'saving'}
         >
-          {saveStatus === 'saving' ? 'Updating Ledger...' : saveStatus === 'saved' ? 'Success' : 'Authorize Changes'}
+          {saveStatus === 'saving' ? t('admin.settings.updating') : saveStatus === 'saved' ? t('admin.settings.success') : t('admin.settings.authorize')}
         </button>
       </div>
 
@@ -117,26 +119,26 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
           {/* Global Brand Assets Section */}
           <section className="bg-white p-10 rounded-[3rem] border border-neutral-100 shadow-2xl space-y-10">
             <h2 className="text-2xl font-black font-display uppercase tracking-tight flex items-center gap-3">
-              <span className="material-symbols-outlined text-accent">palette</span> Global Brand Assets
+              <span className="material-symbols-outlined text-accent">palette</span> {t('admin.settings.brand_assets')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Site Logo</label>
+                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ms-1">{t('admin.settings.site_logo')}</label>
                   <div 
                     onClick={() => openPicker('logo')}
                     className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 flex items-center justify-center relative group cursor-pointer overflow-hidden transition hover:border-black"
                   >
-                    {localSettings.logo ? <img src={localSettings.logo} className="max-w-[70%] max-h-[70%] object-contain" alt="Logo" /> : <span className="material-symbols-outlined text-4xl text-neutral-200">add_circle</span>}
+                    {localSettings.logo ? <img src={localSettings.logo} className="max-w-[70%] max-h-[70%] object-contain" alt={t('admin.settings.logo_alt')} /> : <span className="material-symbols-outlined text-4xl text-neutral-200">add_circle</span>}
                   </div>
                </div>
                <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Primary Hero Backdrop</label>
+                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ms-1">{t('admin.settings.hero_backdrop')}</label>
                   <div 
                     onClick={() => openPicker('heroImage')}
                     className="block w-full h-48 rounded-[2rem] border-2 border-dashed border-neutral-100 bg-neutral-50 overflow-hidden relative group cursor-pointer transition hover:border-black"
                   >
                     {localSettings.heroImage ? (
-                        <img src={localSettings.heroImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Hero" />
+                        <img src={localSettings.heroImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={t('admin.settings.hero_alt')} />
                     ) : (
                         <span className="material-symbols-outlined text-4xl text-neutral-200">add_photo_alternate</span>
                     )}
@@ -145,7 +147,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
             </div>
             
             <div className="space-y-4">
-               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ml-1">Hero Headline</label>
+               <label className="text-[10px] font-black uppercase text-neutral-400 tracking-widest ms-1">{t('admin.settings.hero_headline')}</label>
                <input 
                  type="text" 
                  value={localSettings.heroHeadline}
@@ -160,16 +162,16 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
           <section className="bg-white p-8 rounded-[3rem] border border-neutral-100 shadow-2xl space-y-8">
             <div className="space-y-1">
               <h2 className="text-lg font-black font-display uppercase tracking-tight flex items-center gap-3 text-black">
-                <span className="material-symbols-outlined text-accent filled">speed</span> System Performance
+                <span className="material-symbols-outlined text-accent filled">speed</span> {t('admin.settings.performance')}
               </h2>
-              <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Manage application-level buffers.</p>
+              <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{t('admin.settings.performance_sub')}</p>
             </div>
 
             <div className="space-y-6">
                <div className="p-6 bg-neutral-50 rounded-2xl border border-neutral-100 flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Current Cache Size</p>
-                    <p className="text-xl font-black text-black">{cacheSize}</p>
+                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">{t('admin.settings.cache_size')}</p>
+                    <p className="text-xl font-black text-black" dir="ltr">{cacheSize}</p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-accent">
                      <span className="material-symbols-outlined">storage</span>
@@ -182,9 +184,9 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                   className="w-full py-4 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition flex items-center justify-center gap-2 border border-red-100"
                >
                   {isPurging ? (
-                     <><div className="w-3 h-3 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></div> Flushing Data...</>
+                     <><div className="w-3 h-3 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></div> {t('admin.settings.flushing')}</>
                   ) : (
-                     <><span className="material-symbols-outlined text-sm">delete_sweep</span> Purge System Cache</>
+                     <><span className="material-symbols-outlined text-sm">delete_sweep</span> {t('admin.settings.purge_cache')}</>
                   )}
                </button>
             </div>
@@ -192,13 +194,13 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
 
           <section className="bg-neutral-900 p-8 rounded-[3rem] shadow-2xl space-y-6 text-white overflow-hidden relative">
              <div className="relative z-10 space-y-4">
-                <h3 className="text-xl font-black font-display uppercase tracking-tight">Sync Status</h3>
+                <h3 className="text-xl font-black font-display uppercase tracking-tight">{t('admin.settings.sync_status')}</h3>
                 <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/10">
                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-neutral-300">Cloud Node Active</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-neutral-300">{t('admin.settings.cloud_active')}</p>
                 </div>
              </div>
-             <span className="material-symbols-outlined text-[100px] absolute -bottom-6 -right-6 text-white/5 -rotate-12">sync</span>
+             <span className="material-symbols-outlined text-[100px] absolute -bottom-6 -end-6 text-white/5 -rotate-12">sync</span>
           </section>
         </div>
       </div>
@@ -206,12 +208,12 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
       {isPickerOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]">
-            <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-left">
+            <div className="p-10 border-b border-neutral-100 flex justify-between items-center bg-neutral-50/50 text-start">
               <div>
-                <h3 className="text-3xl font-black font-display uppercase tracking-tight">Gallery Logic</h3>
-                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">Select an internal asset to deploy.</p>
+                <h3 className="text-3xl font-black font-display uppercase tracking-tight">{t('admin.settings.gallery')}</h3>
+                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">{t('admin.settings.gallery_sub')}</p>
               </div>
-              <button onClick={() => setIsPickerOpen(false)} className="w-14 h-14 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
+              <button onClick={() => setIsPickerOpen(false)} aria-label={t('common.close')} className="w-14 h-14 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center hover:bg-black hover:text-white transition shadow-sm">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -223,7 +225,7 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ siteSettings, set
                   className="group relative aspect-square rounded-[2rem] overflow-hidden border border-neutral-100 bg-neutral-50 cursor-pointer hover:ring-4 hover:ring-accent transition shadow-xl"
                 >
                   <img src={asset.data} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={asset.name} />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[9px] font-black uppercase text-white bg-accent px-4 py-2 rounded-full">Apply</span></div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span className="text-[9px] font-black uppercase text-white bg-accent px-4 py-2 rounded-full">{t('admin.settings.apply')}</span></div>
                 </div>
               ))}
             </div>
