@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DiagnosticTest, CustomDiscipline } from '../../types';
 import { CUSTOM_DISCIPLINES, MOCK_COACH_USER } from '../../constants';
+import { useT } from '../../i18n/I18nContext';
 
 const Dropdown: React.FC<{
   value: string;
@@ -26,7 +27,7 @@ const Dropdown: React.FC<{
 
   return (
     <div className="space-y-1 relative" ref={dropdownRef}>
-      <label className="text-[9px] font-black text-neutral-300 uppercase ml-1">{label}</label>
+      <label className="text-[9px] font-black text-neutral-300 uppercase ms-1">{label}</label>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -52,7 +53,7 @@ const Dropdown: React.FC<{
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-neutral-50 transition-colors ${
+              className={`w-full text-start px-4 py-3 flex items-center gap-3 hover:bg-neutral-50 transition-colors ${
                 value === opt.value ? 'bg-neutral-50' : ''
               }`}
             >
@@ -62,7 +63,7 @@ const Dropdown: React.FC<{
               <span className={`text-[10px] font-black uppercase tracking-widest ${value === opt.value ? 'text-accent' : 'text-neutral-500'}`}>
                 {opt.label}
               </span>
-              {value === opt.value && <span className="material-symbols-outlined ml-auto text-accent text-sm">check</span>}
+              {value === opt.value && <span className="material-symbols-outlined ms-auto text-accent text-sm">check</span>}
             </button>
           ))}
         </div>
@@ -72,6 +73,7 @@ const Dropdown: React.FC<{
 };
 
 const CoachGlobalQuestions: React.FC = () => {
+  const { t } = useT();
   // Coach manages test templates for their assigned GAMES (Disciplines)
   const [assignedGames, setAssignedGames] = useState<CustomDiscipline[]>(
     CUSTOM_DISCIPLINES.filter(d => d.assignedCoachId === MOCK_COACH_USER.id)
@@ -85,7 +87,7 @@ const CoachGlobalQuestions: React.FC = () => {
       if (g.id === gameId) {
         return {
           ...g,
-          diagnostics: [...(g.diagnostics || []), { id: Math.random().toString(), title: 'New Master Test', instruction: '', inputType: 'TEXT', required: true }]
+          diagnostics: [...(g.diagnostics || []), { id: Math.random().toString(), title: t('coach.questions.new_test_default'), instruction: '', inputType: 'TEXT', required: true }]
         };
       }
       return g;
@@ -114,42 +116,42 @@ const CoachGlobalQuestions: React.FC = () => {
   };
 
   const saveMasterDiagnostics = () => {
-    alert(`Master diagnostics for "${activeGame?.name}" committed to global catalog. All future purchasers of this track will receive these requirements.`);
+    alert(t('coach.questions.saved_alert', { name: activeGame?.name ?? '' }));
   };
 
   const inputOptions = [
-    { label: 'Text Input', value: 'TEXT', icon: 'notes' },
-    { label: 'Video Capture', value: 'VIDEO', icon: 'videocam' },
-    { label: 'Photo Upload', value: 'IMAGE', icon: 'photo_camera' }
+    { label: t('coach.questions.input_text'), value: 'TEXT', icon: 'notes' },
+    { label: t('coach.questions.input_video'), value: 'VIDEO', icon: 'videocam' },
+    { label: t('coach.questions.input_photo'), value: 'IMAGE', icon: 'photo_camera' }
   ];
 
   return (
-    <div className="space-y-12 text-left animate-in fade-in duration-500 pb-40">
+    <div className="space-y-12 text-start animate-in fade-in duration-500 pb-40">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Master Diagnostics</h1>
-          <p className="text-neutral-400 font-medium">Engineer the assessment logic for the games assigned to your coaching roster.</p>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('coach.questions.title')}</h1>
+          <p className="text-neutral-400 font-medium">{t('coach.questions.subtitle')}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Discipline Selection */}
         <div className="lg:col-span-4 space-y-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300 ml-5">Assigned Games</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300 ms-5">{t('coach.questions.assigned_games')}</p>
           {assignedGames.map(game => (
             <button 
               key={game.id} 
               onClick={() => setActiveGameId(game.id)}
-              className={`w-full text-left p-8 rounded-[2.5rem] border transition flex justify-between items-center ${activeGameId === game.id ? 'bg-black text-white border-black shadow-2xl' : 'bg-white border-neutral-100 hover:border-black hover:shadow-xl text-neutral-400 hover:text-black'}`}
+              className={`w-full text-start p-8 rounded-[2.5rem] border transition flex justify-between items-center ${activeGameId === game.id ? 'bg-black text-white border-black shadow-2xl' : 'bg-white border-neutral-100 hover:border-black hover:shadow-xl text-neutral-400 hover:text-black'}`}
             >
               <div className="flex items-center gap-4">
                 <span className={`material-symbols-outlined text-2xl ${activeGameId === game.id ? 'text-accent' : 'text-neutral-200'}`}>{game.icon}</span>
                 <div className="space-y-1">
                   <p className={`text-lg font-black uppercase tracking-tight leading-none ${activeGameId === game.id ? 'text-white' : 'text-black'}`}>{game.name}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{game.diagnostics?.length || 0} Test Vectors</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{t('coach.questions.test_count', { n: game.diagnostics?.length || 0 })}</p>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-xl">{activeGameId === game.id ? 'done_all' : 'chevron_right'}</span>
+              <span className={`material-symbols-outlined text-xl ${activeGameId === game.id ? '' : 'rtl:rotate-180'}`}>{activeGameId === game.id ? 'done_all' : 'chevron_right'}</span>
             </button>
           ))}
         </div>
@@ -158,14 +160,14 @@ const CoachGlobalQuestions: React.FC = () => {
         <div className="lg:col-span-8">
            {activeGame ? (
              <div className="bg-white rounded-[3.5rem] p-12 border border-neutral-100 shadow-2xl space-y-12 animate-in slide-in-from-right-4 duration-500">
-                <div className="flex justify-between items-end border-b border-neutral-50 pb-8 text-left">
+                <div className="flex justify-between items-end border-b border-neutral-50 pb-8 text-start">
                    <div className="space-y-4">
-                      <span className="px-4 py-1.5 bg-accent/10 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest">Logic Source: {activeGame.name}</span>
-                      <h2 className="text-4xl font-black text-black uppercase font-display leading-none tracking-tight">Requirement Logic</h2>
+                      <span className="px-4 py-1.5 bg-accent/10 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest">{t('coach.questions.logic_source', { name: activeGame.name })}</span>
+                      <h2 className="text-4xl font-black text-black uppercase font-display leading-none tracking-tight">{t('coach.questions.requirement_logic')}</h2>
                    </div>
                    <div className="flex gap-4">
-                      <button onClick={() => addTest(activeGame.id)} className="px-8 py-4 bg-neutral-50 text-black border border-neutral-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition shadow-sm">Add Test Block</button>
-                      <button onClick={saveMasterDiagnostics} className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-neutral-800 transition">Push to Catalog</button>
+                      <button onClick={() => addTest(activeGame.id)} className="px-8 py-4 bg-neutral-50 text-black border border-neutral-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition shadow-sm">{t('coach.questions.add_test')}</button>
+                      <button onClick={saveMasterDiagnostics} className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-neutral-800 transition">{t('coach.questions.push_catalog')}</button>
                    </div>
                 </div>
 
@@ -174,35 +176,36 @@ const CoachGlobalQuestions: React.FC = () => {
                       <div key={test.id} className="p-10 bg-neutral-50 rounded-[3rem] border border-neutral-100 space-y-10 relative group shadow-sm hover:border-black transition">
                          <button 
                            onClick={() => removeTest(activeGame.id, test.id)}
-                           className="absolute top-8 right-8 text-neutral-300 hover:text-red-500 transition-colors"
+                           aria-label={t('common.delete')}
+                           className="absolute top-8 end-8 text-neutral-300 hover:text-red-500 transition-colors"
                          >
                             <span className="material-symbols-outlined">delete</span>
                          </button>
                          
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-left">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-start">
                             <div className="space-y-6">
                                <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-neutral-300 uppercase tracking-widest ml-1">Requirement Descriptor</label>
+                                  <label className="text-[10px] font-black text-neutral-300 uppercase tracking-widest ms-1">{t('coach.questions.descriptor')}</label>
                                   <input 
                                     type="text" value={test.title} 
                                     onChange={e => updateTest(activeGame.id, test.id, 'title', e.target.value)} 
-                                    placeholder="e.g. Aerobic Threshold Assessment"
+                                    placeholder={t('coach.questions.descriptor_placeholder')}
                                     className="w-full bg-white border border-neutral-100 rounded-2xl p-5 font-black uppercase text-sm outline-none focus:border-black" 
                                   />
                                </div>
                                <Dropdown 
-                                  label="Required Input Strategy"
+                                  label={t('coach.questions.input_strategy')}
                                   value={test.inputType}
                                   options={inputOptions}
                                   onChange={(val) => updateTest(activeGame.id, test.id, 'inputType', val as any)}
                                />
                             </div>
                             <div className="space-y-2">
-                               <label className="text-[10px] font-black text-neutral-300 uppercase tracking-widest ml-1">Athlete Directives</label>
+                               <label className="text-[10px] font-black text-neutral-300 uppercase tracking-widest ms-1">{t('coach.questions.directives')}</label>
                                <textarea 
                                  rows={6} value={test.instruction} 
                                  onChange={e => updateTest(activeGame.id, test.id, 'instruction', e.target.value)} 
-                                 placeholder="Explicit instructions on how to perform and record the test..." 
+                                 placeholder={t('coach.questions.directives_placeholder')} 
                                  className="w-full bg-white border border-neutral-100 rounded-3xl p-6 text-sm font-medium resize-none outline-none focus:border-black shadow-inner" 
                                />
                             </div>
@@ -212,7 +215,7 @@ const CoachGlobalQuestions: React.FC = () => {
                    {(!activeGame.diagnostics || activeGame.diagnostics.length === 0) && (
                      <div className="py-32 text-center border-2 border-dashed border-neutral-100 rounded-[3.5rem] text-neutral-200">
                         <span className="material-symbols-outlined text-6xl mb-4">analytics</span>
-                        <p className="font-black uppercase tracking-widest text-xs">Awaiting Master Test Vector Creation</p>
+                        <p className="font-black uppercase tracking-widest text-xs">{t('coach.questions.empty_tests')}</p>
                      </div>
                    )}
                 </div>
@@ -220,7 +223,7 @@ const CoachGlobalQuestions: React.FC = () => {
            ) : (
              <div className="h-full flex flex-col items-center justify-center text-neutral-100 py-48">
                 <span className="material-symbols-outlined text-[120px] mb-6 opacity-20">shield_person</span>
-                <p className="font-black uppercase tracking-widest text-sm opacity-50">Select an Assigned Game track to manage its Master Intelligence Tests</p>
+                <p className="font-black uppercase tracking-widest text-sm opacity-50">{t('coach.questions.select_game')}</p>
              </div>
            )}
         </div>
