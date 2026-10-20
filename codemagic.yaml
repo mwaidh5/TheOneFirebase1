@@ -2,31 +2,21 @@
 # The web app lives in the-one/ and the iOS project in the-one/ios/App.
 # Docs: https://docs.codemagic.io/yaml-quick-start/building-a-capacitor-app/
 #
-# Builds are DELIBERATE, not automatic. Merging a PR no longer spends a build;
-# a build starts only when a tag is pushed:
+# Builds are MANUAL ONLY: nothing on GitHub (pushes, PRs, merges, tags)
+# starts one. Run "Start new build" for ios-testflight in the Codemagic UI
+# when a build is actually needed.
 #
-#     git tag build-$(date +%Y%m%d-%H%M) && git push origin --tags
-#
-# (any `build-*` or `v*` tag works, as does "Start new build" in the Codemagic
-# UI). The app bundles its web assets (capacitor webDir: dist), so a build is
-# what carries ANY change — web or native — onto the phone.
-#
-# Requires the GitHub -> Codemagic webhook (api.codemagic.io/hooks/...) on the repo.
+# The app loads the live site (capacitor.config.ts server.url), so web changes
+# reach phones as soon as a merge to main deploys Firebase Hosting — no build.
+# A build is needed only for native changes: Capacitor plugins, Info.plist,
+# Swift code (the Live Activity widget, custom plugins), app icon/splash, or
+# capacitor.config.ts itself.
 workflows:
   ios-testflight:
     name: iOS – TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
-    # Tag-triggered only — see the note at the top of this file.
-    triggering:
-      events:
-        - tag
-      tag_patterns:
-        - pattern: 'build-*'
-          include: true
-        - pattern: 'v*'
-          include: true
-      cancel_previous_builds: true
+    # No `triggering` block: the workflow only runs when started by hand.
     integrations:
       # Must match the App Store Connect API key integration name in
       # Codemagic → Team settings → Integrations → App Store Connect.
