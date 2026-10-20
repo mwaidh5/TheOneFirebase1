@@ -4,7 +4,7 @@ import type { TranslationKey } from '../i18n/translations';
 import type { User } from '../types';
 import FoodLogSheet, { type RecommendedMeal } from '../components/FoodLogSheet';
 import {
-  useNutritionLog, useCustomFoods, SLOTS, dateKey,
+  useNutritionLog, useCustomFoods, useFoodHistory, SLOTS, dateKey,
   type DayMode, type MealSlot, type LogEntry,
 } from '../hooks/useNutritionLog';
 import { useGroceryList, planItemKey, customItemKey } from '../hooks/useGroceryList';
@@ -99,6 +99,20 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
   const [newGrocery, setNewGrocery] = useState('');
   const [logSlot, setLogSlot] = useState<MealSlot | null>(null);
   const [recents, setRecents] = useState<LogEntry[]>(() => readRecents());
+  const history = useFoodHistory(uid);
+  // Everything logged lately, newest first, one row per food. The day docs are
+  // the source; the device list only fills in before they load.
+  const allRecents = (() => {
+    const seen = new Set<string>();
+    return [...entries, ...history.flatMap(d => d.entries), ...recents]
+      .sort((a, b) => (b.loggedAt || 0) - (a.loggedAt || 0))
+      .filter(e => {
+        const k = e.name.trim().toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+  })();
 
   const plan = planFor(mode);
   const target = {
@@ -388,7 +402,9 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
           recommended={recommended}
           loggedFoodIds={loggedFoodIds}
           customFoods={customFoods}
-          recents={recents}
+          recents={allRecents}
+          previousDays={history.filter(d => d.date < dateKey(selectedDate))}
+          dayKey={dateKey(selectedDate)}
           ar={ar}
           onAdd={handleAdd}
           onSaveCustom={saveFood}

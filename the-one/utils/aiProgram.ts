@@ -117,11 +117,13 @@ function reattach(weeks: WeekProgram[], current: WeekProgram[]): WeekProgram[] {
       days: w.days.map(d => {
         const oldDay = oldWeek?.days?.find(o => o.dayNumber === d.dayNumber);
         const pool = [...(oldDay?.exercises ?? [])];
+        // A day the model wrote (its exercises have no ids yet) gets its superset labels checked.
+        const written = (d.exercises ?? []).some(ex => !ex.id);
         return {
           ...d,
           id: d.id || oldDay?.id || newId('d'),
           title: d.title || '',
-          exercises: (d.exercises ?? []).map(ex => {
+          exercises: (written ? labelSupersets(d.exercises ?? []) : (d.exercises ?? [])).map(ex => {
             if (ex.id) return ex;
             const at = pool.findIndex(o => norm(o.name) === norm(ex.name));
             const same = at >= 0 ? pool.splice(at, 1)[0] : undefined;
@@ -136,6 +138,28 @@ function reattach(weeks: WeekProgram[], current: WeekProgram[]): WeekProgram[] {
       }),
     };
   });
+}
+
+/**
+ * The workout screen groups back-to-back SUPER_SET exercises by supersetId, so
+ * a superset without a label merges with the one next to it. Within a run of
+ * SUPER_SET exercises, one missing a label joins the exercise before it; a run
+ * with no labels at all becomes one group with the next free letter.
+ */
+export function labelSupersets(exercises: Exercise[]): Exercise[] {
+  const used = new Set(exercises.map(e => e.supersetId).filter(Boolean) as string[]);
+  const nextLetter = () => {
+    for (let c = 65; c < 91; c++) { const l = String.fromCharCode(c); if (!used.has(l)) { used.add(l); return l; } }
+    return `S${used.size + 1}`;
+  };
+  const out = exercises.map(e => ({ ...e }));
+  for (let i = 0; i < out.length; i++) {
+    const ex = out[i];
+    if (ex.format !== 'SUPER_SET' || ex.supersetId) continue;
+    const prev = out[i - 1];
+    ex.supersetId = prev?.format === 'SUPER_SET' && prev.supersetId ? prev.supersetId : nextLetter();
+  }
+  return out;
 }
 
 /** Rough live progress from the streamed JSON text: exercises and the week being written. */

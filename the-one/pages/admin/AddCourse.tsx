@@ -138,6 +138,7 @@ import { setDoc, doc, getDoc, collection, getDocs, query, where, updateDoc, arra
 import { Course, Exercise, WeekProgram, DayProgram, MealPlan, CourseLevel, MediaAsset, ExerciseTemplate, WorkoutTemplate, UserRole, User } from '../../types';
 import AICourseGenerator from '../../components/AICourseGenerator';
 import CourseWeekBoard from '../../components/CourseWeekBoard';
+import { useUnsavedChanges, UnsavedChangesDialog } from '../../hooks/useUnsavedChanges';
 
 interface AddCourseProps {
   library: MediaAsset[];
@@ -184,6 +185,10 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   const [coaches, setCoaches] = useState<User[]>([]);
   const [clients, setClients] = useState<User[]>([]);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  // Warn before leaving with edits that were never deployed.
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  // instructor is filled in from the coach list once it loads — not an edit.
+  const unsaved = useUnsavedChanges({ courseData: { ...courseData, instructor: undefined }, weeks, attachedMealPlan }, loadedId);
 
 
   useEffect(() => {
@@ -208,7 +213,10 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
   useEffect(() => {
     if (isEdit) {
       const existing = courses.find(c => c.id === id);
-      if (existing) {
+      // Load once per course: `courses` is a live snapshot, and re-filling the
+      // form on every change to any course would wipe edits in progress.
+      if (existing && loadedId !== id) {
+        setLoadedId(id ?? null);
         setCourseData({
           id: existing.id,
           title: existing.title,
@@ -389,6 +397,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
             alert("System Course Published to Database");
         }
         
+        unsaved.markSaved();
         navigate('/admin/courses');
     } catch (error: any) {
         console.error("Error publishing course: ", error);
@@ -432,6 +441,7 @@ const AdminAddCourse: React.FC<AddCourseProps> = ({ library, courses, exerciseLi
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 md:space-y-12 pb-24 text-left animate-in fade-in duration-500 px-4 md:px-0">
+      <UnsavedChangesDialog blocker={unsaved.blocker} onSave={handlePublish} saveLabel="Deploy now" saveNavigates />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4">
           <button onClick={() => navigate('/admin/courses')} className="flex items-center gap-2 text-neutral-400 hover:text-black text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"><span className="material-symbols-outlined text-base">arrow_back</span> Back</button>

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { searchFoods, lookupBarcode, macrosFor, unitsFor, type Food, type Unit, type Macros } from '../utils/foodDb';
 import { searchCommonFoods } from '../utils/commonFoods';
 import { analyzePlate, fileToBase64, type GuessedFood } from '../utils/foodVision';
-import { SLOTS, type LogEntry, type MealSlot } from '../hooks/useNutritionLog';
+import { SLOTS, type DayLog, type LogEntry, type MealSlot } from '../hooks/useNutritionLog';
 import BarcodeScanner from './BarcodeScanner';
 
 type Tab = 'search' | 'barcode' | 'photo' | 'custom';
@@ -22,7 +22,12 @@ interface Props {
   /** foodIds already logged today, so a recommended meal shows as done. */
   loggedFoodIds?: Set<string>;
   customFoods: Food[];
+  /** Foods logged lately, newest first, one per food. */
   recents: LogEntry[];
+  /** Logged days before the one being logged, newest first — for "same as yesterday's lunch". */
+  previousDays?: DayLog[];
+  /** YYYY-MM-DD of the day being logged. */
+  dayKey?: string;
   ar: boolean;
   onAdd: (entry: LogEntry) => void;
   onSaveCustom: (food: Omit<Food, 'id' | 'source'>) => Promise<Food>;
@@ -58,9 +63,33 @@ function unitLabelFor(unit: Unit, qty: number, ar: boolean): string {
   return qty !== 1 && !NO_PLURAL.includes(unit.label) && !unit.label.endsWith('s') ? `${unit.label}s` : unit.label;
 }
 
+/** The most recent earlier day that has something logged in this meal. */
+function previousMeal(days: DayLog[], slot: MealSlot): { date: string; entries: LogEntry[] } | null {
+  for (const d of days) {
+    const entries = d.entries.filter(e => e.slot === slot);
+    if (entries.length > 0) return { date: d.date, entries };
+  }
+  return null;
+}
+
+/** "yesterday" / "Monday" / "12 Oct", relative to the day being logged. */
+function dayLabel(date: string, dayKey: string | undefined, ar: boolean): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const then = new Date(y, m - 1, d);
+  const base = dayKey ? (() => { const [by, bm, bd] = dayKey.split('-').map(Number); return new Date(by, bm - 1, bd); })() : new Date();
+  const daysAgo = Math.round((base.getTime() - then.getTime()) / 86_400_000);
+  if (daysAgo === 1) return ar ? 'أمس' : 'yesterday';
+  const locale = ar ? 'ar' : 'en-GB';
+  if (daysAgo > 1 && daysAgo < 7) {
+    const wd = then.toLocaleDateString(locale, { weekday: 'long' });
+    return ar ? `يوم ${wd}` : wd;
+  }
+  return then.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+}
+
 const blankCustom = { name: '', brand: '', barcode: '', kcal: '', protein: '', carbs: '', fat: '', fiber: '', unitName: '', unitGrams: '' };
 
-const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, customFoods, recents, ar, onAdd, onSaveCustom, onClose }) => {
+const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, customFoods, recents, previousDays = [], dayKey, ar, onAdd, onSaveCustom, onClose }) => {
   const [tab, setTab] = useState<Tab>('search');
   const [targetSlot, setTargetSlot] = useState<MealSlot>(slot);
   const [busy, setBusy] = useState(false);
@@ -93,6 +122,9 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
   };
   const [qty, setQty] = useState('1');
   const [unitIdx, setUnitIdx] = useState(0);
+  // How much of the history lists is showing; "Show more" grows them.
+  const [recentShown, setRecentShown] = useState(6);
+  const [mineShown, setMineShown] = useState(4);
 
   // Opening a food picks its most natural portion: 1 egg, 1 scoop, 1 serving —
   // and only falls back to 100 g when the food has no real unit of its own.
@@ -360,6 +392,41 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                 {busy && <span className="w-4 h-4 border-2 border-neutral-300 border-t-black rounded-full animate-spin shrink-0" />}
               </div>
 
+              {query.trim().length < 2 && (() => {
+                const prev = previousMeal(previousDays, targetSlot);
+                if (!prev) return null;
+                const done = justAdded === 'previous';
+                const kcal = Math.round(prev.entries.reduce((s, e) => s + (e.kcal || 0), 0));
+                const slotInfo = SLOTS.find(x => x.id === targetSlot)!;
+                const when = dayLabel(prev.date, dayKey, ar);
+                return (
+                  <button
+                    onClick={() => {
+                      prev.entries.forEach(e => commit(e.name, e.brand, e.foodId, e.grams,
+                        { kcal: e.kcal, protein: e.protein, carbs: e.carbs, fat: e.fat, fiber: e.fiber },
+                        e.qty && e.unitLabel ? { qty: e.qty, unitLabel: e.unitLabel } : undefined));
+                      noteAdded('previous', prev.entries.length);
+                    }}
+                    className={`w-full text-start flex items-center gap-3 p-3 rounded-2xl border-2 transition ${
+                      done ? 'border-green-300 bg-green-50' : 'border-black bg-white'
+                    }`}
+                  >
+                    <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${done ? 'bg-green-100' : 'bg-black'}`}>
+                      <span className={`material-symbols-outlined text-[20px] ${done ? 'text-green-600 filled' : 'text-white'}`}>{done ? 'check_circle' : 'replay'}</span>
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-black truncate">
+                        {ar ? `نفس ${slotInfo.ar} ${when}` : `Same as ${when}'s ${slotInfo.en.toLowerCase()}`}
+                      </p>
+                      <p className="text-[11px] text-neutral-500 font-medium truncate">
+                        {prev.entries.map(e => e.name).join(', ')}
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-black text-black tabular-nums shrink-0" dir="ltr">{kcal} kcal</span>
+                  </button>
+                );
+              })()}
+
               {query.trim().length < 2 && recommended.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'مقترح من خطتك' : 'Recommended from your plan'}</p>
@@ -408,7 +475,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
               {query.trim().length < 2 && recents.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'الأخيرة' : 'Recent'}</p>
-                  {recents.slice(0, 6).map(r => (
+                  {recents.slice(0, recentShown).map(r => (
                     <button
                       key={r.id}
                       onClick={() => { commit(r.name, r.brand, r.foodId, r.grams, { kcal: r.kcal, protein: r.protein, carbs: r.carbs, fat: r.fat, fiber: r.fiber }, r.qty && r.unitLabel ? { qty: r.qty, unitLabel: r.unitLabel } : undefined); noteAdded(`recent:${r.id}`); }}
@@ -424,6 +491,26 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
                       <span className={`material-symbols-outlined text-[20px] ${justAdded === `recent:${r.id}` ? 'text-green-600 filled' : 'text-accent'}`}>{justAdded === `recent:${r.id}` ? 'check_circle' : 'add_circle'}</span>
                     </button>
                   ))}
+                  {recents.length > recentShown && (
+                    <button onClick={() => setRecentShown(n => n + 10)} className="w-full py-2.5 rounded-xl bg-neutral-50 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                      {ar ? 'عرض المزيد' : `Show more (${recents.length - recentShown})`}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {query.trim().length < 2 && customFoods.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400 ms-1">{ar ? 'أطعمتي المحفوظة' : 'My saved foods'}</p>
+                  {[...customFoods]
+                    .sort((a, b) => ((b as { createdAt?: number }).createdAt ?? 0) - ((a as { createdAt?: number }).createdAt ?? 0))
+                    .slice(0, mineShown)
+                    .map(f => <Row key={f.id} food={f} mine />)}
+                  {customFoods.length > mineShown && (
+                    <button onClick={() => setMineShown(customFoods.length)} className="w-full py-2.5 rounded-xl bg-neutral-50 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                      {ar ? 'عرض الكل' : `Show all (${customFoods.length})`}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -682,7 +769,7 @@ const FoodLogSheet: React.FC<Props> = ({ slot, recommended = [], loggedFoodIds, 
 
       {/* Portion step — sits above the sheet once a food is chosen */}
       {chosen && (
-        <div className="absolute inset-0 z-10 flex items-end md:items-center justify-center md:p-6 bg-black/50" onClick={() => setChosen(null)}>
+        <div className="absolute inset-0 z-10 flex items-end md:items-center justify-center md:p-6 bg-black/50" onClick={e => { e.stopPropagation(); setChosen(null); }}>
           <div className="bg-white w-full md:max-w-sm rounded-t-[2rem] md:rounded-3xl shadow-2xl p-5 space-y-4" onClick={e => e.stopPropagation()} style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

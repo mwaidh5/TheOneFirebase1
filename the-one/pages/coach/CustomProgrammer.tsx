@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, collection, getDocs } from 
 import { db } from '../../firebase';
 import { Exercise, ExerciseFormat, MediaAsset, WeekProgram, Course, CustomCourseRequest, DiagnosticTest, ExerciseTemplate, WorkoutTemplate, MealPlan, CourseLevel } from '../../types';
 import AICourseGenerator from '../../components/AICourseGenerator';
+import { useUnsavedChanges, UnsavedChangesDialog } from '../../hooks/useUnsavedChanges';
 
 const PremiumSelect: React.FC<{
   value: string;
@@ -98,6 +99,8 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
   const [isPickerOpen, setIsPickerOpen] = useState<{ type: 'exercise' | 'workout' | 'meal' | 'media', activeIndex: number | null }>({ type: 'exercise', activeIndex: null });
   const [selectedMealPlan, setSelectedMealPlan] = useState<MealPlan | null>(null);
   const [isAIOpen, setIsAIOpen] = useState(false);
+  // Warn before leaving with a program that was neither saved as a draft nor sent.
+  const unsaved = useUnsavedChanges({ weeks, hasMealPlan, selectedMealPlan }, request?.id ?? null);
 
   useEffect(() => {
       // Fetch Request
@@ -185,8 +188,8 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
     setWeeks(updatedWeeks);
   };
 
-  const handleSaveDraft = async () => {
-      if (!request) return;
+  const handleSaveDraft = async (quiet = false): Promise<boolean> => {
+      if (!request) return false;
       try {
           await updateDoc(doc(db, 'custom_requests', request.id), {
               weeks: weeks,
@@ -194,10 +197,13 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
               mealPlan: selectedMealPlan || null, 
               updatedAt: new Date()
           });
-          alert("Draft saved successfully.");
+          unsaved.markSaved();
+          if (!quiet) alert("Draft saved successfully.");
+          return true;
       } catch (e) {
           console.error("Error saving draft", e);
           alert("Failed to save draft.");
+          return false;
       }
   };
 
@@ -245,6 +251,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
             enrolledCourseIds: arrayUnion(newCourseId)
         });
 
+        unsaved.markSaved();
         alert(`Success! Program published and ${request.athleteName} has been enrolled.`);
         navigate('/admin/custom-requests'); 
         
@@ -272,6 +279,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-24 text-left animate-in fade-in duration-500">
+      <UnsavedChangesDialog blocker={unsaved.blocker} onSave={() => handleSaveDraft(true)} saveLabel="Save draft & leave" />
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4">
           <button onClick={() => navigate('/admin/custom-requests')} className="flex items-center gap-2 text-neutral-400 hover:text-black text-xs font-black uppercase tracking-widest mb-2 transition-colors">
@@ -300,7 +308,7 @@ const CoachCustomProgrammer: React.FC<CustomProgrammerProps> = ({ library }) => 
            </div>
 
            <button 
-            onClick={handleSaveDraft}
+            onClick={() => handleSaveDraft()}
             className="px-8 py-5 bg-neutral-100 text-neutral-600 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-neutral-200 transition shadow-sm flex items-center gap-2"
            >
             <span className="material-symbols-outlined text-[18px]">save</span>

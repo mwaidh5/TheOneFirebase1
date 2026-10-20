@@ -4,6 +4,7 @@ interface Exercise {
   id?: string;
   name?: string;
   format?: string;
+  supersetId?: string;
   sets?: number;
   reps?: string;
   rest?: string;
@@ -73,8 +74,19 @@ RULES:
 - Add a brief "description" coaching note per exercise (1 sentence max). No double quotes inside strings — use single quotes. No newlines inside strings.
 - Rest/Recovery days: empty exercises array, title "Rest Day".
 
+SUPERSETS (the app groups a superset by its supersetId, so every superset needs its own)
+- A superset is 2 or more exercises done back to back. Each exercise in it has "format":"SUPER_SET" and the same "supersetId".
+- Separate supersets in one day get separate letters in order of appearance: the first superset is "A", the second "B", the third "C". Start again at "A" on every day.
+- Never give two different supersets the same letter, and never leave supersetId off a SUPER_SET exercise: back-to-back supersets without distinct letters merge into one.
+- List the exercises of one superset next to each other.
+- Read all the usual notations: "A1/A2, B1/B2", "superset X with Y", "X + Y superset", "X & Y (SS)", "2 supersets: X + Y, and Z + W". "A1 Squat, A2 Jump, B1 RDL, B2 Lunge" is two supersets, A and B. Drop the "A1"-style prefix from the exercise name.
+- Exercises that are not part of a superset are not SUPER_SET and have no supersetId.
+- When editing a day that already has supersets, keep their letters; a new superset takes the next free letter.
+Example day: Bench Press 5x5, then superset incline DB press with cable fly 3x10, then superset lateral raise with face pull 3x15:
+[{"name":"Bench Press","format":"REGULAR","sets":5,"reps":"5"},{"name":"Incline Dumbbell Press","format":"SUPER_SET","supersetId":"A","sets":3,"reps":"10"},{"name":"Cable Fly","format":"SUPER_SET","supersetId":"A","sets":3,"reps":"10"},{"name":"Lateral Raise","format":"SUPER_SET","supersetId":"B","sets":3,"reps":"15"},{"name":"Face Pull","format":"SUPER_SET","supersetId":"B","sets":3,"reps":"15"}]
+
 SCHEMA:
-interface Exercise { id: string; name: string; format: string; sets?: number; reps?: string; rest?: string; description?: string; durationMinutes?: number; rounds?: number; distance?: string; time?: string; }
+interface Exercise { id: string; name: string; format: string; sets?: number; reps?: string; rest?: string; description?: string; supersetId?: string; durationMinutes?: number; rounds?: number; distance?: string; time?: string; }
 interface DayProgram { id: string; dayNumber: number; title: string; exercises: Exercise[]; }
 interface WeekProgram { id: string; weekNumber: number; days: DayProgram[]; }`;
 
@@ -101,10 +113,20 @@ FIELDS
 - No "id" fields; the app assigns them.
 - "format": one of REGULAR, EMOM, SUPER_SET, CIRCUIT, DROP_SET, AMRAP, FOR_TIME, HIIT, CARDIO, MAX_EFFORT. REGULAR for standard sets x reps; AMRAP when reps say AMRAP; MAX_EFFORT for 1RM/3RM tests.
 - "sets" is a number. "reps" and "rest" are strings ("10", "5-8", "AMRAP"; "90s", "3 min").
-- Exercises done as a superset share the same "supersetId" (a group label such as "A" or "B") and have format SUPER_SET.
 - "description": a short coaching note, at most 12 words. No double quotes or newlines inside strings.
 - Rest or recovery days: "title":"Rest Day" and an empty exercises array.
 - Omit fields that do not apply.
+
+SUPERSETS (the app groups a superset by its supersetId, so every superset needs its own)
+- A superset is 2 or more exercises done back to back. Each exercise in it has "format":"SUPER_SET" and the same "supersetId".
+- Separate supersets in one day get separate letters in order of appearance: the first superset is "A", the second "B", the third "C". Start again at "A" on every day.
+- Never give two different supersets the same letter, and never leave supersetId off a SUPER_SET exercise: back-to-back supersets without distinct letters merge into one.
+- List the exercises of one superset next to each other.
+- Read all the usual notations: "A1/A2, B1/B2", "superset X with Y", "X + Y superset", "X & Y (SS)", "2 supersets: X + Y, and Z + W". "A1 Squat, A2 Jump, B1 RDL, B2 Lunge" is two supersets, A and B. Drop the "A1"-style prefix from the exercise name.
+- Exercises that are not part of a superset are not SUPER_SET and have no supersetId.
+- When editing a day that already has supersets, keep their letters; a new superset takes the next free letter.
+Example day: Bench Press 5x5, then superset incline DB press with cable fly 3x10, then superset lateral raise with face pull 3x15:
+[{"name":"Bench Press","format":"REGULAR","sets":5,"reps":"5"},{"name":"Incline Dumbbell Press","format":"SUPER_SET","supersetId":"A","sets":3,"reps":"10"},{"name":"Cable Fly","format":"SUPER_SET","supersetId":"A","sets":3,"reps":"10"},{"name":"Lateral Raise","format":"SUPER_SET","supersetId":"B","sets":3,"reps":"15"},{"name":"Face Pull","format":"SUPER_SET","supersetId":"B","sets":3,"reps":"15"}]
 
 SCHEMA
 Exercise {name, format, sets?, reps?, rest?, weight?, description?, durationMinutes?, rounds?, distance?, time?, workInterval?, restInterval?, supersetId?, emomItems?: {name, time}[], forTimeItems?: {name, reps}[]}
