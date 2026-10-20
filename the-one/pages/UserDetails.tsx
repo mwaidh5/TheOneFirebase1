@@ -23,7 +23,7 @@ const METRICS: Array<{ key: 'weight' | 'bodyFat' | 'restingHr'; labelKey: Transl
 
 const UserDetails: React.FC<Props> = ({ currentUser }) => {
   const { t, lang } = useT();
-  const locale = lang === 'ar' ? 'ar' : 'en-GB';
+  const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB';
   const unitOf = (m: typeof METRICS[number]) => (m.unitKey ? t(m.unitKey) : m.unit);
   const [entries, setEntries] = useState<VitalEntry[]>([]);
   const [form, setForm] = useState({ weight: '', bodyFat: '', restingHr: '' });

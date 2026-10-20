@@ -204,7 +204,7 @@ export const appTranslations = {
   // Navbar
   'app.nav.logo_alt': { en: 'Logo', ar: 'الشعار' },
   'app.nav.menu': { en: 'Menu', ar: 'القائمة' },
-  'app.nav.role_client': { en: 'Client', ar: 'رياضي' },
+  'app.nav.role_client': { en: 'Client', ar: 'متدرّب' },
   'app.nav.role_coach': { en: 'Coach', ar: 'مدرب' },
   'app.nav.role_admin': { en: 'Admin', ar: 'مدير' },
   'app.nav.role_support': { en: 'Support', ar: 'الدعم' },

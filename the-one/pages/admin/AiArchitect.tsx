@@ -22,7 +22,7 @@ interface AdminAiArchitectProps {
 const AdminAiArchitect: React.FC<AdminAiArchitectProps> = ({ siteSettings, setSiteSettings, onLogout }) => {
   const navigate = useNavigate();
   const { t, lang } = useT();
-  const timeLocale = lang === 'ar' ? 'ar' : 'en-GB';
+  const timeLocale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB';
   const [command, setCommand] = useState('');
   const [logs, setLogs] = useState<{ type: 'system' | 'ai' | 'user'; message: string; timestamp: string }[]>(() => [
     { type: 'system', message: t('admin.ai.init_1'), timestamp: new Date().toLocaleTimeString(timeLocale) },

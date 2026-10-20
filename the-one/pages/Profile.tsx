@@ -82,7 +82,7 @@ function fmtShort(date: Date, locale: string): string {
 
 const Profile: React.FC<ProfileProps> = ({ currentUser, courses }) => {
   const { t, lang, isRtl } = useT();
-  const locale = lang === 'ar' ? 'ar' : 'en-GB';
+  const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB';
   const unitLabel = (u: string) => u === 'kg' ? t('app.profile.unit_kg') : (u === 'lbs' || u === 'lb') ? t('app.profile.unit_lbs') : u;
   const [userData, setUserData] = useState<UserProfile>(currentUser as UserProfile);
   const [isUploading, setIsUploading] = useState(false);

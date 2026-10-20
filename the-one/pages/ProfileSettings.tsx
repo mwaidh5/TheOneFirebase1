@@ -13,7 +13,7 @@ interface ProfileSettingsProps {
 
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser: initialUser }) => {
   const { t, lang, setLang } = useT();
-  const locale = lang === 'ar' ? 'ar' : 'en-GB';
+  const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB';
   // Device labels are stored as plain English in localStorage; translate the fallbacks at display time.
   const deviceLabel = (ua: string) => ua.replace('Unknown OS', t('app.settings.unknown_os')).replace('Unknown Browser', t('app.settings.unknown_browser'));
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing' | 'preferences'>('profile');

@@ -307,7 +307,7 @@ const MealPlan: React.FC<{ currentUser?: User | null }> = ({ currentUser }) => {
           <p className="text-[10px] font-black uppercase tracking-widest rtl:tracking-normal text-neutral-400">
             {isToday
               ? (ar ? 'اليوم' : 'Today')
-              : selectedDate.toLocaleDateString(ar ? 'ar' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
+              : selectedDate.toLocaleDateString(ar ? 'ar-u-nu-latn' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
           </p>
           {mode === 'off' && (
             <span className="text-[9px] font-black uppercase tracking-widest rtl:tracking-normal text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">

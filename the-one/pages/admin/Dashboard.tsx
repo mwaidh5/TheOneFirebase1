@@ -24,7 +24,7 @@ const LOG_TYPE_KEYS: Record<string, TranslationKey> = {
 
 const AdminDashboard: React.FC = () => {
   const { t, lang } = useT();
-  const timeLocale = lang === 'ar' ? 'ar' : 'en-GB';
+  const timeLocale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB';
   const fnsLocale = lang === 'ar' ? { locale: arLocale } : {};
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);

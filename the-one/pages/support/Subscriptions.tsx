@@ -33,7 +33,7 @@ const SupportSubscriptions: React.FC = () => {
 
   const formatRenewal = (d: string | null) =>
     d
-      ? new Date(`${d}T00:00:00`).toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      ? new Date(`${d}T00:00:00`).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
       : t('support.subs.not_applicable');
 
   const filtered = subscriptions.filter(s =>

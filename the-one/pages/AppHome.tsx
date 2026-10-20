@@ -87,7 +87,7 @@ const AppHome: React.FC<HomepageProps> = ({ currentUser, settings }) => {
   const tip = DAILY_TIPS[day];
   const quote = DAILY_QUOTES[day];
   const isWeekend = tip.tone === 'weekend'; // Friday & Saturday in Iraq
-  const dayName = new Date().toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB', { weekday: 'long' });
+  const dayName = new Date().toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB', { weekday: 'long' });
 
   const quickActions = [
     { to: '/courses', icon: 'fitness_center', label: t('nav.courses'), bg: 'bg-blue-50', color: 'text-accent' },

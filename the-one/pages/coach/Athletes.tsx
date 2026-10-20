@@ -82,7 +82,7 @@ const CoachAthletes: React.FC<CoachAthletesProps> = ({ currentUser }) => {
 
   const statusLabel = (s: string) => (STATUS_LABELS[s] ? t(STATUS_LABELS[s]) : s);
   const levelLabel = (l: string) => (l === 'General' ? t('coach.athletes.general') : l);
-  const formatSince = (a: Athlete) => (a.createdAt ? new Date(a.createdAt).toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB') : a.lastSeen);
+  const formatSince = (a: Athlete) => (a.createdAt ? new Date(a.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB') : a.lastSeen);
 
   const handleMessageAthlete = (e: React.MouseEvent, athleteId: string) => {
     e.stopPropagation();

@@ -486,7 +486,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
                       {msg.text && (msg.text === 'Sent an image' || msg.text === 'Sent a video') && !(msg.imageUrl || msg.videoUrl) && <span>{displayText(msg.text)}</span>}
                     </div>
                     <span className="text-[9px] font-bold text-neutral-300 mt-1 uppercase">
-                        {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString(lang === 'ar' ? 'ar' : 'en-GB', {hour: '2-digit', minute:'2-digit'}) : '...'}
+                        {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB', {hour: '2-digit', minute:'2-digit'}) : '...'}
                     </span>
                   </div>
                 );

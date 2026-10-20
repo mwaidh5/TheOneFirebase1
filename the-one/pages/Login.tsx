@@ -338,7 +338,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               autoComplete="off"
               tabIndex={-1}
               aria-hidden="true"
-              style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
+              // Clipped in place rather than pushed to left:-9999px, which in RTL widens the page by 10,000px.
+              style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, overflow: 'hidden', clipPath: 'inset(50%)', pointerEvents: 'none' }}
             />
             <div className="space-y-2 text-start">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] rtl:tracking-normal text-neutral-400 ms-1">{t('auth.email')}</label>

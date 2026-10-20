@@ -364,7 +364,7 @@ const AdminCustomRequests: React.FC = () => {
                                 <div key={idx} className="p-8 bg-neutral-50 rounded-[2.5rem] border border-neutral-100 space-y-4 shadow-sm">
                                     <div className="flex justify-between items-center">
                                         <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{test?.title || t('builder.diagnostic_question')}</p>
-                                        <span className="text-[8px] font-bold text-neutral-300 uppercase">{new Date(sub.submittedAt).toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB')}</span>
+                                        <span className="text-[8px] font-bold text-neutral-300 uppercase">{new Date(sub.submittedAt).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB')}</span>
                                     </div>
                                     
                                     {sub.data.startsWith('http') ? (

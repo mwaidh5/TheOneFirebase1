@@ -4,7 +4,7 @@ import { useT } from '../i18n/I18nContext';
 
 const BillingHistory: React.FC = () => {
   const { t, lang } = useT();
-  const locale = lang === 'ar' ? 'ar' : 'en-GB';
+  const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB';
   const rows = [1, 2, 3];
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:px-6 md:py-12">

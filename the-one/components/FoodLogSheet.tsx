@@ -84,7 +84,7 @@ function dayLabel(date: string, dayKey: string | undefined, ar: boolean): string
   const base = dayKey ? (() => { const [by, bm, bd] = dayKey.split('-').map(Number); return new Date(by, bm - 1, bd); })() : new Date();
   const daysAgo = Math.round((base.getTime() - then.getTime()) / 86_400_000);
   if (daysAgo === 1) return ar ? 'أمس' : 'yesterday';
-  const locale = ar ? 'ar' : 'en-GB';
+  const locale = ar ? 'ar-u-nu-latn' : 'en-GB';
   if (daysAgo > 1 && daysAgo < 7) {
     const wd = then.toLocaleDateString(locale, { weekday: 'long' });
     return ar ? `يوم ${wd}` : wd;
