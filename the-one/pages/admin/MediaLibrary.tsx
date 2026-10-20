@@ -5,12 +5,21 @@ import { setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth, aiService } from '../../firebase';
 import { MediaAsset } from '../../types';
+import { useT } from '../../i18n/I18nContext';
+import type { TranslationKey } from '../../i18n/translations';
+
+const CATEGORY_KEYS: Record<string, TranslationKey> = {
+  WORKOUT: 'admin.media.cat_workout',
+  GENERAL: 'admin.media.cat_general',
+  PROFILE: 'admin.media.cat_profile',
+};
 
 interface MediaLibraryProps {
   library: MediaAsset[];
 }
 
 const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
+  const { t } = useT();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -48,13 +57,13 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
     if (!file) return;
 
     if (!auth.currentUser) {
-        alert("Authentication Error: You are logged in locally but not connected to Firebase. Please Logout and Login again to refresh your session.");
+        alert(t('admin.media.auth_error'));
         if(fileInputRef.current) fileInputRef.current.value = '';
         return;
     }
 
     if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic' || file.type === 'image/heif') {
-        alert("HEIC files are not supported as they do not display correctly on web browsers. Please convert to JPG or PNG before uploading.");
+        alert(t('admin.media.heic_error'));
         if(fileInputRef.current) fileInputRef.current.value = '';
         return;
     }
@@ -83,7 +92,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
       
     } catch (error) {
       console.error("Error saving media:", error);
-      alert(`Upload failed: ${(error as Error).message}`);
+      alert(t('admin.media.upload_failed', { error: (error as Error).message }));
     } finally {
         setIsUploading(false);
         if(fileInputRef.current) {
@@ -93,7 +102,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
   };
 
   const removeAsset = async (asset: MediaAsset) => {
-    if (window.confirm("Permanently delete this asset?")) {
+    if (window.confirm(t('admin.media.confirm_delete'))) {
       try {
         await deleteDoc(doc(db, 'media', asset.id));
         
@@ -107,14 +116,14 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
         }
       } catch (error) {
         console.error("Error deleting media:", error);
-        alert(`Delete failed: ${(error as Error).message}`);
+        alert(t('admin.media.delete_failed', { error: (error as Error).message }));
       }
     }
   };
 
   const runAiTask = async () => {
     if (!aiPrompt) return;
-    if (!auth.currentUser) return alert("Please login to use AI features");
+    if (!auth.currentUser) return alert(t('admin.media.login_for_ai'));
 
     setIsAiLoading(true);
 
@@ -123,7 +132,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
         const imagenModel = getImagenModel(aiService, { model: 'imagen-3.0-generate-001' });
         const result = await imagenModel.generateImages(aiPrompt);
         const generatedImage = result.images[0];
-        if (!generatedImage) throw new Error('No image was returned by the model.');
+        if (!generatedImage) throw new Error(t('admin.media.no_image_returned'));
 
         const base64Image = generatedImage.bytesBase64Encoded;
         const mimeType = generatedImage.mimeType || 'image/png';
@@ -156,7 +165,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
         };
 
         await setDoc(doc(db, 'media', assetId), newAsset);
-        alert("AI Asset Generated and Saved to Gallery!");
+        alert(t('admin.media.generated'));
         setAiPrompt('');
 
       } else if (selectedImageForAi) {
@@ -185,29 +194,29 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
         const firstPart = candidate?.content?.parts?.[0];
 
         if (firstPart && 'text' in firstPart) {
-          alert(`AI Response: ${firstPart.text}`);
+          alert(t('admin.media.ai_response', { text: firstPart.text }));
         } else {
-          alert("AI processed the request but returned no displayable output.");
+          alert(t('admin.media.no_output'));
         }
 
       } else {
-        throw new Error('Please select an image to edit.');
+        throw new Error(t('admin.media.select_image'));
       }
 
     } catch (error: any) {
       console.error('AI Task Failed:', error);
-      alert(`AI task failed: ${error.message || 'Unknown error'}.`);
+      alert(t('admin.media.ai_failed', { error: error.message || t('admin.common.unknown') }));
     } finally {
       setIsAiLoading(false);
     }
   };
 
   return (
-    <div className="space-y-12 pb-24 text-left animate-in fade-in duration-500">
+    <div className="space-y-12 pb-24 text-start animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">Media Studio</h1>
-          <p className="text-neutral-400 font-medium">Internal asset management and AI creative laboratory.</p>
+          <h1 className="text-4xl font-black font-display tracking-tight text-black uppercase">{t('admin.media.title')}</h1>
+          <p className="text-neutral-400 font-medium">{t('admin.media.subtitle')}</p>
         </div>
         <button 
           onClick={() => fileInputRef.current?.click()}
@@ -217,12 +226,12 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
           {isUploading ? (
               <>
               <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-              Uploading...
+              {t('admin.media.uploading')}
               </>
           ) : (
               <>
               <span className="material-symbols-outlined">upload_file</span>
-              Internal Upload
+              {t('admin.media.upload')}
               </>
           )}
           <input type="file" ref={fileInputRef} className="hidden" onChange={handleUpload} accept="image/png,image/jpeg,image/webp,video/mp4" />
@@ -235,23 +244,23 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
               <h2 className="text-xl font-bold font-display uppercase tracking-tight flex items-center gap-3">
                 <span className="material-symbols-outlined text-accent">gallery_thumbnail</span>
-                Asset Gallery
+                {t('admin.media.gallery')}
               </h2>
               <div className="flex flex-wrap gap-4">
                 <select value={filterType} onChange={e => setFilterType(e.target.value as any)} className="bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none">
-                  <option value="ALL">All Types</option>
-                  <option value="image">Images Only</option>
-                  <option value="video">Videos Only</option>
+                  <option value="ALL">{t('admin.media.all_types')}</option>
+                  <option value="image">{t('admin.media.images_only')}</option>
+                  <option value="video">{t('admin.media.videos_only')}</option>
                 </select>
                 <select value={filterCategory} onChange={e => setFilterCategory(e.target.value as any)} className="bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none">
-                  <option value="ALL">All Categories</option>
-                  <option value="WORKOUT">Workout Assets</option>
-                  <option value="GENERAL">General Assets</option>
-                  <option value="PROFILE">Profile Assets</option>
+                  <option value="ALL">{t('admin.media.all_categories')}</option>
+                  <option value="WORKOUT">{t('admin.media.workout_assets')}</option>
+                  <option value="GENERAL">{t('admin.media.general_assets')}</option>
+                  <option value="PROFILE">{t('admin.media.profile_assets')}</option>
                 </select>
                 <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="bg-neutral-50 border border-neutral-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none">
-                  <option value="NEWEST">Newest First</option>
-                  <option value="NAME">Name A-Z</option>
+                  <option value="NEWEST">{t('admin.media.newest')}</option>
+                  <option value="NAME">{t('admin.media.name_az')}</option>
                 </select>
               </div>
             </div>
@@ -267,8 +276,8 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                       <span className="material-symbols-outlined text-4xl absolute pointer-events-none">video_file</span>
                     </div>
                   )}
-                  <div className="absolute top-4 left-4">
-                    <span className="px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-black shadow-sm">{asset.category}</span>
+                  <div className="absolute top-4 start-4">
+                    <span className="px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-black shadow-sm">{CATEGORY_KEYS[asset.category] ? t(CATEGORY_KEYS[asset.category]) : asset.category}</span>
                   </div>
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
                     <p className="text-[10px] font-black text-white uppercase truncate mb-2">{asset.name}</p>
@@ -281,11 +290,13 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                           }}
                           className="flex-1 py-2 bg-white text-black text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-accent hover:text-white"
                         >
-                          AI Edit
+                          {t('admin.media.ai_edit')}
                         </button>
                       )}
                       <button 
                         onClick={() => removeAsset(asset)}
+                        aria-label={t('common.delete')}
+                        title={t('common.delete')}
                         className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                       >
                         <span className="material-symbols-outlined text-sm">delete</span>
@@ -294,7 +305,7 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                   </div>
                 </div>
               ))}
-              {filteredAssets.length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-20">Gallery is empty.</p>}
+              {filteredAssets.length === 0 && <p className="col-span-full text-center text-xs text-neutral-400 py-20">{t('admin.media.empty')}</p>}
             </div>
           </div>
         </div>
@@ -306,29 +317,29 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                 <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center animate-pulse">
                   <span className="material-symbols-outlined">auto_awesome</span>
                 </div>
-                <h2 className="text-2xl font-black font-display uppercase tracking-tight">AI Laboratory</h2>
+                <h2 className="text-2xl font-black font-display uppercase tracking-tight">{t('admin.media.ai_lab')}</h2>
               </div>
 
               <div className="flex p-1 bg-white/5 rounded-2xl mb-8">
-                <button onClick={() => setAiTab('generate')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${aiTab === 'generate' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>Create New</button>
-                <button onClick={() => setAiTab('edit')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${aiTab === 'edit' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>Smart Edit</button>
+                <button onClick={() => setAiTab('generate')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${aiTab === 'generate' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>{t('admin.media.create_new')}</button>
+                <button onClick={() => setAiTab('edit')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition ${aiTab === 'edit' ? 'bg-accent text-white' : 'text-neutral-500 hover:text-white'}`}>{t('admin.media.smart_edit')}</button>
               </div>
 
               {aiTab === 'edit' && (
                 <div className="mb-8 space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Target Image</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">{t('admin.media.target_image')}</p>
                   <div className="aspect-video rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden relative group">
                     {selectedImageForAi ? (
                       <>
-                        <img src={selectedImageForAi} className="w-full h-full object-cover" />
-                        <button onClick={() => setSelectedImageForAi(null)} className="absolute top-4 right-4 bg-red-500 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <img src={selectedImageForAi} className="w-full h-full object-cover" alt={t('admin.media.target_image')} />
+                        <button onClick={() => setSelectedImageForAi(null)} aria-label={t('common.close')} className="absolute top-4 end-4 bg-red-500 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="material-symbols-outlined text-sm">close</span>
                         </button>
                       </>
                     ) : (
                       <div className="text-center p-8">
                         <span className="material-symbols-outlined text-3xl text-neutral-700 mb-2">image_search</span>
-                        <p className="text-[10px] font-bold text-neutral-600 uppercase">Select from gallery to edit</p>
+                        <p className="text-[10px] font-bold text-neutral-600 uppercase">{t('admin.media.select_from_gallery')}</p>
                       </div>
                     )}
                   </div>
@@ -336,11 +347,11 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
               )}
 
               <div className="space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">{aiTab === 'generate' ? 'Generation Prompt' : 'Editing Instructions'}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">{aiTab === 'generate' ? t('admin.media.gen_prompt') : t('admin.media.edit_instructions')}</p>
                 <textarea 
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder={aiTab === 'generate' ? "e.g., A cinematic wide shot of an athlete doing muscle ups." : "e.g., Remove the background and make it high-contrast black and white."}
+                  placeholder={aiTab === 'generate' ? t('admin.media.gen_ph') : t('admin.media.edit_ph')}
                   className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-sm font-medium focus:border-accent focus:ring-1 focus:ring-accent outline-none min-h-[150px] transition"
                 />
               </div>
@@ -352,14 +363,14 @@ const AdminMediaLibrary: React.FC<MediaLibraryProps> = ({ library }) => {
                   className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-sm transition shadow-xl flex items-center justify-center gap-4 ${isAiLoading ? 'bg-neutral-800 text-neutral-500' : 'bg-accent text-white hover:bg-blue-600'}`}
                 >
                   {isAiLoading ? (
-                    <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> AI Working...</>
+                    <><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> {t('admin.media.ai_working')}</>
                   ) : (
-                    <><span className="material-symbols-outlined">flare</span> {aiTab === 'generate' ? 'Generate Asset' : 'Apply Magic Edit'}</>
+                    <><span className="material-symbols-outlined">flare</span> {aiTab === 'generate' ? t('admin.media.generate') : t('admin.media.apply_edit')}</>
                   )}
                 </button>
               </div>
             </div>
-            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-accent/20 rounded-full blur-[100px] pointer-events-none"></div>
+            <div className="absolute -end-20 -bottom-20 w-80 h-80 bg-accent/20 rounded-full blur-[100px] pointer-events-none"></div>
           </div>
         </div>
       </div>
